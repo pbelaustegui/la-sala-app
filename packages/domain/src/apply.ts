@@ -1,13 +1,19 @@
-import type { BoutState, PhaseKind } from './bout';
+import type { BoutState, Card, PhaseKind } from './bout';
 import { settle, startClock, stopClock } from './clock';
+import type { Side, Weapon } from './rules';
+import { giveCard, scoreDoubleTouch, scoreTouch } from './scoring';
 
 export type BoutEvent =
   | { readonly type: 'clock-started'; readonly at: number }
   | { readonly type: 'clock-stopped'; readonly at: number }
-  | { readonly type: 'break-skipped'; readonly at: number };
+  | { readonly type: 'break-skipped'; readonly at: number }
+  | { readonly type: 'touch-scored'; readonly side: Side; readonly at: number }
+  | { readonly type: 'double-touch-scored'; readonly at: number }
+  | { readonly type: 'card-given'; readonly side: Side; readonly card: Card; readonly at: number };
 
 export type DomainError =
   | { readonly type: 'invalid-phase'; readonly phase: PhaseKind; readonly event: BoutEvent['type'] }
+  | { readonly type: 'double-touch-not-allowed'; readonly weapon: Weapon }
   | { readonly type: 'clock-already-running' }
   | { readonly type: 'clock-not-running' }
   | { readonly type: 'time-went-backwards'; readonly lastAt: number; readonly at: number }
@@ -51,6 +57,10 @@ function skipBreakEvent(state: BoutState, event: BoutEvent) {
   return succeed(settle(state, state.phase.endsAt));
 }
 
+function isFencing(state: BoutState): boolean {
+  return state.phase.kind === 'fencing';
+}
+
 /** Pure reducer. Time-driven transitions are derived first via `settle`; errors are values. */
 export function apply(state: BoutState, event: BoutEvent): Result<BoutState, DomainError> {
   if (state.lastAt !== null && event.at < state.lastAt) {
@@ -71,5 +81,17 @@ function reduce(state: BoutState, event: BoutEvent): Result<BoutState, DomainErr
       return stopClockEvent(state, event.at, event);
     case 'break-skipped':
       return skipBreakEvent(state, event);
+    case 'touch-scored':
+      return isFencing(state) ? succeed(scoreTouch(state, event.side, event.at)) : invalidPhase(state, event);
+    case 'double-touch-scored':
+      if (!isFencing(state)) return invalidPhase(state, event);
+      if (!state.rules.doubleTouchAllowed) {
+        return fail({ type: 'double-touch-not-allowed', weapon: state.rules.weapon });
+      }
+      return succeed(scoreDoubleTouch(state, event.at));
+    case 'card-given':
+      return isFencing(state)
+        ? succeed(giveCard(state, event.side, event.card, event.at))
+        : invalidPhase(state, event);
   }
 }
