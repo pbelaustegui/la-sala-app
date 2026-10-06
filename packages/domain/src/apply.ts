@@ -10,7 +10,9 @@ export type BoutEvent =
   | { readonly type: 'touch-scored'; readonly side: Side; readonly at: number }
   | { readonly type: 'double-touch-scored'; readonly at: number }
   | { readonly type: 'priority-drawn'; readonly side: Side; readonly at: number }
-  | { readonly type: 'card-given'; readonly side: Side; readonly card: Card; readonly at: number };
+  | { readonly type: 'card-given'; readonly side: Side; readonly card: Card; readonly at: number }
+  /** Reverts the previously applied event. Needs history, so only `replay` can handle it. */
+  | { readonly type: 'undo'; readonly at: number };
 
 export type DomainError =
   | { readonly type: 'invalid-phase'; readonly phase: PhaseKind; readonly event: BoutEvent['type'] }
@@ -18,7 +20,9 @@ export type DomainError =
   | { readonly type: 'clock-already-running' }
   | { readonly type: 'clock-not-running' }
   | { readonly type: 'time-went-backwards'; readonly lastAt: number; readonly at: number }
-  | { readonly type: 'bout-finished' };
+  | { readonly type: 'bout-finished' }
+  | { readonly type: 'nothing-to-undo' }
+  | { readonly type: 'undo-requires-replay' };
 
 export type Result<T, E> =
   | { readonly ok: true; readonly state: T }
@@ -75,6 +79,7 @@ function drawPriorityEvent(state: BoutState, side: Side, event: BoutEvent) {
 
 /** Pure reducer. Time-driven transitions are derived first via `settle`; errors are values. */
 export function apply(state: BoutState, event: BoutEvent): Result<BoutState, DomainError> {
+  if (event.type === 'undo') return fail({ type: 'undo-requires-replay' });
   if (state.lastAt !== null && event.at < state.lastAt) {
     return fail({ type: 'time-went-backwards', lastAt: state.lastAt, at: event.at });
   }
@@ -107,5 +112,7 @@ function reduce(state: BoutState, event: BoutEvent): Result<BoutState, DomainErr
       return isFencing(state)
         ? succeed(giveCard(state, event.side, event.card, event.at))
         : invalidPhase(state, event);
+    case 'undo':
+      return fail({ type: 'undo-requires-replay' });
   }
 }
