@@ -32,7 +32,7 @@ Judges score on phones (offline-first, mobile data), the public cannot see them.
 
 ## Tasks
 - [x] S1 Scaffold `packages/server`, ports (`PisteRepository`, `PinGenerator`, `Clock`), in-memory adapter, `createApp(deps)`, `/health`, admin auth + create/list pistes
-- [ ] S2 Judge endpoints: start bout, idempotent batched events, state snapshot, public pistes list
+- [x] S2 Judge endpoints: start bout, idempotent batched events, state snapshot, public pistes list
 - [ ] S3 SSE stream with an in-process hub (publish on every applied change), heartbeat
 - [ ] S4 SQLite adapter with repository contract tests shared with in-memory; `main.ts` (env: ADMIN_PIN required, PORT, DB_PATH); short README section on running it
 
@@ -48,5 +48,6 @@ Judges score on phones (offline-first, mobile data), the public cannot see them.
 
 ## Progress / evidence
 - Branch `feat/server` created from `feat/bout-domain`.
-- S1 done. RED: vitest failed on missing modules (3 files, no tests). GREEN: `npm test --workspaces` domain 67 + server 22 tests pass; `npx tsc --noEmit -p packages/server` clean. Route: delegated direct (writer). Commit hash: recorded in S2 update. RDD assessment: pending (parent).
-- Next step: S2.
+- S1 done. RED: vitest failed on missing modules (3 files, no tests). GREEN: `npm test --workspaces` domain 67 + server 22 tests pass; `npx tsc --noEmit -p packages/server` clean. Route: delegated direct (writer). Commit: 32df62e. RDD assessment: pending (parent).
+- S2 done. RED: 41 failing tests + 1 failing file (missing keyed-queue, ports unimplemented). GREEN: server 69 tests pass (memory contract incl. bout contract, KeyedQueue, judge endpoints); tsc clean. Design notes: per-piste KeyedQueue serializes read-modify-write; batch validated via domain `replay` before persisting (atomic); 422 index is relative to the submitted batch; snapshot adds `fencers` (names) beside `{serverTime, bout}`; `bout` is null before a bout starts; no bout -> 409; unknown piste -> 404 before PIN check. Commit hash recorded in S3 update.
+- Next step: S3.

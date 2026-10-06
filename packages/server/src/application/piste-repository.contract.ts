@@ -45,3 +45,84 @@ export function describePisteRepositoryContract(
     });
   });
 }
+
+const setup = { weapon: 'foil', left: 'Ana', right: 'Bea' } as const;
+const event = (id: string, at: number) => ({ id, event: { type: 'clock-started', at } }) as const;
+
+/** Bout persistence part of the contract. Requires a repository seeded with piste "1". */
+export function describeBoutRepositoryContract(
+  name: string,
+  create: () => PisteRepository | Promise<PisteRepository>,
+): void {
+  describe(`PisteRepository bout contract: ${name}`, () => {
+    let repo: PisteRepository;
+
+    beforeEach(async () => {
+      repo = await create();
+      await repo.replacePistes([
+        { id: '1', pin: '1111' },
+        { id: '2', pin: '2222' },
+      ]);
+    });
+
+    it('has no bout until one is started', async () => {
+      expect(await repo.findBout('1')).toBeNull();
+    });
+
+    it('stores the setup of a started bout with no events', async () => {
+      await repo.startBout('1', { ...setup, options: { touchLimit: 5 } });
+      expect(await repo.findBout('1')).toEqual({
+        setup: { ...setup, options: { touchLimit: 5 } },
+        events: [],
+      });
+      expect(await repo.findBout('2')).toBeNull();
+    });
+
+    it('appends events keeping their order and ids', async () => {
+      await repo.startBout('1', setup);
+      await repo.appendEvents('1', [event('a', 1), event('b', 2)]);
+      await repo.appendEvents('1', [event('c', 3)]);
+      const bout = await repo.findBout('1');
+      expect(bout?.events.map((e) => e.id)).toEqual(['a', 'b', 'c']);
+      expect(bout?.events[0]).toEqual(event('a', 1));
+    });
+
+    it('rejects a batch containing an already stored id and persists nothing from it', async () => {
+      await repo.startBout('1', setup);
+      await repo.appendEvents('1', [event('a', 1)]);
+      await expect(repo.appendEvents('1', [event('b', 2), event('a', 3)])).rejects.toThrow();
+      expect((await repo.findBout('1'))?.events.map((e) => e.id)).toEqual(['a']);
+    });
+
+    it('rejects appending when there is no bout', async () => {
+      await expect(repo.appendEvents('1', [event('a', 1)])).rejects.toThrow();
+    });
+
+    it('archives the previous bout when a new one starts', async () => {
+      await repo.startBout('1', setup);
+      await repo.appendEvents('1', [event('a', 1)]);
+      await repo.startBout('1', { ...setup, left: 'Cris' });
+      expect(await repo.findBout('1')).toEqual({ setup: { ...setup, left: 'Cris' }, events: [] });
+      const archived = await repo.listArchivedBouts('1');
+      expect(archived).toHaveLength(1);
+      expect(archived[0]?.setup.left).toBe('Ana');
+      expect(archived[0]?.events.map((e) => e.id)).toEqual(['a']);
+    });
+
+    it('allows reusing an event id in a new bout', async () => {
+      await repo.startBout('1', setup);
+      await repo.appendEvents('1', [event('a', 1)]);
+      await repo.startBout('1', setup);
+      await repo.appendEvents('1', [event('a', 1)]);
+      expect((await repo.findBout('1'))?.events).toHaveLength(1);
+    });
+
+    it('discards bouts and archives when pistes are replaced', async () => {
+      await repo.startBout('1', setup);
+      await repo.startBout('1', setup);
+      await repo.replacePistes([{ id: '1', pin: '3333' }]);
+      expect(await repo.findBout('1')).toBeNull();
+      expect(await repo.listArchivedBouts('1')).toEqual([]);
+    });
+  });
+}

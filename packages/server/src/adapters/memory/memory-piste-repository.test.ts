@@ -1,4 +1,8 @@
-import { describePisteRepositoryContract } from '../../application/piste-repository.contract';
+import {
+  describeBoutRepositoryContract,
+  describePisteRepositoryContract,
+} from '../../application/piste-repository.contract';
 import { MemoryPisteRepository } from './memory-piste-repository';
 
 describePisteRepositoryContract('memory', () => new MemoryPisteRepository());
+describeBoutRepositoryContract('memory', () => new MemoryPisteRepository());
