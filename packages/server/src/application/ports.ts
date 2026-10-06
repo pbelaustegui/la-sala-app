@@ -56,7 +56,7 @@ export interface Clock {
   now(): number;
 }
 
-/** Throttles repeated failed PIN checks per key (a piste id, or the admin). */
+/** Throttles repeated failed PIN checks per key (a piste id). */
 export interface AttemptLimiter {
   /** Milliseconds until the key may try again; 0 when it is not locked out. */
   retryAfterMs(key: string): number;

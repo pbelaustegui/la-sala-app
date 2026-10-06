@@ -52,6 +52,8 @@ PINs are compared in constant time, are never logged and only appear in admin re
 
 **Admin PIN policy:** `ADMIN_PIN` must be at least 12 characters (after trimming) or the server refuses to start. The admin PIN is never throttled or locked out: a lockout would let any unauthenticated client keep the organizer out of `/admin` for the whole event, so a long PIN is the defense against guessing instead. The PIN is compared in constant time and never logged.
 
+**Residual risk (accepted):** because there is no throttle, `/admin` can be guessed online without any rate limit. Use a long random value (for example 16+ random characters), not a memorable phrase, and stop the server when the event ends. A per-IP failure limit was considered and left out because client IPs behind a proxy come from spoofable headers.
+
 ## Development
 
 ```sh
