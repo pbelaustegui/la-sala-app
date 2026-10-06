@@ -28,7 +28,7 @@ La Sala = live scoreboard for a fencing school's internal tournaments (3-4 simul
 
 ## Tasks
 - [x] T1 Scaffold + rules: repo skeleton, tsconfig, vitest, `createRules(weapon, options)` with tests
-- [ ] T2 Bout state + clock: `createBout`, clock start/stop, `settle(state, at)`, period end and breaks
+- [x] T2 Bout state + clock: `createBout`, clock start/stop, `settle(state, at)`, period end and breaks
 - [ ] T3 Scoring: touches, double touch (epee), touch limit win, sabre mid-bout break, cards
 - [ ] T4 Tie-break: priority draw, sudden-death extra period, exclusion win reasons
 - [ ] T5 Replay + undo: `replay(initial, events)` with `undo` event
@@ -48,5 +48,8 @@ La Sala = live scoreboard for a fencing school's internal tournaments (3-4 simul
 
 ## Progress / evidence
 - Branch `feat/bout-domain` created (no `main` yet, no remote).
-- T1 done. RED: rules.test.ts failed (module `./rules` missing). GREEN: `npm test --workspaces` 8/8 passed; `npx tsc --noEmit -p packages/domain` clean. Commit: see T1 hash in `git log` (recorded in the next task's doc update).
+- T1 done. RED: rules.test.ts failed (module `./rules` missing). GREEN: `npm test --workspaces` 8/8 passed; `npx tsc --noEmit -p packages/domain` clean. Commit: a50f741.
   - Assumption: `createRules` throws RangeError on invalid options (config is a programmer error, not a runtime domain error). `Rules` also exposes `extraPeriodDurationMs` (60 s) and `doubleTouchAllowed`.
+- T2 done. RED: apply/bout/clock tests failed (modules missing). GREEN: `npm test --workspaces` 36/36 passed; `npx tsc --noEmit -p packages/domain` clean. Commit hash: recorded in the next task's entry (see `git log`).
+  - Design: `Phase.break` carries `endsAt` and `resumeRemainingMs` (mid-bout); `settle` starts a period break at the clock's expiry instant (not the settle time), and breaks end into a stopped clock (judge must restart). `apply` rejects time going backwards, settles first, then reduces. Events after a time-driven finish fail with `bout-finished`.
+  - Assumption: no break before the sudden-death period (last-period tie goes straight to priority draw).
