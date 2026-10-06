@@ -1,0 +1,52 @@
+# Feature: server
+
+## Objective
+Hono HTTP server (`packages/server`) that lets judges drive a bout per piste and lets spectators follow it live via SSE. It validates every judge event with `@la-sala/domain` (apply / settle / replay).
+
+## Problem / why
+Judges score on phones (offline-first, mobile data), the public cannot see them. The server is the single source of truth and fan-out point. See Engram `la-sala-app/product-definition` and `la-sala-app/server-pistes`.
+
+## Scope
+- Organizer creates N pistes from the app; server generates one PIN per piste. Organizer is identified by `ADMIN_PIN`, read at startup (server refuses to boot without it).
+- Judge (piste PIN) starts a bout and posts events; idempotent, batched, in order (offline sync).
+- Public read: piste list, current snapshot, SSE stream.
+- Persistence behind a port: in-memory adapter (tests) and SQLite adapter (`node:sqlite`, no native dependency).
+- OUT of scope: Svelte PWA, deployment, tournament management, spectator UI.
+
+## Constraints
+- Hexagonal: application/use cases depend on ports only; Hono and SQLite live in adapters. Domain package is not modified here (open a separate task if a change is needed).
+- Randomness (PINs) and clocks (`now`) are injected ports; no direct `Date.now`/`crypto` calls in use cases.
+- PIN checks are constant-time. PINs never appear in public responses. Admin PIN never logged.
+- Input validated at the HTTP boundary (zod). Domain errors map to 422, auth to 401, unknown piste to 404.
+- Artifacts in English; conventional commits; no AI attribution. ~400 authored lines per task is a planning heuristic only.
+
+## HTTP API (target)
+- `GET /health`
+- `POST /admin/pistes` `{count}` header `x-admin-pin` -> replaces all pistes, returns `[{id, pin}]`
+- `GET /admin/pistes` header `x-admin-pin` -> `[{id, pin}]`
+- `GET /pistes` -> `[{id, status}]` (no PINs)
+- `POST /pistes/:id/bout` header `x-piste-pin` `{weapon, options?, left, right}` -> starts a new bout (previous one archived)
+- `POST /pistes/:id/events` header `x-piste-pin` `{events: [{id, ...BoutEvent}]}` -> applied in order, events whose `id` was already applied are skipped; returns snapshot or `{index, error}` with 422
+- `GET /pistes/:id/state` -> snapshot `{serverTime, bout}` where bout is the domain state passed through `settle(state, now)`
+- `GET /pistes/:id/stream` -> SSE: snapshot on connect, then one message per change, heartbeat comment every 15 s
+
+## Tasks
+- [x] S1 Scaffold `packages/server`, ports (`PisteRepository`, `PinGenerator`, `Clock`), in-memory adapter, `createApp(deps)`, `/health`, admin auth + create/list pistes
+- [ ] S2 Judge endpoints: start bout, idempotent batched events, state snapshot, public pistes list
+- [ ] S3 SSE stream with an in-process hub (publish on every applied change), heartbeat
+- [ ] S4 SQLite adapter with repository contract tests shared with in-memory; `main.ts` (env: ADMIN_PIN required, PORT, DB_PATH); short README section on running it
+
+## Acceptance
+- `npm test --workspaces` green, `npx tsc --noEmit -p packages/server` clean.
+- RED observed before implementation per task; HTTP tested through `app.request()` (no real sockets) except one SSE test.
+- Repository contract tests run against both adapters.
+
+## Delivery
+- Branch `feat/server` stacked on `feat/bout-domain` (strategy: stacked-to-main, chosen by user). Forecast ~1000 authored lines.
+- Route per task: delegated direct (one writer; Writer trigger).
+- RDD: on (global). Assess each work-unit commit with `--base-ref feat/bout-domain --committed-only`.
+
+## Progress / evidence
+- Branch `feat/server` created from `feat/bout-domain`.
+- S1 done. RED: vitest failed on missing modules (3 files, no tests). GREEN: `npm test --workspaces` domain 67 + server 22 tests pass; `npx tsc --noEmit -p packages/server` clean. Route: delegated direct (writer). Commit hash: recorded in S2 update. RDD assessment: pending (parent).
+- Next step: S2.
