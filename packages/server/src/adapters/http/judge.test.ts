@@ -39,6 +39,65 @@ describe('judge endpoints', () => {
     await send(app, 'POST', '/admin/pistes', { count: 2 }, { 'x-admin-pin': ADMIN });
   });
 
+  describe('PIN throttling', () => {
+    const guess = (path: string, pin: string, id = '1') =>
+      send(app, 'POST', `/pistes/${id}/${path}`, startBody, judge(pin));
+    const wrongTimes = async (times: number, id = '1') => {
+      for (let i = 0; i < times; i++) expect((await guess('bout', '0000', id)).status).toBe(401);
+    };
+
+    it('answers 429 with Retry-After after 5 wrong PINs', async () => {
+      await wrongTimes(5);
+      const res = await guess('bout', '0000');
+      expect(res.status).toBe(429);
+      expect(res.headers.get('retry-after')).toBe('30');
+    });
+
+    it('rejects the correct PIN while locked out, on both judge endpoints', async () => {
+      await wrongTimes(5);
+      expect((await guess('bout', '1000')).status).toBe(429);
+      expect((await guess('events', '1000')).status).toBe(429);
+    });
+
+    it('reports the remaining lockout and restores access when it expires', async () => {
+      await wrongTimes(5);
+      clock.advance(12_500);
+      expect((await guess('bout', '1000')).headers.get('retry-after')).toBe('18');
+      clock.advance(17_500);
+      expect((await guess('bout', '1000')).status).toBe(201);
+    });
+
+    it('doubles the lockout when failures continue after it expires', async () => {
+      await wrongTimes(5);
+      clock.advance(30_000);
+      await wrongTimes(5);
+      expect((await guess('bout', '0000')).headers.get('retry-after')).toBe('60');
+    });
+
+    it('resets the counter after a correct PIN', async () => {
+      await wrongTimes(4);
+      expect((await guess('bout', '1000')).status).toBe(201);
+      await wrongTimes(4);
+      expect((await guess('bout', '1000')).status).toBe(201);
+    });
+
+    it('does not affect other pistes or the admin PIN', async () => {
+      await wrongTimes(5);
+      expect((await guess('bout', '1001', '2')).status).toBe(201);
+      expect((await send(app, 'GET', '/admin/pistes', undefined, { 'x-admin-pin': ADMIN })).status).toBe(200);
+    });
+
+    it('locks the admin PIN separately from pistes', async () => {
+      for (let i = 0; i < 5; i++) {
+        expect((await send(app, 'GET', '/admin/pistes', undefined, { 'x-admin-pin': 'nope' })).status).toBe(401);
+      }
+      const locked = await send(app, 'GET', '/admin/pistes', undefined, { 'x-admin-pin': ADMIN });
+      expect(locked.status).toBe(429);
+      expect(locked.headers.get('retry-after')).toBe('30');
+      expect((await guess('bout', '1000')).status).toBe(201);
+    });
+  });
+
   describe('public reads', () => {
     it('lists pistes without pins, idle when no bout', async () => {
       const res = await app.request('/pistes');

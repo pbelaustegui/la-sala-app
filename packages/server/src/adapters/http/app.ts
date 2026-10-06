@@ -2,7 +2,8 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { BoutService } from '../../application/bouts';
 import { createPistes } from '../../application/create-pistes';
-import type { ChangeHub, Clock, PinGenerator, PisteRepository } from '../../application/ports';
+import type { AttemptLimiter, ChangeHub, Clock, PinGenerator, PisteRepository } from '../../application/ports';
+import { MemoryAttemptLimiter } from '../memory/attempt-limiter';
 import { InProcessHub } from '../memory/in-process-hub';
 import { requireAdmin, requirePistePin } from './auth';
 import { createPistesBody, startBoutBody, submitEventsBody, toSetup, toStoredEvents } from './schemas';
@@ -15,6 +16,8 @@ export interface AppDeps {
   readonly clock: Clock;
   /** Fan-out of changes to SSE streams. Defaults to an in-process hub. */
   readonly hub?: ChangeHub;
+  /** Throttles wrong PIN guesses. Defaults to an in-memory limiter on `clock`. */
+  readonly limiter?: AttemptLimiter;
   /** Interval of SSE keep-alive comments. Defaults to 15 s. */
   readonly heartbeatMs?: number;
 }
@@ -28,12 +31,13 @@ export function createApp(deps: AppDeps): Hono {
   const hub = deps.hub ?? new InProcessHub();
   const heartbeatMs = deps.heartbeatMs ?? DEFAULT_HEARTBEAT_MS;
   const bouts = new BoutService({ repository: deps.repository, clock: deps.clock, hub });
-  const requirePiste = requirePistePin(deps.repository);
+  const limiter = deps.limiter ?? new MemoryAttemptLimiter(deps.clock);
+  const requirePiste = requirePistePin(deps.repository, limiter);
 
   app.get('/health', (c) => c.json({ status: 'ok' }));
 
   const admin = new Hono();
-  admin.use('*', requireAdmin(deps.adminPin));
+  admin.use('*', requireAdmin(deps.adminPin, limiter));
 
   admin.get('/pistes', async (c) => c.json(await deps.repository.listPistes()));
 

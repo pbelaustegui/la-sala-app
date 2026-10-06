@@ -56,6 +56,16 @@ export interface Clock {
   now(): number;
 }
 
+/** Throttles repeated failed PIN checks per key (a piste id, or the admin). */
+export interface AttemptLimiter {
+  /** Milliseconds until the key may try again; 0 when it is not locked out. */
+  retryAfterMs(key: string): number;
+  /** Counts a wrong PIN; enough consecutive failures start a lockout. */
+  recordFailure(key: string): void;
+  /** Clears the key's history. Ignored while the key is locked out. */
+  recordSuccess(key: string): void;
+}
+
 /** What spectators receive: the settled state and the server clock to compute their offset. */
 export interface Snapshot {
   readonly serverTime: number;

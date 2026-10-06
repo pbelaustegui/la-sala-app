@@ -48,6 +48,8 @@ Events:
 
 PINs are compared in constant time, are never logged and only appear in admin responses.
 
+**PIN throttling:** 5 consecutive wrong PINs lock that key out with `429` and a `Retry-After` header (seconds). Keys are each piste's judge PIN and, separately, the admin PIN. The first lockout lasts 30 s and doubles on every further lockout up to 15 min. While locked out even the correct PIN gets `429`, so the response never reveals whether a guess was right. A correct PIN resets the key's history, but only when it is not locked out. State is in memory (per process, cleared on restart). Tradeoff: piste ids are public, so anyone can deliberately lock a piste's judge out of scoring (denial of service) by sending wrong PINs; the organizer can recover by restarting the server or recreating the pistes.
+
 ## Development
 
 ```sh
