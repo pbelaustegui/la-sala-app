@@ -42,7 +42,7 @@ La Sala = live scoreboard for a fencing school's internal tournaments (3-4 simul
 - No import of Node/DOM APIs in `packages/domain/src`.
 
 ## Delivery
-- Forecast: ~900 authored changed lines (code + tests). Strategy: ask-on-risk; chain strategy pending user choice.
+- Forecast: ~900 authored changed lines (code + tests). Strategy: ask-on-risk; chain strategy chosen by user: stacked-to-main (applies once a remote exists).
 - Route per task: delegated direct (one writer, 2+ non-trivial files; trigger = Writer trigger).
 - RDD: on (global). Assess after each work-unit commit; record tier/outcome below.
 
