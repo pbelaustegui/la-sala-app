@@ -1,4 +1,4 @@
-import type { BoutEvent, RulesOptions, Weapon } from '@la-sala/domain';
+import type { BoutEvent, BoutState, RulesOptions, Weapon } from '@la-sala/domain';
 
 /** A fencing piste and the PIN that lets its judge post events. */
 export interface Piste {
@@ -54,4 +54,20 @@ export interface PinGenerator {
 /** Source of wall-clock time in epoch milliseconds. */
 export interface Clock {
   now(): number;
+}
+
+/** What spectators receive: the settled state and the server clock to compute their offset. */
+export interface Snapshot {
+  readonly serverTime: number;
+  /** `null` while no bout was started on the piste. */
+  readonly bout: BoutState | null;
+  readonly fencers: { readonly left: string; readonly right: string } | null;
+}
+
+/** In-process fan-out of piste changes to live subscribers (SSE streams). */
+export interface ChangeHub {
+  /** Delivers a snapshot to every current subscriber of the piste. Never throws. */
+  publish(pisteId: string, snapshot: Snapshot): void;
+  /** Returns an idempotent unsubscribe function. */
+  subscribe(pisteId: string, listener: (snapshot: Snapshot) => void): () => void;
 }

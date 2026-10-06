@@ -3,24 +3,18 @@ import {
   createRules,
   replay,
   settle,
-  type BoutState,
   type DomainError,
 } from '@la-sala/domain';
 import { KeyedQueue } from './keyed-queue';
-import type { BoutRecord, BoutSetup, Clock, PisteRepository, StoredEvent } from './ports';
-
-/** What spectators receive: the settled state and the server clock to compute their offset. */
-export interface Snapshot {
-  readonly serverTime: number;
-  readonly bout: BoutState | null;
-  readonly fencers: { readonly left: string; readonly right: string } | null;
-}
+import type { BoutRecord, BoutSetup, ChangeHub, Clock, PisteRepository, Snapshot, StoredEvent } from './ports';
 
 export interface PisteStatus {
   readonly id: string;
   /** `idle` when no bout was started, otherwise the settled phase kind. */
   readonly status: string;
 }
+
+export type { Snapshot };
 
 export type StartBoutResult = { readonly ok: true; readonly snapshot: Snapshot } | { readonly ok: false; readonly reason: 'unknown-piste' };
 
@@ -34,6 +28,7 @@ export type SnapshotResult = { readonly ok: true; readonly snapshot: Snapshot } 
 export interface BoutServiceDeps {
   readonly repository: PisteRepository;
   readonly clock: Clock;
+  readonly hub: ChangeHub;
 }
 
 /** Use cases around a piste's bout. Free of HTTP, storage and crypto concerns. */
@@ -62,7 +57,9 @@ export class BoutService {
     return this.queue.run(pisteId, async () => {
       if (!(await this.deps.repository.findPiste(pisteId))) return { ok: false, reason: 'unknown-piste' };
       await this.deps.repository.startBout(pisteId, setup);
-      return { ok: true, snapshot: this.snapshotOf({ setup, events: [] }) };
+      const snapshot = this.snapshotOf({ setup, events: [] });
+      this.deps.hub.publish(pisteId, snapshot);
+      return { ok: true, snapshot };
     });
   }
 
@@ -96,8 +93,15 @@ export class BoutService {
       }
 
       await this.deps.repository.appendEvents(pisteId, fresh.map((f) => f.stored));
-      return { ok: true, snapshot: this.snapshotOf(next) };
+      const snapshot = this.snapshotOf(next);
+      this.deps.hub.publish(pisteId, snapshot);
+      return { ok: true, snapshot };
     });
+  }
+
+  /** Tells live subscribers that the given pistes were just (re)created and hold no bout. */
+  announcePistesReset(pisteIds: readonly string[]): void {
+    for (const id of pisteIds) this.deps.hub.publish(id, this.snapshotOf(null));
   }
 
   private snapshotOf(record: BoutRecord | null): Snapshot {
