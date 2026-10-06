@@ -1,0 +1,52 @@
+# Feature: bout-domain
+
+## Objective
+Pure TypeScript domain model for a fencing bout (foil, epee, sabre), usable offline on the judge's phone and on the server. Event-sourced, deterministic, no I/O, no `Date.now()`.
+
+## Problem / why
+La Sala = live scoreboard for a fencing school's internal tournaments (3-4 simultaneous pistes, mobile data only). The domain is the differentiator; UI and server plug in later. See Engram `la-sala-app/product-definition`.
+
+## Scope
+- Monorepo skeleton (npm workspaces) with `packages/domain` only. Svelte PWA and Hono server are OUT of scope here.
+- Bout rules per weapon, configurable: 1, 2 or 3 periods; touch limit; period/break durations.
+- Pure reducer over timestamped events; replay with undo.
+
+## Constraints
+- Stack: TypeScript strict, Vitest, npm workspaces (pnpm not installed). Hexagonal: domain imports nothing from outside.
+- Time is always passed in (`at: number`, ms epoch). Clock expiry is derived from timestamps (`settle`), never from a timer.
+- Artifacts (code, comments, tests, commits) in English; conventional commits; no AI attribution.
+- ~400 authored changed lines per task is a planning heuristic only.
+
+## Rules model (assumptions to verify against the FIE rulebook)
+- Defaults: 3 periods x 3 min, 1 min break, 15 touches. Pool-style bouts are expressed via options (e.g. 1 period, 5 touches).
+- Sabre: 1 min break when a fencer first reaches 8 touches, only when touch limit is 15.
+- Epee: double touch scores for both sides. Foil/sabre have no double touch event.
+- A scored touch stops the clock.
+- Time expires: leader wins; if tied, priority is drawn, then 1 min sudden-death extra period; no touch -> priority side wins.
+- Cards: yellow = recorded only; red = touch to opponent; black = exclusion, opponent wins.
+- OPEN: double touch bringing both sides to the limit; double touch during sudden death. Simplified: both score, tie persists, extra period continues.
+
+## Tasks
+- [x] T1 Scaffold + rules: repo skeleton, tsconfig, vitest, `createRules(weapon, options)` with tests
+- [ ] T2 Bout state + clock: `createBout`, clock start/stop, `settle(state, at)`, period end and breaks
+- [ ] T3 Scoring: touches, double touch (epee), touch limit win, sabre mid-bout break, cards
+- [ ] T4 Tie-break: priority draw, sudden-death extra period, exclusion win reasons
+- [ ] T5 Replay + undo: `replay(initial, events)` with `undo` event
+
+## Layout (planned)
+`packages/domain/src/`: `rules.ts`, `bout.ts` (types, createBout), `clock.ts`, `apply.ts` (reducer, Result type), `replay.ts`, `index.ts`, plus `*.test.ts` next to each.
+
+## Acceptance
+- All tests green, `tsc --noEmit` clean.
+- Each task: RED observed before implementation (Vitest is the runner), then GREEN.
+- No import of Node/DOM APIs in `packages/domain/src`.
+
+## Delivery
+- Forecast: ~900 authored changed lines (code + tests). Strategy: ask-on-risk; chain strategy pending user choice.
+- Route per task: delegated direct (one writer, 2+ non-trivial files; trigger = Writer trigger).
+- RDD: on (global). Assess after each work-unit commit; record tier/outcome below.
+
+## Progress / evidence
+- Branch `feat/bout-domain` created (no `main` yet, no remote).
+- T1 done. RED: rules.test.ts failed (module `./rules` missing). GREEN: `npm test --workspaces` 8/8 passed; `npx tsc --noEmit -p packages/domain` clean. Commit: see T1 hash in `git log` (recorded in the next task's doc update).
+  - Assumption: `createRules` throws RangeError on invalid options (config is a programmer error, not a runtime domain error). `Rules` also exposes `extraPeriodDurationMs` (60 s) and `doubleTouchAllowed`.
