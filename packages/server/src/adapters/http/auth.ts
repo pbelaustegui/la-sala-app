@@ -21,8 +21,6 @@ export function unauthorized() {
   return Response.json({ error: 'unauthorized' }, { status: 401 });
 }
 
-export const ADMIN_KEY = 'admin';
-
 /** 429 with `Retry-After` in whole seconds. Sent even for a correct PIN so a lockout leaks nothing. */
 function lockedOut(retryAfterMs: number) {
   const seconds = Math.ceil(retryAfterMs / 1000);
@@ -41,11 +39,14 @@ function checkPin(limiter: AttemptLimiter, key: string, candidate: string | unde
   return null;
 }
 
-/** Requires the `x-admin-pin` header to match the configured admin PIN. */
-export function requireAdmin(adminPin: string, limiter: AttemptLimiter): MiddlewareHandler {
+/**
+ * Requires the `x-admin-pin` header to match the configured admin PIN, in constant time.
+ * Deliberately not throttled: a lockout would let any client keep the organizer out of
+ * /admin. Config enforces a long PIN instead, so guessing is impractical.
+ */
+export function requireAdmin(adminPin: string): MiddlewareHandler {
   return async (c, next) => {
-    const rejection = checkPin(limiter, ADMIN_KEY, c.req.header(ADMIN_HEADER), adminPin);
-    if (rejection) return rejection;
+    if (!safeEqual(c.req.header(ADMIN_HEADER), adminPin)) return unauthorized();
     await next();
   };
 }

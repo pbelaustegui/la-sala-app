@@ -16,7 +16,7 @@ export interface AppDeps {
   readonly clock: Clock;
   /** Fan-out of changes to SSE streams. Defaults to an in-process hub. */
   readonly hub?: ChangeHub;
-  /** Throttles wrong PIN guesses. Defaults to an in-memory limiter on `clock`. */
+  /** Throttles wrong judge (piste) PIN guesses. Defaults to an in-memory limiter on `clock`. */
   readonly limiter?: AttemptLimiter;
   /** Interval of SSE keep-alive comments. Defaults to 15 s. */
   readonly heartbeatMs?: number;
@@ -37,7 +37,7 @@ export function createApp(deps: AppDeps): Hono {
   app.get('/health', (c) => c.json({ status: 'ok' }));
 
   const admin = new Hono();
-  admin.use('*', requireAdmin(deps.adminPin, limiter));
+  admin.use('*', requireAdmin(deps.adminPin));
 
   admin.get('/pistes', async (c) => c.json(await deps.repository.listPistes()));
 

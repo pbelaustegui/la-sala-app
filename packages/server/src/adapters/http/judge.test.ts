@@ -87,13 +87,13 @@ describe('judge endpoints', () => {
       expect((await send(app, 'GET', '/admin/pistes', undefined, { 'x-admin-pin': ADMIN })).status).toBe(200);
     });
 
-    it('locks the admin PIN separately from pistes', async () => {
-      for (let i = 0; i < 5; i++) {
+    it('never locks the admin PIN out, however many wrong guesses were made', async () => {
+      for (let i = 0; i < 50; i++) {
         expect((await send(app, 'GET', '/admin/pistes', undefined, { 'x-admin-pin': 'nope' })).status).toBe(401);
       }
-      const locked = await send(app, 'GET', '/admin/pistes', undefined, { 'x-admin-pin': ADMIN });
-      expect(locked.status).toBe(429);
-      expect(locked.headers.get('retry-after')).toBe('30');
+      const res = await send(app, 'GET', '/admin/pistes', undefined, { 'x-admin-pin': ADMIN });
+      expect(res.status).toBe(200);
+      expect(res.headers.get('retry-after')).toBeNull();
       expect((await guess('bout', '1000')).status).toBe(201);
     });
   });

@@ -6,12 +6,18 @@ export interface Config {
 
 export const DEFAULT_PORT = 3000;
 export const DEFAULT_DB_PATH = 'la-sala.sqlite';
+export const MIN_ADMIN_PIN_LENGTH = 12;
 
 /** Reads and validates the environment. Error messages never contain the admin PIN. */
 export function loadConfig(env: Readonly<Record<string, string | undefined>>): Config {
   const adminPin = env.ADMIN_PIN?.trim();
   if (!adminPin) {
     throw new Error('ADMIN_PIN is required: set the organizer PIN in the environment before starting the server');
+  }
+  if (adminPin.length < MIN_ADMIN_PIN_LENGTH) {
+    throw new Error(
+      `ADMIN_PIN must be at least ${MIN_ADMIN_PIN_LENGTH} characters: the admin PIN is never locked out, so it must resist guessing`,
+    );
   }
   return {
     adminPin,

@@ -11,12 +11,12 @@ Requires Node 24 (uses the built-in `node:sqlite`, which prints an `Experimental
 
 ```sh
 npm install
-ADMIN_PIN=choose-a-secret npm start -w @la-sala/server
+ADMIN_PIN=choose-a-long-secret npm start -w @la-sala/server
 ```
 
 | Variable    | Required | Default           | Meaning                                  |
 | ----------- | -------- | ----------------- | ---------------------------------------- |
-| `ADMIN_PIN` | yes      | none              | Organizer secret; the server refuses to start without it. |
+| `ADMIN_PIN` | yes      | none              | Organizer secret, at least 12 characters; the server refuses to start without it. |
 | `PORT`      | no       | `3000`            | HTTP port.                               |
 | `DB_PATH`   | no       | `la-sala.sqlite`  | SQLite file (created if missing).        |
 
@@ -48,7 +48,9 @@ Events:
 
 PINs are compared in constant time, are never logged and only appear in admin responses.
 
-**PIN throttling:** 5 consecutive wrong PINs lock that key out with `429` and a `Retry-After` header (seconds). Keys are each piste's judge PIN and, separately, the admin PIN. The first lockout lasts 30 s and doubles on every further lockout up to 15 min. While locked out even the correct PIN gets `429`, so the response never reveals whether a guess was right. A correct PIN resets the key's history, but only when it is not locked out. State is in memory (per process, cleared on restart). Tradeoff: piste ids are public, so anyone can deliberately lock a piste's judge out of scoring (denial of service) by sending wrong PINs; the organizer can recover by restarting the server or recreating the pistes.
+**Judge PIN throttling:** 5 consecutive wrong PINs for a piste lock that piste's judge PIN out with `429` and a `Retry-After` header (seconds). The first lockout lasts 30 s and doubles on every further lockout up to 15 min. While locked out even the correct PIN gets `429`, so the response never reveals whether a guess was right. A correct PIN resets the piste's history, but only when it is not locked out. State is in memory (per process, cleared on restart). Tradeoff: piste ids are public, so anyone can deliberately lock a piste's judge out of scoring (denial of service) by sending wrong PINs; the organizer can recover by restarting the server or recreating the pistes.
+
+**Admin PIN policy:** `ADMIN_PIN` must be at least 12 characters (after trimming) or the server refuses to start. The admin PIN is never throttled or locked out: a lockout would let any unauthenticated client keep the organizer out of `/admin` for the whole event, so a long PIN is the defense against guessing instead. The PIN is compared in constant time and never logged.
 
 ## Development
 
