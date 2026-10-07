@@ -24,7 +24,7 @@ Judges score on phones over unreliable mobile data. The scoreboard must never bl
 
 ## Tasks
 - [x] W1 Scaffold `packages/web`: Vite + Svelte 5 + TS, Vitest (+ component testing), `vite-plugin-pwa` dependency, dev proxy to the server, `es.ts` copy module, minimal hash router, typecheck script
-- [ ] W2 Offline engine (pure TS): clock-offset estimator, event factory, persisted local event log with optimistic state (replay + settle), storage port with in-memory and localStorage adapters
+- [x] W2 Offline engine (pure TS): clock-offset estimator, event factory, persisted local event log with optimistic state (replay + settle), storage port with in-memory and localStorage adapters
 - [ ] W3 Sync + API client: typed API client (`x-piste-pin`, error mapping), batch sync queue with retry/backoff, 422 and snapshot resync, connection state
 - [ ] W4 Judge entry flow: piste list, PIN entry, bout setup form (weapon, 1/2/3 periods, names, optional touch limit)
 - [ ] W5 Scoreboard screen: scores, clock, period/break/priority states, touch buttons, epee double touch, cards, priority pick, undo, pending/offline indicator, wake lock
@@ -44,3 +44,4 @@ Judges score on phones over unreliable mobile data. The scoreboard must never bl
 - Branch `feat/web` created from `main` (includes domain + server).
 - Next step: delegate writer for W1-W6.
 - W1 done (delegated writer). RED: router/i18n tests failed on missing modules; GREEN: web 13 tests. Verification: `npm test --workspaces` 89 domain + 124 server + 13 web pass; `npx tsc --noEmit -p packages/web` clean; `npm run check -w packages/web` 0 errors 0 warnings; `npm run build -w packages/web` ok. `@la-sala/domain` resolves via the workspace with no alias. jsdom 30 warns EBADENGINE on node 24.12 but works. Component tests opt in per file with `// @vitest-environment jsdom`. vite-plugin-pwa installed, configured in W6.
+- W2 done. W1 commit: fefa4b9. RED: 4 core test files failed on missing modules; GREEN: web 41 tests (core tested without a DOM). Verification: `npm test --workspaces` 89 domain + 124 server + 41 web pass; `npx tsc --noEmit -p packages/web` clean; `npm run check -w packages/web` 0 errors; build ok. Core in `packages/web/src/core/`: `ClockOffset` (offset = serverTime - rtt midpoint, smallest-rtt sample kept, error bound = rtt/2, documented in the class), `EventFactory` (injected `newId`/`now`), `LocalBout` (log + optional server base snapshot + `syncedCount`; append validated through domain `replay`, undo via domain event, `resetTo(snapshot)` for server-wins), `KeyValueStorage` with `MemoryStorage` and guarded `LocalStorageAdapter`, keyed by `boutKey({pisteId, boutId})`. The boutId is client-chosen (the server has no bout id).
