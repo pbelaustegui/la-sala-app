@@ -48,3 +48,44 @@ describe('InProcessHub', () => {
     expect(second).toHaveBeenCalledOnce();
   });
 });
+
+describe('InProcessHub all-pistes subscription', () => {
+  it('delivers every piste snapshot with its id, and keeps per-piste delivery intact', () => {
+    const hub = new InProcessHub();
+    const all = vi.fn();
+    const one = vi.fn();
+    hub.subscribeAll(all);
+    hub.subscribe('1', one);
+    hub.publish('1', snap(1));
+    hub.publish('2', snap(2));
+    expect(all.mock.calls).toEqual([
+      [{ kind: 'snapshot', pisteId: '1', snapshot: snap(1) }],
+      [{ kind: 'snapshot', pisteId: '2', snapshot: snap(2) }],
+    ]);
+    expect(one).toHaveBeenCalledOnce();
+  });
+
+  it('announces the current piste set', () => {
+    const hub = new InProcessHub();
+    const all = vi.fn();
+    hub.subscribeAll(all);
+    hub.publishPistes(['1', '2']);
+    expect(all).toHaveBeenCalledWith({ kind: 'pistes', pisteIds: ['1', '2'] });
+  });
+
+  it('unsubscribes idempotently and survives a throwing listener', () => {
+    const hub = new InProcessHub();
+    const good = vi.fn();
+    hub.subscribeAll(() => {
+      throw new Error('broken');
+    });
+    const unsubscribe = hub.subscribeAll(good);
+    expect(() => hub.publish('1', snap(1))).not.toThrow();
+    expect(hub.boardSubscriberCount()).toBe(2);
+    unsubscribe();
+    unsubscribe();
+    hub.publish('1', snap(2));
+    expect(good).toHaveBeenCalledOnce();
+    expect(hub.boardSubscriberCount()).toBe(1);
+  });
+});
