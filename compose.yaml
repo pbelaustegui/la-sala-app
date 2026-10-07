@@ -1,0 +1,35 @@
+# One app container behind Caddy (automatic HTTPS). Single instance only:
+# the SSE hub is in-memory, so never scale `app` beyond one replica.
+services:
+  app:
+    build: .
+    init: true
+    restart: unless-stopped
+    # ADMIN_PIN (and optional overrides) come from .env, which is never committed.
+    env_file: .env
+    volumes:
+      - app-data:/data
+    # No `ports:` on purpose: the app is reachable only through Caddy.
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Only the public host name is passed to Caddy, never the admin PIN.
+      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  app-data:
+  caddy-data:
+  caddy-config:
