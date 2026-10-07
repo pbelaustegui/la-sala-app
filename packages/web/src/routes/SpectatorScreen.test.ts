@@ -45,10 +45,10 @@ function harness() {
     env,
     stream,
     timers,
-    /** Moves the phone clock and lets the UI tick once. */
+    /** Moves the phone clock and lets the UI tick once (the watchdog is left alone). */
     elapse: async (ms: number) => {
       now += ms;
-      timers.fireAll();
+      timers.fireWithDelay(250);
       await tick();
     },
     setVisible: (value: boolean) => {
@@ -141,7 +141,7 @@ describe('public board', () => {
     h.setVisible(false);
     await h.elapse(10_000);
     expect(screen.getByText('3:00')).toBeTruthy();
-    expect(h.timers.scheduled.size).toBe(0);
+    expect([...h.timers.scheduled.values()].some((timer) => timer.ms === 250)).toBe(false);
 
     h.setVisible(true);
     await tick();
@@ -196,6 +196,17 @@ describe('public board', () => {
     expect(screen.getByLabelText('Reloj').textContent).toBe(frozen);
   });
 
+  it('treats a silent connection as dead: banner, then reconnects', async () => {
+    const h = harness();
+    render(App, { env: h.env });
+    await h.live('1');
+    await h.snapshotOf('1', snapshot(T0, running));
+    h.timers.fireWithDelay(45_000);
+    await tick();
+    expect(screen.getByText('Sin conexión, mostrando el último estado')).toBeTruthy();
+    expect(h.stream.closes).toBe(1);
+  });
+
   it('removes the banner when the stream reconnects', async () => {
     const h = harness();
     render(App, { env: h.env });
@@ -221,7 +232,7 @@ describe('public board', () => {
     await h.live('1');
     window.location.hash = '#/judge';
     await waitFor(() => expect(h.stream.isOpen).toBe(false));
-    expect(h.timers.scheduled.size).toBe(0);
+    expect(h.timers.scheduled.size).toBe(0); // no tick, no retry, no watchdog left behind
   });
 });
 

@@ -15,6 +15,13 @@ export class FakeTimers implements Timers {
     this.scheduled.delete(handle as number);
   }
 
+  /** Fires only the timers that were scheduled with exactly `ms` (e.g. the UI tick, not a watchdog). */
+  fireWithDelay(ms: number): void {
+    const due = [...this.scheduled.entries()].filter(([, timer]) => timer.ms === ms);
+    for (const [id] of due) this.scheduled.delete(id);
+    for (const [, timer] of due) timer.fn();
+  }
+
   /** Fires every timer scheduled right now (timers they schedule wait for the next call). */
   fireAll(): void {
     const due = [...this.scheduled.entries()];

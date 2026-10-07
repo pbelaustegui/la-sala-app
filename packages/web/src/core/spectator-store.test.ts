@@ -31,6 +31,18 @@ class FakeTimers {
     const [timer] = [...this.pending.values()];
     return timer!.at - this.now;
   }
+  /** Moves time forward, firing every timer that falls due on the way, earliest first. */
+  advance(ms: number): void {
+    const target = this.now + ms;
+    for (;;) {
+      const due = [...this.pending.entries()].filter(([, timer]) => timer.at <= target).sort((a, b) => a[1].at - b[1].at)[0];
+      if (!due) break;
+      this.pending.delete(due[0]);
+      this.now = due[1].at;
+      due[1].fn();
+    }
+    this.now = target;
+  }
   fire(): void {
     const [id, timer] = [...this.pending.entries()][0]!;
     this.pending.delete(id);
@@ -168,5 +180,124 @@ describe('SpectatorStore', () => {
     unsubscribe();
     port.handlers!.onError();
     expect(seen).toEqual(['connecting', 'live']);
+  });
+});
+
+describe('SpectatorStore watchdog', () => {
+  const WATCHDOG = 45_000;
+
+  it('treats 45 s without any message as a dead connection: closes, marks stale and reconnects with backoff', () => {
+    const { port, timers, store } = setup(1);
+    store.start();
+    port.handlers!.onOpen();
+    port.handlers!.onMessage({ kind: 'snapshot', pisteId: '1', snapshot: snap(1) });
+    timers.advance(WATCHDOG - 1);
+    expect(store.get().connection).toBe('live');
+    expect(port.closes).toBe(0);
+
+    timers.advance(1);
+    expect(port.closes).toBe(1);
+    expect(store.get().connection).toBe('stale');
+    expect(store.get().pistes.map((p) => p.stale)).toEqual([true]);
+    expect(timers.delay).toBe(1_000);
+
+    timers.advance(1_000);
+    expect(port.opens).toBe(2);
+  });
+
+  it('is reset by every message, a snapshot and a ping alike', () => {
+    const { port, timers, store } = setup();
+    store.start();
+    port.handlers!.onOpen();
+    timers.advance(30_000);
+    port.handlers!.onMessage({ kind: 'ping', serverTime: 50_000 });
+    timers.advance(30_000);
+    port.handlers!.onMessage({ kind: 'snapshot', pisteId: '1', snapshot: snap(1) });
+    timers.advance(30_000);
+    expect(store.get().connection).toBe('live');
+    expect(port.closes).toBe(0);
+    timers.advance(15_000);
+    expect(store.get().connection).toBe('stale');
+  });
+
+  it('also guards a connection attempt that never opens', () => {
+    const { port, timers, store } = setup();
+    store.start();
+    timers.advance(WATCHDOG);
+    expect(port.closes).toBe(1);
+    expect(store.get().connection).toBe('stale');
+  });
+
+  it('does not run while the retry is waiting, nor after stop', () => {
+    const { port, timers, store } = setup();
+    store.start();
+    port.handlers!.onError();
+    expect(timers.pending.size).toBe(1); // only the retry
+    timers.fire();
+    store.stop();
+    expect(timers.pending.size).toBe(0);
+    timers.advance(WATCHDOG * 2);
+    expect(port.opens).toBe(2);
+  });
+
+  it('keeps dead connections retrying with growing backoff and resets it when data arrives', () => {
+    const { port, timers, store } = setup(1);
+    store.start();
+    const delays: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      timers.advance(WATCHDOG);
+      delays.push(timers.delay);
+      timers.fire();
+    }
+    expect(delays).toEqual([1_000, 2_000, 4_000]);
+    port.handlers!.onMessage({ kind: 'ping', serverTime: 1 });
+    timers.advance(WATCHDOG);
+    expect(timers.delay).toBe(1_000);
+  });
+
+  it('a ping refreshes the clock offset of every piste without touching snapshots', () => {
+    const { port, timers, store } = setup();
+    store.start();
+    port.handlers!.onOpen();
+    const snapshot = snap(50_000);
+    port.handlers!.onMessage({ kind: 'snapshot', pisteId: '1', snapshot });
+    const before = store.get().pistes[0]!;
+    expect(before.offsetMs).toBe(40_000);
+
+    timers.now = 20_000;
+    // The phone clock was corrected: server 70_000 while the phone reads 20_000.
+    port.handlers!.onMessage({ kind: 'ping', serverTime: 70_000 });
+    const after = store.get().pistes[0]!;
+    expect(after.offsetMs).toBe(50_000);
+    expect(after.snapshot).toBe(snapshot);
+    expect(after.receivedAt).toBe(before.receivedAt);
+    expect(after.stale).toBe(false);
+  });
+
+  it('a dead connection leaves stale entries with their last offset until a snapshot arrives', () => {
+    const { port, timers, store } = setup();
+    store.start();
+    port.handlers!.onMessage({ kind: 'snapshot', pisteId: '1', snapshot: snap(50_000) });
+    timers.advance(WATCHDOG);
+    expect(store.get().pistes[0]!.stale).toBe(true);
+    expect(store.get().pistes[0]!.offsetMs).toBe(40_000);
+  });
+
+  it('a ping makes a connecting store live and does not invent pistes', () => {
+    const { port, store } = setup();
+    store.start();
+    port.handlers!.onMessage({ kind: 'ping', serverTime: 5 });
+    expect(store.get()).toEqual({ connection: 'live', pistes: [] });
+  });
+
+  it('honours an injected watchdog interval', () => {
+    const port = new FakePort();
+    const timers = new FakeTimers();
+    const store = new SpectatorStore({
+      port, now: () => timers.now, setTimeout: timers.setTimeout, clearTimeout: timers.clearTimeout, random: () => 0.5, watchdogMs: 5_000,
+    });
+    store.start();
+    timers.advance(5_000);
+    expect(store.get().connection).toBe('stale');
   });
 });
