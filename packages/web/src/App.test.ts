@@ -30,6 +30,50 @@ describe('App shell', () => {
   });
 });
 
+describe('service worker notices', () => {
+  function withUpdates() {
+    let updateReady: () => void = () => undefined;
+    let offlineReady: () => void = () => undefined;
+    const applied: number[] = [];
+    const env = createMemoryEnv({
+      updates: {
+        onUpdateReady: (callback) => void (updateReady = callback),
+        onOfflineReady: (callback) => void (offlineReady = callback),
+        applyUpdate: () => void applied.push(1),
+      },
+    });
+    return { env, applied, updateReady: () => updateReady(), offlineReady: () => offlineReady() };
+  }
+
+  it('offers a new version without reloading by itself', async () => {
+    const ctx = withUpdates();
+    render(App, { env: ctx.env });
+    expect(screen.queryByRole('button', { name: 'Actualizar ahora' })).toBeNull();
+
+    ctx.updateReady();
+    const apply = await screen.findByRole('button', { name: 'Actualizar ahora' });
+    expect(ctx.applied).toHaveLength(0);
+    await fireEvent.click(apply);
+    expect(ctx.applied).toHaveLength(1);
+  });
+
+  it('"later" hides the offer', async () => {
+    const ctx = withUpdates();
+    render(App, { env: ctx.env });
+    ctx.updateReady();
+    await fireEvent.click(await screen.findByRole('button', { name: 'Más tarde' }));
+    expect(screen.queryByRole('button', { name: 'Actualizar ahora' })).toBeNull();
+    expect(ctx.applied).toHaveLength(0);
+  });
+
+  it('says when the app works offline', async () => {
+    const ctx = withUpdates();
+    render(App, { env: ctx.env });
+    ctx.offlineReady();
+    expect(await screen.findByText('La Sala ya funciona sin conexión en este dispositivo.')).toBeTruthy();
+  });
+});
+
 describe('piste list', () => {
   it('lists the pistes with their status', async () => {
     const { env } = setup();

@@ -64,6 +64,13 @@ export const es = {
   'conn.attention.unknown-piste': 'La pista no existe.',
   'conn.attention.invalid-request': 'El servidor no entendió los datos enviados.',
 
+  'pwa.update.available':
+    'Hay una versión nueva de La Sala. Se usará la próxima vez que abras la app. Si quieres usarla ya, actualiza entre combates: la página se recarga.',
+  'pwa.update.apply': 'Actualizar ahora',
+  'pwa.update.later': 'Más tarde',
+  'pwa.offlineReady': 'La Sala ya funciona sin conexión en este dispositivo.',
+  'pwa.dismiss': 'Cerrar',
+
   'pistes.title': 'Pistas',
   'pistes.refresh': 'Actualizar',
   'pistes.loading': 'Cargando pistas…',
