@@ -24,7 +24,8 @@ This is the original problem: spectators cannot see the judge's phone. Mobile da
 ## Tasks
 - [x] V1 Server: `GET /pistes/stream` (one SSE for all pistes): initial snapshot per piste, then a message per change, heartbeat; hub gets an all-pistes subscription; tests
 - [x] V2 Web core: spectator store over an injected stream port, reconnect/backoff, stale state, per-message clock offset, view model via domain `settle`; no UI
-- [ ] V3 Web UI: board and detail screens, route changes (judge to `#/judge`), manifest `start_url`, i18n, README
+- [x] V3 Web UI: board and detail screens, route changes (judge to `#/judge`), manifest `start_url`, i18n, README
+- [ ] V4 Connection watchdog: the board stream sends a real `ping` event instead of only a comment heartbeat; the store treats 45 s without any message as a dead connection (stale + reconnect); tests with fake timers
 
 ## Acceptance
 - `npm test --workspaces` green; `tsc --noEmit` for server and web, `svelte-check` and `npm run build -w packages/web` clean.
@@ -39,4 +40,10 @@ This is the original problem: spectators cannot see the judge's phone. Mobile da
 - Branch `feat/spectator` created from `main` (835b989).
 - V1 done (route: delegated, writer). `GET /pistes/stream` wire format: `event: pistes` `{pisteIds}` (authoritative set, first on connect and after `POST /admin/pistes`; subscribers drop other ids) and `event: snapshot` `{pisteId, snapshot:{serverTime,bout,fencers}}` (per piste on connect, then per change); heartbeat comment every 15 s. Hub: `subscribeAll`/`publishPistes`. RED: 10 failing tests before code; GREEN after. Observed: server 156 tests, web 200, domain 89 pass; tsc server/web and svelte-check clean. Message size for a sabre bout in progress (1 touch): 504 bytes per snapshot frame (rules block is ~45% of it; could be trimmed later if needed). Commit hash: 67bb03f.
 - V2 done (delegated, same writer). Added `core/spectator-store.ts` (store + `BoardStreamPort`), `core/piste-view.ts` (`toPisteView`), `core/board-event-source.ts` (EventSource adapter, tested through a fake). Offset is per message (`serverTime - receivedAt`), error bound = one-way latency (documented in code); stale entries are frozen at their snapshot's server time and never `running`; backoff `min(30s, 1s*2^n)` x jitter [0.5,1], reset when data arrives. RED: both new test files failed on missing modules; GREEN: web 222 tests pass (23 -> 27 files), tsc server/web and svelte-check clean. Commit hash: see next note.
-- Next step: V3 (web UI).
+- V2 commit hash: c38f572.
+- Parent verification (V1-V2): `npm test --workspaces` 89 + 156 + 222 passed; `tsc --noEmit` server and web clean; `svelte-check` 0 errors; spectator core has no `Date.now`/`Math.random`. Authored lines: V1 359, V2 619.
+- Native review (medium, one reliability lens) on `main..c38f572` (972 lines): granted by the user, APPROVED and acknowledged (lineage review-c3aaaca3f6f88061). Reviewed boundary is now c38f572; later assessments use `--base-ref c38f572 --committed-only`.
+- Gap found at verification: a silently dead connection is not detected because browsers do not expose SSE comment heartbeats. Added V4 (ping event + client watchdog).
+- V3 done (delegated, same writer). Routes: `#/` board, `#/piste/:id` detail, `#/judge` list, `#/judge/:pisteId`; router names `board|piste|judge-list|judge`. `AppEnv.boardStream` (real `EventSourceBoardStream` only in `createBrowserEnv`; `FakeBoardStream` in memory env). `SpectatorScreen` owns store start/stop (mount/unmount, one instance across board and detail) and a 250 ms UI tick via `env.timers`, paused on `visibilitychange`. Shared markup `PisteFace` for card and detail (`--numeral` clamp sizes). Manifest `start_url` is `/#/judge`, scope `/`. RED: router tests 5 failed, SpectatorScreen tests 14/15 failed before code, pwa start_url test failed; GREEN: web 246 tests, server 156, domain 89; tsc server/web and svelte-check clean; `npm run build -w packages/web` ok. Exception: CSS (responsive grid, numeral sizes, contrast) has no RED; checked structurally only (grid declaration present, tap targets >= 48 px from global `a`/`button` min sizes), not visually. Known gap: between the `pistes` message and the first snapshots the board may flash the empty state for one frame.
+- V3 commit hash: see next note.
+- Next step: V4 (watchdog + ping event).

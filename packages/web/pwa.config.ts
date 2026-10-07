@@ -20,7 +20,8 @@ export const PWA_OPTIONS: Partial<VitePWAOptions> = {
     short_name: 'La Sala',
     description: 'Mesa de juez de esgrima: marcador que funciona sin conexión.',
     lang: 'es',
-    start_url: '/',
+    // The installed app is the judge's entry; spectators just open the site at `/#/`.
+    start_url: '/#/judge',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',

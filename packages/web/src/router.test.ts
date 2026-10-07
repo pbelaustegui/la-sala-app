@@ -2,10 +2,20 @@ import { describe, expect, it } from 'vitest';
 import { hrefTo, parseRoute } from './router';
 
 describe('parseRoute', () => {
-  it('maps the empty hash and #/ to home', () => {
-    expect(parseRoute('')).toEqual({ name: 'home' });
-    expect(parseRoute('#')).toEqual({ name: 'home' });
-    expect(parseRoute('#/')).toEqual({ name: 'home' });
+  it('maps the empty hash and #/ to the public board', () => {
+    expect(parseRoute('')).toEqual({ name: 'board' });
+    expect(parseRoute('#')).toEqual({ name: 'board' });
+    expect(parseRoute('#/')).toEqual({ name: 'board' });
+  });
+
+  it('maps #/piste/:id to the piste detail', () => {
+    expect(parseRoute('#/piste/3')).toEqual({ name: 'piste', pisteId: '3' });
+    expect(parseRoute('#/piste/pista%201/')).toEqual({ name: 'piste', pisteId: 'pista 1' });
+  });
+
+  it('maps #/judge to the judge piste list', () => {
+    expect(parseRoute('#/judge')).toEqual({ name: 'judge-list' });
+    expect(parseRoute('#/judge/')).toEqual({ name: 'judge-list' });
   });
 
   it('maps #/judge/:pisteId to the judge route', () => {
@@ -16,21 +26,32 @@ describe('parseRoute', () => {
     expect(parseRoute('#/judge/pista%201/')).toEqual({ name: 'judge', pisteId: 'pista 1' });
   });
 
-  it('falls back to not-found for unknown paths and a missing piste id', () => {
+  it('falls back to not-found for unknown paths and extra segments', () => {
     expect(parseRoute('#/nope')).toEqual({ name: 'not-found' });
-    expect(parseRoute('#/judge')).toEqual({ name: 'not-found' });
     expect(parseRoute('#/judge/a/b')).toEqual({ name: 'not-found' });
+    expect(parseRoute('#/piste')).toEqual({ name: 'not-found' });
+    expect(parseRoute('#/piste/a/b')).toEqual({ name: 'not-found' });
   });
 
   it('does not throw on malformed percent-encoding', () => {
     expect(parseRoute('#/judge/%E0%A4%A')).toEqual({ name: 'not-found' });
+    expect(parseRoute('#/piste/%E0%A4%A')).toEqual({ name: 'not-found' });
   });
 });
 
 describe('hrefTo', () => {
+  it('builds the fixed hashes', () => {
+    expect(hrefTo({ name: 'board' })).toBe('#/');
+    expect(hrefTo({ name: 'judge-list' })).toBe('#/judge');
+    expect(hrefTo({ name: 'not-found' })).toBe('#/');
+  });
+
   it('builds hashes that parse back to the same route', () => {
-    expect(hrefTo({ name: 'home' })).toBe('#/');
-    const route = { name: 'judge', pisteId: 'pista 1' } as const;
-    expect(parseRoute(hrefTo(route))).toEqual(route);
+    for (const route of [
+      { name: 'judge', pisteId: 'pista 1' },
+      { name: 'piste', pisteId: 'a/b' },
+    ] as const) {
+      expect(parseRoute(hrefTo(route))).toEqual(route);
+    }
   });
 });

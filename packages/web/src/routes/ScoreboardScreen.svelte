@@ -67,7 +67,7 @@
   {onnewbout}
 />
 
-<p class="leave"><a href={hrefTo({ name: 'home' })}>{t('board.leave')}</a></p>
+<p class="leave"><a href={hrefTo({ name: 'judge-list' })}>{t('board.leave')}</a></p>
 
 <style>
   .leave {
