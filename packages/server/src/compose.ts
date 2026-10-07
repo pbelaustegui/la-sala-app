@@ -24,6 +24,7 @@ export function compose(config: Config): Composed {
     clock,
     hub: new InProcessHub(),
     limiter: new MemoryAttemptLimiter(clock),
+    webDist: config.webDist,
   });
   return { app, close: () => repository.close() };
 }

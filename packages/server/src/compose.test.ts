@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -34,5 +34,16 @@ describe('compose with sqlite', () => {
     expect(state.bout.score).toEqual({ left: 0, right: 1 });
     expect(state.fencers).toEqual({ left: 'Ana', right: 'Bea' });
     second.close();
+  });
+
+  it('serves the built web app next to the API when webDist is configured', async () => {
+    const webDist = join(dir, 'web');
+    mkdirSync(webDist);
+    writeFileSync(join(webDist, 'index.html'), '<title>La Sala</title>');
+    const composed = compose({ adminPin: 'admin-secret', port: 0, dbPath: join(dir, 'web.sqlite'), webDist });
+
+    expect(await (await composed.app.request('/')).text()).toContain('La Sala');
+    expect(await (await composed.app.request('/health')).json()).toEqual({ status: 'ok' });
+    composed.close();
   });
 });

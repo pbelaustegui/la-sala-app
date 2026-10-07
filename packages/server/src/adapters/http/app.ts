@@ -6,6 +6,7 @@ import type { AttemptLimiter, ChangeHub, Clock, PinGenerator, PisteRepository } 
 import { MemoryAttemptLimiter } from '../memory/attempt-limiter';
 import { InProcessHub } from '../memory/in-process-hub';
 import { requireAdmin, requirePistePin } from './auth';
+import { mountStaticWeb } from './static-web';
 import { createPistesBody, startBoutBody, submitEventsBody, toSetup, toStoredEvents } from './schemas';
 
 export interface AppDeps {
@@ -20,6 +21,8 @@ export interface AppDeps {
   readonly limiter?: AttemptLimiter;
   /** Interval of SSE keep-alive comments. Defaults to 15 s. */
   readonly heartbeatMs?: number;
+  /** Absolute path of the built web app to serve from the same origin. Omit to serve only the API. */
+  readonly webDist?: string;
 }
 
 export const DEFAULT_HEARTBEAT_MS = 15_000;
@@ -95,6 +98,9 @@ export function createApp(deps: AppDeps): Hono {
     if (result.reason === 'domain-error') return c.json({ index: result.index, error: result.error }, 422);
     return c.json({ error: result.reason }, result.reason === 'no-bout' ? 409 : 404);
   });
+
+  // After every API route: those answer first, the web app only gets what they leave over.
+  if (deps.webDist) mountStaticWeb(app, deps.webDist);
 
   return app;
 }

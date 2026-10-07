@@ -1,8 +1,24 @@
 <script lang="ts">
+  import { setContext } from 'svelte';
+  import UpdateBanner from './components/UpdateBanner.svelte';
+  import { UpdateNotice } from './core/update-notice';
+  import { createBrowserEnv, createServices, ENV_KEY, SERVICES_KEY, type AppEnv } from './env';
   import { t } from './i18n/t';
   import { createRouteStore } from './route.svelte';
   import { hrefTo } from './router';
-  import JudgePlaceholder from './routes/JudgePlaceholder.svelte';
+  import JudgeScreen from './routes/JudgeScreen.svelte';
+  import PisteListScreen from './routes/PisteListScreen.svelte';
+
+  // The environment is fixed for the lifetime of the app, so reading the prop once is intended.
+  // svelte-ignore state_referenced_locally
+  let { env = createBrowserEnv() }: { env?: AppEnv } = $props();
+  // svelte-ignore state_referenced_locally
+  setContext(ENV_KEY, env);
+  // svelte-ignore state_referenced_locally
+  setContext(SERVICES_KEY, createServices(env));
+
+  // svelte-ignore state_referenced_locally
+  const updates = new UpdateNotice(env.updates);
 
   const router = createRouteStore();
   const route = $derived(router.current);
@@ -13,11 +29,15 @@
   <span class="tagline">{t('app.tagline')}</span>
 </header>
 
+<UpdateBanner notice={updates} />
+
 <main class="shell">
   {#if route.name === 'home'}
-    <p>{t('home.intro')}</p>
+    <PisteListScreen />
   {:else if route.name === 'judge'}
-    <JudgePlaceholder pisteId={route.pisteId} />
+    {#key route.pisteId}
+      <JudgeScreen pisteId={route.pisteId} />
+    {/key}
   {:else}
     <h1>{t('notFound.title')}</h1>
     <p>{t('notFound.body')}</p>

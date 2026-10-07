@@ -1,0 +1,236 @@
+<script lang="ts">
+  import type { Card, Side } from '@la-sala/domain';
+  import type { ScoreboardModel } from '../controllers/scoreboard-controller';
+  import { t } from '../i18n/t';
+  import CardsSheet from './CardsSheet.svelte';
+
+  let {
+    model,
+    names,
+    pending,
+    ontouch,
+    ondouble,
+    onclock,
+    onundo,
+    oncard,
+    onskipbreak,
+    onpriority,
+    onnewbout,
+  }: {
+    model: ScoreboardModel;
+    names: Readonly<Record<Side, string>>;
+    /** Events not yet acknowledged by the server. */
+    pending: number;
+    ontouch: (side: Side) => void;
+    ondouble: () => void;
+    onclock: () => void;
+    onundo: () => void;
+    oncard: (side: Side, card: Card) => void;
+    onskipbreak: () => void;
+    onpriority: (side: Side) => void;
+    onnewbout: () => void;
+  } = $props();
+
+  let cardsOpen = $state(false);
+
+  const SIDES: readonly Side[] = ['left', 'right'];
+
+  function give(side: Side, card: Card): void {
+    oncard(side, card);
+    cardsOpen = false;
+  }
+</script>
+
+<section class="board" data-phase={model.phase}>
+  <header class="top">
+    <div class="phase">{t(model.phaseLabel.key, model.phaseLabel.params)}</div>
+    <div class="clock" data-running={model.clockRunning}>{model.clockText}</div>
+    {#if model.priority !== null && model.phase === 'extra-period'}
+      <div class="priority">{t('board.priority.holder', { name: names[model.priority] })}</div>
+    {/if}
+  </header>
+
+  <div class="halves">
+    {#each SIDES as side (side)}
+      <button
+        class="half {side}"
+        type="button"
+        disabled={!model.canScore}
+        aria-label={t('board.touch', { name: names[side] })}
+        onclick={() => ontouch(side)}
+      >
+        <span class="name">{names[side]}</span>
+        <span class="score">{model.score[side]}</span>
+      </button>
+    {/each}
+  </div>
+
+  {#if model.error}
+    <p class="error" role="alert">{t('board.error')}</p>
+  {/if}
+
+  {#if model.phase === 'scheduled'}
+    <p class="hint">{t('board.hint.start')}</p>
+  {/if}
+
+  {#if model.awaitingPriority}
+    <div class="panel" role="group" aria-label={t('board.priority.title')}>
+      <h2>{t('board.priority.title')}</h2>
+      <p>{t('board.priority.hint')}</p>
+      <div class="pair">
+        {#each SIDES as side (side)}
+          <button class="btn primary big" type="button" onclick={() => onpriority(side)}>
+            {t('board.priority.pick', { name: names[side] })}
+          </button>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
+  {#if model.result}
+    <div class="panel result" role="status">
+      <h2>{t('board.result', { name: names[model.result.winner] })}</h2>
+      <p>{t(`board.reason.${model.result.reason}`)}</p>
+      {#if pending > 0}
+        <p class="hint">{t('board.newBout.waiting', { count: pending })}</p>
+      {/if}
+      <button class="btn primary big" type="button" disabled={pending > 0} onclick={onnewbout}>
+        {t('board.newBout')}
+      </button>
+    </div>
+  {/if}
+
+  {#if model.clockAction}
+    <button class="btn big clock-button {model.clockAction}" type="button" onclick={onclock}>
+      {model.clockAction === 'start' ? t('board.clock.start') : t('board.clock.stop')}
+    </button>
+  {/if}
+
+  {#if model.canSkipBreak}
+    <button class="btn big" type="button" onclick={onskipbreak}>{t('board.skipBreak')}</button>
+  {/if}
+
+  <div class="row">
+    {#if model.doubleTouch !== 'hidden'}
+      <button class="btn" type="button" disabled={model.doubleTouch === 'disabled'} onclick={ondouble}>
+        {t('board.double')}
+      </button>
+    {/if}
+    <button class="btn" type="button" aria-expanded={cardsOpen} onclick={() => (cardsOpen = !cardsOpen)}>
+      {t('board.cards')}
+    </button>
+    <button class="btn" type="button" disabled={!model.canUndo} onclick={onundo}>{t('board.undo')}</button>
+  </div>
+
+  {#if cardsOpen}
+    <CardsSheet {names} disabled={!model.canScore} ongive={give} onclose={() => (cardsOpen = false)} />
+  {/if}
+</section>
+
+<style>
+  .board {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .top {
+    text-align: center;
+  }
+  .phase {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .clock {
+    font-size: clamp(4rem, 22vw, 7rem);
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .clock[data-running='false'] {
+    color: var(--muted);
+  }
+  .priority {
+    font-weight: 700;
+  }
+  .halves {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  .half {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 34vh;
+    padding: 1rem 0.5rem;
+    font: inherit;
+    color: #fff;
+    border: 4px solid var(--fg);
+    border-radius: 1rem;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .half.left {
+    background: #c62828;
+  }
+  .half.right {
+    background: #1565c0;
+  }
+  .half:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+  .score {
+    font-size: clamp(4rem, 24vw, 7rem);
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .big {
+    min-height: 72px;
+    font-size: 1.4rem;
+    width: 100%;
+  }
+  .clock-button.stop {
+    background: #ff5d5d;
+    border-color: #ff5d5d;
+    color: #0b1020;
+  }
+  .clock-button.start {
+    background: #5dd68a;
+    border-color: #5dd68a;
+    color: #0b1020;
+  }
+  .row {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .panel {
+    padding: 0.75rem;
+    border: 2px solid var(--accent);
+    border-radius: 0.75rem;
+    text-align: center;
+  }
+  .pair {
+    display: grid;
+    gap: 0.5rem;
+  }
+  h2 {
+    margin: 0 0 0.25rem;
+    font-size: 1.4rem;
+  }
+  .hint {
+    text-align: center;
+    color: var(--muted);
+    margin: 0;
+  }
+</style>
