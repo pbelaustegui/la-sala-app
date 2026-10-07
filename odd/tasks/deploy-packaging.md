@@ -21,7 +21,7 @@ The server needs a single Node 24 process, a persistent SQLite file, long-lived 
 
 ## Tasks
 - [x] D1 Dockerfile + .dockerignore
-- [ ] D2 compose.yaml + Caddyfile + env example (compose.yaml, Caddyfile and the `.env` git-ignore done; `.env.example` NOT written: write was denied by permission settings)
+- [x] D2 compose.yaml + Caddyfile + env example (the example is `env.example`: writes to `.env*` paths are denied by permission settings, so the user chose another name)
 - [x] D3 Runbook `docs/deploy.md` + README pointer
 
 ## Route declaration
@@ -39,7 +39,7 @@ Forecast ~200 authored lines; single PR. Branch: `feat/deploy-packaging`.
 ## Progress
 - Branch created, plan written.
 - D1-D3 files written. The image build, `docker compose config` and `caddy validate` are UNVERIFIED: Docker and Caddy are not installed here. Only `npm run build -w packages/web` was run (succeeds).
-- `.env.example` is still missing (permission denied on write); the runbook does not depend on it.
+- Work unit committed as b5530b2. `env.example` added afterwards (see the follow-up commit).
 
 ## Next step
-Delegate the writer for D1-D3.
+Push and open the PR (user decision). First real validation happens on a rehearsal VPS.
