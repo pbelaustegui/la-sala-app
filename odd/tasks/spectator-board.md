@@ -23,7 +23,7 @@ This is the original problem: spectators cannot see the judge's phone. Mobile da
 
 ## Tasks
 - [x] V1 Server: `GET /pistes/stream` (one SSE for all pistes): initial snapshot per piste, then a message per change, heartbeat; hub gets an all-pistes subscription; tests
-- [ ] V2 Web core: spectator store over an injected stream port, reconnect/backoff, stale state, per-message clock offset, view model via domain `settle`; no UI
+- [x] V2 Web core: spectator store over an injected stream port, reconnect/backoff, stale state, per-message clock offset, view model via domain `settle`; no UI
 - [ ] V3 Web UI: board and detail screens, route changes (judge to `#/judge`), manifest `start_url`, i18n, README
 
 ## Acceptance
@@ -37,5 +37,6 @@ This is the original problem: spectators cannot see the judge's phone. Mobile da
 
 ## Progress / evidence
 - Branch `feat/spectator` created from `main` (835b989).
-- V1 done (route: delegated, writer). `GET /pistes/stream` wire format: `event: pistes` `{pisteIds}` (authoritative set, first on connect and after `POST /admin/pistes`; subscribers drop other ids) and `event: snapshot` `{pisteId, snapshot:{serverTime,bout,fencers}}` (per piste on connect, then per change); heartbeat comment every 15 s. Hub: `subscribeAll`/`publishPistes`. RED: 10 failing tests before code; GREEN after. Observed: server 156 tests, web 200, domain 89 pass; tsc server/web and svelte-check clean. Message size for a sabre bout in progress (1 touch): 504 bytes per snapshot frame (rules block is ~45% of it; could be trimmed later if needed). Commit hash: see next note.
-- Next step: V2 (web core), then V3.
+- V1 done (route: delegated, writer). `GET /pistes/stream` wire format: `event: pistes` `{pisteIds}` (authoritative set, first on connect and after `POST /admin/pistes`; subscribers drop other ids) and `event: snapshot` `{pisteId, snapshot:{serverTime,bout,fencers}}` (per piste on connect, then per change); heartbeat comment every 15 s. Hub: `subscribeAll`/`publishPistes`. RED: 10 failing tests before code; GREEN after. Observed: server 156 tests, web 200, domain 89 pass; tsc server/web and svelte-check clean. Message size for a sabre bout in progress (1 touch): 504 bytes per snapshot frame (rules block is ~45% of it; could be trimmed later if needed). Commit hash: 67bb03f.
+- V2 done (delegated, same writer). Added `core/spectator-store.ts` (store + `BoardStreamPort`), `core/piste-view.ts` (`toPisteView`), `core/board-event-source.ts` (EventSource adapter, tested through a fake). Offset is per message (`serverTime - receivedAt`), error bound = one-way latency (documented in code); stale entries are frozen at their snapshot's server time and never `running`; backoff `min(30s, 1s*2^n)` x jitter [0.5,1], reset when data arrives. RED: both new test files failed on missing modules; GREEN: web 222 tests pass (23 -> 27 files), tsc server/web and svelte-check clean. Commit hash: see next note.
+- Next step: V3 (web UI).
