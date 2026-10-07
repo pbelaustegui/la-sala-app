@@ -1,0 +1,11 @@
+# Site address comes from the SITE_ADDRESS environment variable
+# (for example la-sala.example.com or 203-0-113-10.sslip.io).
+# Caddy obtains and renews the HTTPS certificate on its own.
+{$SITE_ADDRESS} {
+	reverse_proxy app:3000 {
+		# The public board lives on Server-Sent Events (GET /pistes/stream).
+		# -1 flushes every write immediately instead of buffering, so score
+		# updates reach the phones as they happen.
+		flush_interval -1
+	}
+}
