@@ -1,5 +1,7 @@
 <script lang="ts">
   import { setContext } from 'svelte';
+  import UpdateBanner from './components/UpdateBanner.svelte';
+  import { UpdateNotice } from './core/update-notice';
   import { createBrowserEnv, createServices, ENV_KEY, SERVICES_KEY, type AppEnv } from './env';
   import { t } from './i18n/t';
   import { createRouteStore } from './route.svelte';
@@ -15,6 +17,9 @@
   // svelte-ignore state_referenced_locally
   setContext(SERVICES_KEY, createServices(env));
 
+  // svelte-ignore state_referenced_locally
+  const updates = new UpdateNotice(env.updates);
+
   const router = createRouteStore();
   const route = $derived(router.current);
 </script>
@@ -23,6 +28,8 @@
   <a class="brand" href={hrefTo({ name: 'home' })}>{t('app.title')}</a>
   <span class="tagline">{t('app.tagline')}</span>
 </header>
+
+<UpdateBanner notice={updates} />
 
 <main class="shell">
   {#if route.name === 'home'}

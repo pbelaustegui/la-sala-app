@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>La Sala</title>
+  <rect width="512" height="512" fill="#0b1020"/>
+  <!-- Two crossed blades with their guards, kept inside the central 70% so a maskable crop never cuts them. -->
+  <g stroke="#f4f6ff" stroke-width="26" stroke-linecap="round" fill="none">
+    <line x1="139.9" y1="139.9" x2="372.1" y2="372.1"/>
+    <line x1="372.1" y1="139.9" x2="139.9" y2="372.1"/>
+  </g>
+  <g stroke="#ffd23f" stroke-width="26" stroke-linecap="round" fill="none">
+    <line x1="112.9" y1="210.1" x2="210.1" y2="112.9"/>
+    <line x1="301.9" y1="112.9" x2="399.1" y2="210.1"/>
+  </g>
+  <circle cx="256" cy="256" r="36" fill="#ffd23f"/>
+</svg>

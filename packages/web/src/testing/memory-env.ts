@@ -14,6 +14,7 @@ export function createMemoryEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     sessionStorage: new MemoryStorage(),
     onOnline: () => () => undefined,
     wakeLock: null,
+    updates: null,
     visibility: { isVisible: () => true, onChange: () => () => undefined },
     ...overrides,
   };
