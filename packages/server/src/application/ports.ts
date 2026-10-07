@@ -74,10 +74,20 @@ export interface Snapshot {
   readonly fencers: { readonly left: string; readonly right: string } | null;
 }
 
+/** What an all-pistes subscriber receives: a piste changed, or the set of pistes was replaced. */
+export type BoardChange =
+  | { readonly kind: 'snapshot'; readonly pisteId: string; readonly snapshot: Snapshot }
+  /** The authoritative list of piste ids after `POST /admin/pistes`; subscribers drop any other id. */
+  | { readonly kind: 'pistes'; readonly pisteIds: readonly string[] };
+
 /** In-process fan-out of piste changes to live subscribers (SSE streams). */
 export interface ChangeHub {
-  /** Delivers a snapshot to every current subscriber of the piste. Never throws. */
+  /** Delivers a snapshot to every current subscriber of the piste and to all-pistes subscribers. Never throws. */
   publish(pisteId: string, snapshot: Snapshot): void;
   /** Returns an idempotent unsubscribe function. */
   subscribe(pisteId: string, listener: (snapshot: Snapshot) => void): () => void;
+  /** Tells all-pistes subscribers which pistes exist now. Never throws. */
+  publishPistes(pisteIds: readonly string[]): void;
+  /** Receives every change on every piste (spectator board). Returns an idempotent unsubscribe function. */
+  subscribeAll(listener: (change: BoardChange) => void): () => void;
 }

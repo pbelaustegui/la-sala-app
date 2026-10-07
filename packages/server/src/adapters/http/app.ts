@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
 import { BoutService } from '../../application/bouts';
 import { createPistes } from '../../application/create-pistes';
-import type { AttemptLimiter, ChangeHub, Clock, PinGenerator, PisteRepository } from '../../application/ports';
+import type { AttemptLimiter, BoardChange, ChangeHub, Clock, PinGenerator, PisteRepository } from '../../application/ports';
 import { MemoryAttemptLimiter } from '../memory/attempt-limiter';
 import { InProcessHub } from '../memory/in-process-hub';
 import { requireAdmin, requirePistePin } from './auth';
@@ -55,6 +55,49 @@ export function createApp(deps: AppDeps): Hono {
   app.route('/admin', admin);
 
   app.get('/pistes', async (c) => c.json(await bouts.listPisteStatuses()));
+
+  /**
+   * Public, read-only board feed: ONE connection for all pistes (no PIN). Registered before
+   * `/pistes/:id/...` and under `/pistes` so neither routing nor static hosting shadows it.
+   *
+   * Messages (SSE `event:` / `data:`), each a small JSON object:
+   *  - `pistes`   `{ pisteIds: string[] }`: the authoritative piste set. Sent first on connect and
+   *               again whenever `POST /admin/pistes` replaces the pistes; drop any id not listed.
+   *  - `snapshot` `{ pisteId, snapshot }` with `snapshot = { serverTime, bout, fencers }`: one per
+   *               piste on connect and one per change (so a replacement is `pistes` then a
+   *               snapshot per new piste). Heartbeat comments every `heartbeatMs`.
+   */
+  app.get('/pistes/stream', (c) =>
+    streamSSE(c, async (stream) => {
+      const write = (change: BoardChange) => {
+        const message =
+          change.kind === 'pistes'
+            ? { event: 'pistes', data: JSON.stringify({ pisteIds: change.pisteIds }) }
+            : { event: 'snapshot', data: JSON.stringify({ pisteId: change.pisteId, snapshot: change.snapshot }) };
+        return stream.writeSSE(message).catch(() => undefined);
+      };
+      // Subscribe before reading the initial state; changes that arrive meanwhile wait their turn.
+      let buffered: BoardChange[] | null = [];
+      const unsubscribe = hub.subscribeAll((change) => {
+        if (buffered) buffered.push(change);
+        else void write(change);
+      });
+      const heartbeat = setInterval(() => void stream.write(': heartbeat\n\n').catch(() => undefined), heartbeatMs);
+      const closed = new Promise<void>((resolve) => stream.onAbort(resolve));
+      try {
+        const initial = await bouts.listSnapshots();
+        await write({ kind: 'pistes', pisteIds: initial.map((entry) => entry.pisteId) });
+        for (const entry of initial) await write({ kind: 'snapshot', ...entry });
+        const pending = buffered;
+        buffered = null;
+        for (const change of pending) await write(change);
+        await closed;
+      } finally {
+        clearInterval(heartbeat);
+        unsubscribe();
+      }
+    }),
+  );
 
   app.get('/pistes/:id/state', async (c) => {
     const result = await bouts.getSnapshot(c.req.param('id'));

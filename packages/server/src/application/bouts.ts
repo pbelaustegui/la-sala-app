@@ -99,8 +99,17 @@ export class BoutService {
     });
   }
 
+  /** Current snapshot of every piste, in repository order. Used for the board's initial messages. */
+  async listSnapshots(): Promise<readonly { readonly pisteId: string; readonly snapshot: Snapshot }[]> {
+    const pistes = await this.deps.repository.listPistes();
+    return Promise.all(
+      pistes.map(async ({ id }) => ({ pisteId: id, snapshot: this.snapshotOf(await this.deps.repository.findBout(id)) })),
+    );
+  }
+
   /** Tells live subscribers that the given pistes were just (re)created and hold no bout. */
   announcePistesReset(pisteIds: readonly string[]): void {
+    this.deps.hub.publishPistes(pisteIds);
     for (const id of pisteIds) this.deps.hub.publish(id, this.snapshotOf(null));
   }
 
