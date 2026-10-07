@@ -27,6 +27,14 @@ export interface Clock {
   readonly runningSince: number | null;
 }
 
+export type Card = 'yellow' | 'red' | 'black';
+
+export interface CardRecord {
+  readonly side: Side;
+  readonly card: Card;
+  readonly at: number;
+}
+
 export interface BoutState {
   readonly rules: Rules;
   readonly phase: Phase;
@@ -34,6 +42,9 @@ export interface BoutState {
   readonly clock: Clock;
   /** Side holding priority in sudden death, once drawn. */
   readonly priority: Side | null;
+  readonly cards: readonly CardRecord[];
+  /** Whether the sabre mid-bout break already happened. */
+  readonly midBoutBreakTaken: boolean;
   /** Timestamp of the last applied event; used to reject time going backwards. */
   readonly lastAt: number | null;
 }
@@ -45,6 +56,8 @@ export function createBout(rules: Rules): BoutState {
     score: { left: 0, right: 0 },
     clock: { remainingMs: rules.periodDurationMs, runningSince: null },
     priority: null,
+    cards: [],
+    midBoutBreakTaken: false,
     lastAt: null,
   };
 }
