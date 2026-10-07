@@ -37,7 +37,7 @@ The installed PWA opens the judge entry (`start_url` is `/#/judge`); the board l
 
 ## Public board (spectators)
 
-Open the site root (`https://host/`) on a phone or a TV: no login, read-only. The board shows a card per piste (fencers, score, clock, period, phase, cards, and the winner with the reason once finished) in a responsive grid; tapping a card opens the detail with much larger numerals. It uses ONE `EventSource` on `GET /pistes/stream` for all pistes (no polling) and reconnects with backoff. The running clock is drawn from timestamps (`serverTime` of each message corrected by the phone's offset), redrawn every 250 ms only while the page is visible. While the connection is down the board says "Sin conexión, mostrando el último estado" and freezes the clocks. The error bound of the clock is the one-way network latency: a board can show its clock slightly ahead of the judge's. The service worker never caches the stream.
+Open the site root (`https://host/`) on a phone or a TV: no login, read-only. The board shows a card per piste (fencers, score, clock, period, phase, cards, and the winner with the reason once finished) in a responsive grid; tapping a card opens the detail with much larger numerals. It uses ONE `EventSource` on `GET /pistes/stream` for all pistes (no polling) and reconnects with backoff; 45 s without any message (snapshots and pings count) is treated as a dead connection, so a phone that silently lost its network does not show stale scores as live. The running clock is drawn from timestamps (`serverTime` of each message corrected by the phone's offset), redrawn every 250 ms only while the page is visible. While the connection is down the board says "Sin conexión, mostrando el último estado" and freezes the clocks. The error bound of the clock is the one-way network latency: a board can show its clock slightly ahead of the judge's. The service worker never caches the stream.
 
 ## Judge web app (PWA)
 
@@ -115,7 +115,7 @@ Headers: `x-admin-pin` (organizer) and `x-piste-pin` (judge of that piste). Wron
 | `GET /pistes/:id/stream`      | none        | Server-sent events: `snapshot` on connect, then one per change, `: heartbeat` comment every 15 s. |
 | `GET /pistes/stream`          | none        | Public board feed for ALL pistes (see below).                       |
 
-Board feed (`GET /pistes/stream`, registered before `/pistes/:id/...`): `event: pistes` `{pisteIds}` is the authoritative piste set (first on connect and after `POST /admin/pistes`; drop any other id) and `event: snapshot` `{pisteId, snapshot: {serverTime, bout, fencers}}` is sent per piste on connect and then per change. A heartbeat comment is sent every 15 s.
+Board feed (`GET /pistes/stream`, registered before `/pistes/:id/...`): `event: pistes` `{pisteIds}` is the authoritative piste set (first on connect and after `POST /admin/pistes`; drop any other id) and `event: snapshot` `{pisteId, snapshot: {serverTime, bout, fencers}}` is sent per piste on connect and then per change. `event: ping` `{serverTime}` is sent every 15 s (a real event, because browsers do not expose SSE comments) so the client can tell a quiet connection from a dead one. The per-piste stream keeps its `: heartbeat` comment.
 
 Events:
 

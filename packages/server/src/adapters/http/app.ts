@@ -65,7 +65,11 @@ export function createApp(deps: AppDeps): Hono {
    *               again whenever `POST /admin/pistes` replaces the pistes; drop any id not listed.
    *  - `snapshot` `{ pisteId, snapshot }` with `snapshot = { serverTime, bout, fencers }`: one per
    *               piste on connect and one per change (so a replacement is `pistes` then a
-   *               snapshot per new piste). Heartbeat comments every `heartbeatMs`.
+   *               snapshot per new piste).
+   *  - `ping`     `{ serverTime }` every `heartbeatMs` (15 s). A real event, not a `:` comment,
+   *               because browsers do not surface SSE comments: the client watchdog needs to
+   *               observe it to tell a silent dead connection from a quiet one. It also refreshes
+   *               the client's clock offset without touching any snapshot.
    */
   app.get('/pistes/stream', (c) =>
     streamSSE(c, async (stream) => {
@@ -82,7 +86,13 @@ export function createApp(deps: AppDeps): Hono {
         if (buffered) buffered.push(change);
         else void write(change);
       });
-      const heartbeat = setInterval(() => void stream.write(': heartbeat\n\n').catch(() => undefined), heartbeatMs);
+      const heartbeat = setInterval(
+        () =>
+          void stream
+            .writeSSE({ event: 'ping', data: JSON.stringify({ serverTime: deps.clock.now() }) })
+            .catch(() => undefined),
+        heartbeatMs,
+      );
       const closed = new Promise<void>((resolve) => stream.onAbort(resolve));
       try {
         const initial = await bouts.listSnapshots();

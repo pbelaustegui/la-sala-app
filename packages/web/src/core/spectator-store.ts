@@ -5,7 +5,9 @@ import { Observable } from './observable';
 export type BoardMessage =
   | { readonly kind: 'snapshot'; readonly pisteId: string; readonly snapshot: Snapshot }
   /** The authoritative set of piste ids; any other id is gone. */
-  | { readonly kind: 'pistes'; readonly pisteIds: readonly string[] };
+  | { readonly kind: 'pistes'; readonly pisteIds: readonly string[] }
+  /** Heartbeat of the server: proves the connection is alive and refreshes the clock offset. */
+  | { readonly kind: 'ping'; readonly serverTime: number };
 
 export interface BoardStreamHandlers {
   onOpen(): void;
@@ -57,10 +59,17 @@ export interface SpectatorDeps {
   readonly clearTimeout: (handle: unknown) => void;
   /** Uniform in [0, 1). */
   readonly random: () => number;
+  /** Silence after which the connection counts as dead. Defaults to `WATCHDOG_MS`. */
+  readonly watchdogMs?: number;
 }
 
 export const BACKOFF_BASE_MS = 1_000;
 export const BACKOFF_MAX_MS = 30_000;
+/**
+ * Three missed heartbeats (the server pings every 15 s). Browsers do not report a connection
+ * that died silently (a phone leaving wifi, a NAT dropping the flow), so silence is the signal.
+ */
+export const WATCHDOG_MS = 45_000;
 
 const byPisteId = (a: BoardEntry, b: BoardEntry): number => {
   const diff = Number(a.pisteId) - Number(b.pisteId);
@@ -73,8 +82,12 @@ const byPisteId = (a: BoardEntry, b: BoardEntry): number => {
  * On a drop the port is closed (so a native `EventSource` never retries behind our back) and a
  * retry is scheduled after `min(30 s, 1 s * 2^attempt)` scaled by jitter in [0.5, 1]. The
  * attempt counter resets once data arrives on a connection. The server sends a snapshot per
- * piste on every connect, so nothing needs replaying. A silently dead connection (no error
- * event) is not detected here; heartbeats are comments the browser does not surface.
+ * piste on every connect, so nothing needs replaying.
+ *
+ * Watchdog: a connection that stays silent for `WATCHDOG_MS` (any message counts, `ping`
+ * included) is treated as dead exactly like an error: port closed, entries stale, normal
+ * reconnect with backoff. It is armed on every connection attempt, so an attempt that never
+ * opens is covered too, and cancelled while a retry is waiting and on `stop`.
  */
 export class SpectatorStore {
   private readonly state = new Observable<SpectatorState>({ connection: 'connecting', pistes: [] });
@@ -82,6 +95,7 @@ export class SpectatorStore {
   private running = false;
   private attempt = 0;
   private retryHandle: unknown = null;
+  private watchdogHandle: unknown = null;
   /** Identifies the current connection so callbacks of a closed one are ignored. */
   private generation = 0;
 
@@ -105,6 +119,7 @@ export class SpectatorStore {
     this.running = false;
     this.generation++;
     this.cancelRetry();
+    this.cancelWatchdog();
     this.deps.port.close();
   }
 
@@ -113,11 +128,13 @@ export class SpectatorStore {
     const live = (fn: () => void) => () => {
       if (generation === this.generation) fn();
     };
+    this.armWatchdog(generation);
     this.deps.port.open({
       onOpen: live(() => this.publish('live')),
       onMessage: (message) => {
         if (generation !== this.generation) return;
         this.attempt = 0;
+        this.armWatchdog(generation);
         this.receive(message);
       },
       onError: live(() => this.drop()),
@@ -125,7 +142,11 @@ export class SpectatorStore {
   }
 
   private receive(message: BoardMessage): void {
-    if (message.kind === 'pistes') {
+    if (message.kind === 'ping') {
+      // Snapshots stay untouched; only the clock estimate is refreshed.
+      const offsetMs = message.serverTime - this.deps.now();
+      for (const [id, entry] of this.entries) if (!entry.stale) this.entries.set(id, { ...entry, offsetMs });
+    } else if (message.kind === 'pistes') {
       const keep = new Set(message.pisteIds);
       for (const id of [...this.entries.keys()]) if (!keep.has(id)) this.entries.delete(id);
     } else {
@@ -142,6 +163,7 @@ export class SpectatorStore {
   }
 
   private drop(): void {
+    this.cancelWatchdog();
     this.deps.port.close();
     for (const [id, entry] of this.entries) this.entries.set(id, { ...entry, stale: true });
     this.publish('stale');
@@ -152,6 +174,19 @@ export class SpectatorStore {
       this.retryHandle = null;
       if (this.running) this.connect();
     }, Math.round(step * (0.5 + 0.5 * this.deps.random())));
+  }
+
+  private armWatchdog(generation: number): void {
+    this.cancelWatchdog();
+    this.watchdogHandle = this.deps.setTimeout(() => {
+      this.watchdogHandle = null;
+      if (generation === this.generation && this.running) this.drop();
+    }, this.deps.watchdogMs ?? WATCHDOG_MS);
+  }
+
+  private cancelWatchdog(): void {
+    if (this.watchdogHandle !== null) this.deps.clearTimeout(this.watchdogHandle);
+    this.watchdogHandle = null;
   }
 
   private cancelRetry(): void {

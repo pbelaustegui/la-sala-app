@@ -49,6 +49,14 @@ describe('EventSourceBoardStream', () => {
     ]);
   });
 
+  it('subscribes to the `ping` event so the store can see the connection is alive', () => {
+    const { handlers, source } = setup();
+    source.emit('ping', JSON.stringify({ serverTime: 123 }));
+    source.emit('ping', '{not json');
+    source.emit('ping', JSON.stringify({ serverTime: 'later' }));
+    expect(handlers.onMessage.mock.calls).toEqual([[{ kind: 'ping', serverTime: 123 }]]);
+  });
+
   it('closes the underlying source', () => {
     const { port, source } = setup();
     port.close();

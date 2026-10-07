@@ -31,6 +31,10 @@ export class EventSourceBoardStream implements BoardStreamPort {
         handlers.onMessage({ kind: 'snapshot', pisteId: data.pisteId, snapshot: data.snapshot } as BoardMessage);
       }
     });
+    source.addEventListener('ping', (event) => {
+      const data = parse(event.data);
+      if (data && typeof data.serverTime === 'number') handlers.onMessage({ kind: 'ping', serverTime: data.serverTime });
+    });
     this.source = source;
   }
 

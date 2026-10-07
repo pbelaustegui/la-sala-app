@@ -130,12 +130,24 @@ describe('GET /pistes/stream', () => {
     expect(hub.boardSubscriberCount()).toBe(0);
   });
 
-  it('sends heartbeat comments while idle', async () => {
+  it('sends a real `ping` event with the server time at the heartbeat cadence', async () => {
+    const { app, clock } = setup(20);
+    await provision(app);
+    clock.set(T0 + 777);
+    const stream = frames(await app.request('/pistes/stream'));
+    for (let i = 0; i < 3; i++) await stream.next();
+    const ping = await stream.next();
+    expect(eventOf(ping)).toBe('ping');
+    expect(dataOf(ping)).toEqual({ serverTime: T0 + 777 });
+    await stream.cancel();
+  });
+
+  it('does not send comment heartbeats on the board feed any more', async () => {
     const { app } = setup(20);
     await provision(app);
     const stream = frames(await app.request('/pistes/stream'));
     for (let i = 0; i < 3; i++) await stream.next();
-    expect(await stream.next()).toBe(': heartbeat\n\n');
+    for (let i = 0; i < 2; i++) expect(await stream.next()).not.toContain(': heartbeat');
     await stream.cancel();
   });
 });
