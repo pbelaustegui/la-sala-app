@@ -158,6 +158,11 @@ export class EntryFlow extends Observable<EntryState> {
     this.set(SETUP_IDLE);
   }
 
+  /** From a finished bout: straight to setup (nothing live to archive; the caller waits for the sync). */
+  startNewBout(): void {
+    this.set(SETUP_IDLE);
+  }
+
   async startBout(form: SetupForm): Promise<void> {
     const validation = validateSetupForm(form);
     if (!validation.ok) {

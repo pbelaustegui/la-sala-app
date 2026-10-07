@@ -96,7 +96,7 @@ describe('judge entry', () => {
     await fireEvent.input(screen.getByLabelText('Tirador derecha'), { target: { value: 'Bea' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Empezar combate' }));
 
-    expect(await screen.findByRole('heading', { name: 'Pista p1' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Tocado para Ana' })).toBeTruthy();
     expect(server.setup).toMatchObject({ weapon: 'epee', left: 'Ana', right: 'Bea', options: { periods: 2 } });
     expect(env.sessionStorage.get('la-sala:v1:pin:p1')).toBe(PIN);
   });

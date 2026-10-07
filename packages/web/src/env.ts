@@ -5,6 +5,7 @@ import { CurrentBoutPointer } from './core/current-bout';
 import { PinStore } from './core/pin-store';
 import { LocalStorageAdapter, type KeyValueStorage } from './core/storage';
 import type { Timers } from './core/sync-queue';
+import type { VisibilitySource, WakeLockPort } from './core/wake-lock';
 
 /**
  * Everything the screens need from the outside world. The browser build wires real ports;
@@ -24,6 +25,10 @@ export interface AppEnv {
   readonly sessionStorage: KeyValueStorage;
   /** Calls `callback` whenever the browser regains connectivity. Returns an unsubscribe. */
   readonly onOnline: (callback: () => void) => () => void;
+  /** Screen Wake Lock API, or null where the browser does not offer it. */
+  readonly wakeLock: WakeLockPort | null;
+  /** Page visibility, used to re-acquire the wake lock after the tab was hidden. */
+  readonly visibility: VisibilitySource;
 }
 
 export const ENV_KEY = Symbol('la-sala-env');
@@ -87,6 +92,14 @@ export function createBrowserEnv(target: Window = window): AppEnv {
     onOnline: (callback) => {
       target.addEventListener('online', callback);
       return () => target.removeEventListener('online', callback);
+    },
+    wakeLock: 'wakeLock' in target.navigator ? (target.navigator.wakeLock as WakeLockPort) : null,
+    visibility: {
+      isVisible: () => target.document.visibilityState !== 'hidden',
+      onChange: (callback) => {
+        target.document.addEventListener('visibilitychange', callback);
+        return () => target.document.removeEventListener('visibilitychange', callback);
+      },
     },
   };
 }

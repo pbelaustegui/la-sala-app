@@ -245,6 +245,23 @@ describe('EntryFlow: starting and resuming', () => {
   });
 });
 
+describe('EntryFlow: new bout after a finished one', () => {
+  it('goes straight to setup and replaces the stored bout', async () => {
+    const h = harness();
+    await h.flow.start();
+    await h.flow.submitPin(PIN);
+    await h.flow.startBout(FORM);
+    const first = h.state('ready');
+
+    h.flow.startNewBout();
+    expect(h.step()).toBe('setup');
+    await h.flow.startBout({ ...FORM, left: 'Eva' });
+    const next = h.state('ready');
+    expect(next.boutId).not.toBe(first.boutId);
+    expect(h.storage.get(boutKey({ pisteId: 'p1', boutId: first.boutId }))).toBeNull();
+  });
+});
+
 describe('EntryFlow: offline', () => {
   it('opens the local bout when the PIN is remembered and the network is down', async () => {
     const { server, storage, pins, flow } = harness();

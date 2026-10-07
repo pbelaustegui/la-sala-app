@@ -7,7 +7,7 @@
   import { EntryFlow } from '../controllers/entry-flow';
   import { getServices } from '../env';
   import { t } from '../i18n/t';
-  import { hrefTo } from '../router';
+  import ScoreboardScreen from './ScoreboardScreen.svelte';
 
   let { pisteId }: { pisteId: string } = $props();
 
@@ -39,7 +39,14 @@
   <p>{t('entry.offline.body')}</p>
   <button class="btn primary" type="button" onclick={() => void flow.start()}>{t('entry.offline.retry')}</button>
 {:else}
-  <h1>{t('judge.title', { piste: pisteId })}</h1>
-  <p>{t('judge.placeholder')}</p>
-  <a href={hrefTo({ name: 'home' })}>{t('nav.back')}</a>
+  {#key $flow.boutId}
+    <ScoreboardScreen
+      {pisteId}
+      pin={$flow.pin}
+      bout={$flow.bout}
+      startedOffline={$flow.offline}
+      onreauth={() => flow.changePin()}
+      onnewbout={() => flow.startNewBout()}
+    />
+  {/key}
 {/if}

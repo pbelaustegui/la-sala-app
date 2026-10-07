@@ -82,6 +82,12 @@ export class SyncQueue {
     return this.start();
   }
 
+  /** Cancels any pending retry and stops sending; the local log is untouched. */
+  dispose(): void {
+    this.cancelTimer();
+    this.stopped = true;
+  }
+
   /** Replaces the PIN after a 401. Call `retryNow` afterwards. */
   setPin(pin: string): void {
     this.pin = pin;
