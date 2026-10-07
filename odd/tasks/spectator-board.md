@@ -24,7 +24,7 @@ This is the original problem: spectators cannot see the judge's phone. Mobile da
 ## Tasks
 - [x] V1 Server: `GET /pistes/stream` (one SSE for all pistes): initial snapshot per piste, then a message per change, heartbeat; hub gets an all-pistes subscription; tests
 - [x] V2 Web core: spectator store over an injected stream port, reconnect/backoff, stale state, per-message clock offset, view model via domain `settle`; no UI
-- [ ] V3 Web UI: board and detail screens, route changes (judge to `#/judge`), manifest `start_url`, i18n, README
+- [x] V3 Web UI: board and detail screens, route changes (judge to `#/judge`), manifest `start_url`, i18n, README
 - [ ] V4 Connection watchdog: the board stream sends a real `ping` event instead of only a comment heartbeat; the store treats 45 s without any message as a dead connection (stale + reconnect); tests with fake timers
 
 ## Acceptance
@@ -44,4 +44,6 @@ This is the original problem: spectators cannot see the judge's phone. Mobile da
 - Parent verification (V1-V2): `npm test --workspaces` 89 + 156 + 222 passed; `tsc --noEmit` server and web clean; `svelte-check` 0 errors; spectator core has no `Date.now`/`Math.random`. Authored lines: V1 359, V2 619.
 - Native review (medium, one reliability lens) on `main..c38f572` (972 lines): granted by the user, APPROVED and acknowledged (lineage review-c3aaaca3f6f88061). Reviewed boundary is now c38f572; later assessments use `--base-ref c38f572 --committed-only`.
 - Gap found at verification: a silently dead connection is not detected because browsers do not expose SSE comment heartbeats. Added V4 (ping event + client watchdog).
-- Next step: V3 (web UI), then V4.
+- V3 done (delegated, same writer). Routes: `#/` board, `#/piste/:id` detail, `#/judge` list, `#/judge/:pisteId`; router names `board|piste|judge-list|judge`. `AppEnv.boardStream` (real `EventSourceBoardStream` only in `createBrowserEnv`; `FakeBoardStream` in memory env). `SpectatorScreen` owns store start/stop (mount/unmount, one instance across board and detail) and a 250 ms UI tick via `env.timers`, paused on `visibilitychange`. Shared markup `PisteFace` for card and detail (`--numeral` clamp sizes). Manifest `start_url` is `/#/judge`, scope `/`. RED: router tests 5 failed, SpectatorScreen tests 14/15 failed before code, pwa start_url test failed; GREEN: web 246 tests, server 156, domain 89; tsc server/web and svelte-check clean; `npm run build -w packages/web` ok. Exception: CSS (responsive grid, numeral sizes, contrast) has no RED; checked structurally only (grid declaration present, tap targets >= 48 px from global `a`/`button` min sizes), not visually. Known gap: between the `pistes` message and the first snapshots the board may flash the empty state for one frame.
+- V3 commit hash: see next note.
+- Next step: V4 (watchdog + ping event).

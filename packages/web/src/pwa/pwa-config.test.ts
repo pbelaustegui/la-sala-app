@@ -23,7 +23,8 @@ describe('web app manifest', () => {
       lang: 'es',
       display: 'standalone',
       orientation: 'portrait',
-      start_url: '/',
+      // The installed app is the judge's: it opens the judge entry, not the public board.
+      start_url: '/#/judge',
       scope: '/',
     });
     expect(manifest.theme_color).toMatch(/^#[0-9a-f]{6}$/i);
@@ -71,6 +72,7 @@ describe('service worker policy', () => {
       ).toBe(true);
     }
     expect(denylist.some((pattern) => pattern.test('/judge/p1'))).toBe(false);
+    expect(denylist.some((pattern) => pattern.test('/pistes/stream'))).toBe(true);
   });
 });
 

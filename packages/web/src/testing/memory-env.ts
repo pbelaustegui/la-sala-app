@@ -1,5 +1,6 @@
 import type { AppEnv } from '../env';
 import { MemoryStorage } from '../core/storage';
+import { FakeBoardStream } from './fake-board-stream';
 
 /** In-memory environment for component tests; pass overrides for the ports a test cares about. */
 export function createMemoryEnv(overrides: Partial<AppEnv> = {}): AppEnv {
@@ -15,6 +16,7 @@ export function createMemoryEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     onOnline: () => () => undefined,
     wakeLock: null,
     updates: null,
+    boardStream: new FakeBoardStream(),
     visibility: { isVisible: () => true, onChange: () => () => undefined },
     ...overrides,
   };

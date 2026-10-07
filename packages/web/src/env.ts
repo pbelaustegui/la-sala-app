@@ -1,8 +1,10 @@
 import { getContext } from 'svelte';
 import { ApiClient, type FetchLike } from './core/api-client';
 import { ClockOffset } from './core/clock-offset';
+import { EventSourceBoardStream } from './core/board-event-source';
 import { CurrentBoutPointer } from './core/current-bout';
 import { PinStore } from './core/pin-store';
+import type { BoardStreamPort } from './core/spectator-store';
 import { LocalStorageAdapter, type KeyValueStorage } from './core/storage';
 import type { Timers } from './core/sync-queue';
 import type { UpdatePort } from './core/update-notice';
@@ -32,6 +34,8 @@ export interface AppEnv {
   readonly visibility: VisibilitySource;
   /** Service worker news (new version, offline ready), or null without a service worker. */
   readonly updates: UpdatePort | null;
+  /** The public board feed (one connection for all pistes). */
+  readonly boardStream: BoardStreamPort;
 }
 
 export const ENV_KEY = Symbol('la-sala-env');
@@ -98,6 +102,7 @@ export function createBrowserEnv(target: Window = window): AppEnv {
     },
     wakeLock: 'wakeLock' in target.navigator ? (target.navigator.wakeLock as WakeLockPort) : null,
     updates: null,
+    boardStream: new EventSourceBoardStream(),
     visibility: {
       isVisible: () => target.document.visibilityState !== 'hidden',
       onChange: (callback) => {

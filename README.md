@@ -4,7 +4,7 @@ Fencing bout scoring. Monorepo with npm workspaces:
 
 - `packages/domain` (`@la-sala/domain`): pure bout rules and reducer (`apply`, `settle`, `replay`).
 - `packages/server` (`@la-sala/server`): Hono HTTP server. Judges post events per piste, spectators follow live over SSE.
-- `packages/web` (`@la-sala/web`): offline-first PWA for the judge (Svelte + Vite), served by the server from the same origin.
+- `packages/web` (`@la-sala/web`): offline-first PWA for the judge plus the public live board for spectators (Svelte + Vite), served by the server from the same origin.
 
 ## Running the server
 
@@ -23,6 +23,21 @@ ADMIN_PIN=choose-a-long-secret npm start -w @la-sala/server
 | `WEB_DIST`  | no       | unset             | Folder with the built web app (`packages/web/dist`), resolved against the working directory. When set, the server serves the PWA from the same origin; if the folder or its `index.html` is missing the server refuses to start. |
 
 The server runs as a single process: the SSE hub is in-memory, so do not run several instances against one database.
+
+## Web app routes
+
+| Hash route            | Audience   | Screen                                                                  |
+| --------------------- | ---------- | ----------------------------------------------------------------------- |
+| `#/`                  | spectators | Public live board: one card per piste.                                  |
+| `#/piste/:id`         | spectators | Detail of one piste with very large numerals (for a TV).                |
+| `#/judge`             | judges     | List of pistes to officiate (PIN needed to score).                      |
+| `#/judge/:pisteId`    | judges     | PIN, bout setup and the scoreboard for that piste.                      |
+
+The installed PWA opens the judge entry (`start_url` is `/#/judge`); the board link "Soy juez" at the bottom of the board leads there. Before this change the judge list lived at `#/` and the scoreboard at `#/judge/:pisteId`: bookmarks of `#/` now show the public board instead.
+
+## Public board (spectators)
+
+Open the site root (`https://host/`) on a phone or a TV: no login, read-only. The board shows a card per piste (fencers, score, clock, period, phase, cards, and the winner with the reason once finished) in a responsive grid; tapping a card opens the detail with much larger numerals. It uses ONE `EventSource` on `GET /pistes/stream` for all pistes (no polling) and reconnects with backoff. The running clock is drawn from timestamps (`serverTime` of each message corrected by the phone's offset), redrawn every 250 ms only while the page is visible. While the connection is down the board says "Sin conexión, mostrando el último estado" and freezes the clocks. The error bound of the clock is the one-way network latency: a board can show its clock slightly ahead of the judge's. The service worker never caches the stream.
 
 ## Judge web app (PWA)
 
@@ -63,15 +78,16 @@ Other commands: `npm run icons -w packages/web` regenerates the PNG icons from `
 
 Nothing below has been verified on a real device: the automated tests run against jsdom and an in-memory fake of the server. Run this list on at least one iPhone and one Android phone before an event, over HTTPS.
 
-1. Open the HTTPS address in Safari (iPhone) or Chrome (Android). The piste list loads.
-2. Install it: iPhone Share > "Add to Home Screen"; Android menu > "Install app". Launch it from the icon: it opens full screen with the "La Sala" icon (not a screenshot of the page) and in portrait.
+1. Open the HTTPS address in Safari (iPhone) or Chrome (Android). The public board loads; open `/#/judge` (or tap "Soy juez") for the piste list.
+2. Install it: iPhone Share > "Add to Home Screen"; Android menu > "Install app". Launch it from the icon: it opens full screen on the judge piste list (`#/judge`) with the "La Sala" icon (not a screenshot of the page) and in portrait.
 3. Enter a piste PIN, set up a bout and score a few touches. Check the connection badge shows "En línea" and "Todo sincronizado".
 4. Turn on airplane mode, force-close the app and reopen it from the icon: the shell must load offline. Open the piste (the PIN stays remembered only while the tab/app session lives; if it asks again offline, that is the documented limit).
 5. In airplane mode keep scoring, give a card, undo. The badge must say "Sin conexión" and count the pending events. Turn airplane mode off: the count must drop to 0 by itself and a second phone watching `/pistes/:id/state` must show the same score.
 6. Start the clock and leave the phone untouched for longer than its auto-lock time: the screen must stay on while a bout is running and may turn off after it finishes.
 7. Clock skew: set one phone's clock wrong by a minute (turn off "set automatically"), score with it, then compare the state shown by the server with a second phone with the right time. Event times must agree with the server, not with the wrong phone clock.
 8. Publish a new build while the app is open: the "Hay una versión nueva" banner must appear and nothing must reload until you tap "Actualizar ahora" (or reopen the app).
-9. Rotate the phone and use a small screen (iPhone SE size): the two score halves and the buttons must stay reachable with one thumb.
+9. Board: open `/` on a second phone and on a TV browser while the first phone scores. Cards must update within a second or two, the clock must keep ticking, and switching the second phone to airplane mode must show the "Sin conexión" banner with a frozen clock. Check the numerals are readable from a distance on the TV and on the detail screen.
+10. Rotate the phone and use a small screen (iPhone SE size): the two score halves and the buttons must stay reachable with one thumb.
 
 Known caveats to check on the devices:
 
@@ -97,6 +113,9 @@ Headers: `x-admin-pin` (organizer) and `x-piste-pin` (judge of that piste). Wron
 | `POST /pistes/:id/events`     | piste       | `{events: [{id, type, at, ...}]}`. Applied in order; see below.     |
 | `GET /pistes/:id/state`       | none        | `{serverTime, bout, fencers}`; `bout` is the domain state settled at `serverTime`. |
 | `GET /pistes/:id/stream`      | none        | Server-sent events: `snapshot` on connect, then one per change, `: heartbeat` comment every 15 s. |
+| `GET /pistes/stream`          | none        | Public board feed for ALL pistes (see below).                       |
+
+Board feed (`GET /pistes/stream`, registered before `/pistes/:id/...`): `event: pistes` `{pisteIds}` is the authoritative piste set (first on connect and after `POST /admin/pistes`; drop any other id) and `event: snapshot` `{pisteId, snapshot: {serverTime, bout, fencers}}` is sent per piste on connect and then per change. A heartbeat comment is sent every 15 s.
 
 Events:
 

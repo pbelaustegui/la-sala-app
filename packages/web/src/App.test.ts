@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from '@testing-library/svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import App from './App.svelte';
 import { FakeServer } from './core/testing/fake-server';
 import { createMemoryEnv } from './testing/memory-env';
@@ -27,6 +27,7 @@ describe('App shell', () => {
     window.location.hash = '#/zzz';
     render(App, { env: createMemoryEnv() });
     expect(screen.getByRole('heading', { name: 'Página no encontrada' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Volver al inicio' }).getAttribute('href')).toBe('#/');
   });
 });
 
@@ -75,6 +76,10 @@ describe('service worker notices', () => {
 });
 
 describe('piste list', () => {
+  beforeEach(() => {
+    window.location.hash = '#/judge';
+  });
+
   it('lists the pistes with their status', async () => {
     const { env } = setup();
     render(App, { env });
@@ -97,6 +102,14 @@ describe('piste list', () => {
     render(App, { env });
     const link = await screen.findByRole('link', { name: /Pista p1/ });
     expect(link.getAttribute('href')).toBe('#/judge/p1');
+  });
+
+  it('is not the public board: the board lives at #/ and the judge list at #/judge', async () => {
+    const { env } = setup();
+    window.location.hash = '#/';
+    render(App, { env });
+    expect(screen.queryByText('Pista p1')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Soy juez' }).getAttribute('href')).toBe('#/judge');
   });
 });
 
@@ -170,5 +183,14 @@ describe('judge entry', () => {
     window.location.hash = '#/judge/p1';
     render(App, { env });
     expect(await screen.findByRole('heading', { name: 'Sin conexión' })).toBeTruthy();
+  });
+
+  it('leaves a judge screen towards the judge list, not the public board', async () => {
+    const { env } = setup();
+    env.sessionStorage.set('la-sala:v1:pin:p1', PIN);
+    window.location.hash = '#/judge/p1';
+    render(App, { env });
+    await screen.findByRole('heading', { name: 'Nuevo combate' });
+    expect(screen.getByRole('link', { name: 'La Sala' }).getAttribute('href')).toBe('#/judge');
   });
 });
