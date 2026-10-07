@@ -93,4 +93,50 @@ describe('ApiClient', () => {
       error: { kind: 'server', status: 200 },
     });
   });
+
+  describe('admin endpoints', () => {
+    const rows = [{ id: 'p1', pin: '1111' }];
+    const recording = (status: number, body: unknown) => {
+      const calls: { path: string; init?: RequestInit }[] = [];
+      const fetch: FetchLike = async (path, init) => {
+        calls.push({ path, init });
+        return Response.json(body, { status });
+      };
+      return { calls, api: new ApiClient({ fetch, now: () => 0 }) };
+    };
+
+    it('lists pistes with the admin PIN header', async () => {
+      const { api, calls } = recording(200, rows);
+      expect(await api.listAdminPistes('9999')).toEqual({ ok: true, value: rows });
+      expect(calls[0]!.path).toBe('/admin/pistes');
+      expect(calls[0]!.init?.method).toBe('GET');
+      expect(calls[0]!.init?.headers).toMatchObject({ 'x-admin-pin': '9999' });
+    });
+
+    it('creates pistes by posting the count', async () => {
+      const { api, calls } = recording(201, rows);
+      expect(await api.createAdminPistes('9999', 3)).toEqual({ ok: true, value: rows });
+      expect(calls[0]!.init?.method).toBe('POST');
+      expect(JSON.parse(String(calls[0]!.init?.body))).toEqual({ count: 3 });
+      expect(calls[0]!.init?.headers).toMatchObject({ 'x-admin-pin': '9999' });
+    });
+
+    it('maps 400, 401 and network failures', async () => {
+      expect(await recording(400, { error: 'invalid-request' }).api.createAdminPistes('1', 0)).toEqual({
+        ok: false,
+        error: { kind: 'invalid-request' },
+      });
+      expect(await recording(401, { error: 'unauthorized' }).api.listAdminPistes('1')).toEqual({
+        ok: false,
+        error: { kind: 'unauthorized' },
+      });
+      const dead: FetchLike = async () => {
+        throw new TypeError('Failed to fetch');
+      };
+      expect(await new ApiClient({ fetch: dead, now: () => 0 }).listAdminPistes('1')).toEqual({
+        ok: false,
+        error: { kind: 'network' },
+      });
+    });
+  });
 });

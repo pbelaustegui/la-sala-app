@@ -1,0 +1,103 @@
+// @vitest-environment jsdom
+import { fireEvent, render, screen } from '@testing-library/svelte';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import App from '../App.svelte';
+import type { FetchLike } from '../core/api-client';
+import { createMemoryEnv } from '../testing/memory-env';
+
+const ADMIN_PIN = '9999';
+
+/** Minimal admin server: GET and POST /admin/pistes behind `x-admin-pin`. */
+function adminServer() {
+  let pistes = [{ id: 'p1', pin: '1111' }];
+  const requests: { method: string; body: unknown }[] = [];
+  const fetch: FetchLike = async (path, init) => {
+    const headers = (init?.headers ?? {}) as Record<string, string>;
+    if (path !== '/admin/pistes') return Response.json({}, { status: 404 });
+    if (headers['x-admin-pin'] !== ADMIN_PIN) return Response.json({ error: 'unauthorized' }, { status: 401 });
+    const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+    requests.push({ method: init?.method ?? 'GET', body });
+    if (init?.method === 'POST') {
+      pistes = Array.from({ length: body.count }, (_, i) => ({ id: `p${i + 1}`, pin: `${2000 + i}` }));
+      return Response.json(pistes, { status: 201 });
+    }
+    return Response.json(pistes);
+  };
+  return { fetch, requests };
+}
+
+async function enterPin(pin: string) {
+  await fireEvent.input(await screen.findByLabelText('PIN del organizador'), { target: { value: pin } });
+  await fireEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+}
+
+beforeEach(() => {
+  window.location.hash = '#/admin';
+});
+afterEach(() => {
+  window.location.hash = '';
+});
+
+describe('AdminScreen', () => {
+  it('lists the pistes with their PINs after a correct admin PIN', async () => {
+    const server = adminServer();
+    render(App, { env: createMemoryEnv({ fetch: server.fetch }) });
+    await enterPin(ADMIN_PIN);
+    expect(await screen.findByText('Pista p1')).toBeTruthy();
+    expect(screen.getByDisplayValue('1111')).toBeTruthy();
+    expect(screen.queryByDisplayValue(ADMIN_PIN)).toBeNull();
+  });
+
+  it('stays on PIN entry with an error for a wrong PIN', async () => {
+    render(App, { env: createMemoryEnv({ fetch: adminServer().fetch }) });
+    await enterPin('0000');
+    expect((await screen.findByRole('alert')).textContent).toContain('PIN incorrecto');
+    expect(screen.getByLabelText('PIN del organizador')).toBeTruthy();
+  });
+
+  it('asks for confirmation before replacing the pistes, then shows the new list', async () => {
+    const server = adminServer();
+    render(App, { env: createMemoryEnv({ fetch: server.fetch }) });
+    await enterPin(ADMIN_PIN);
+    await fireEvent.input(await screen.findByLabelText('Número de pistas'), { target: { value: '2' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Crear pistas' }));
+
+    expect(screen.getByRole('alertdialog').textContent).toContain('todas las pistas y combates');
+    expect(server.requests.some((r) => r.method === 'POST')).toBe(false);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Sí, reemplazar todo' }));
+    expect(await screen.findByText('Pista p2')).toBeTruthy();
+    expect(server.requests.at(-1)).toEqual({ method: 'POST', body: { count: 2 } });
+  });
+
+  it('cancelling the confirmation sends nothing', async () => {
+    const server = adminServer();
+    render(App, { env: createMemoryEnv({ fetch: server.fetch }) });
+    await enterPin(ADMIN_PIN);
+    await fireEvent.input(await screen.findByLabelText('Número de pistas'), { target: { value: '3' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Crear pistas' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(server.requests.some((r) => r.method === 'POST')).toBe(false);
+  });
+
+  it('remembers the PIN for the session and skips PIN entry on reload', async () => {
+    const server = adminServer();
+    const env = createMemoryEnv({ fetch: server.fetch });
+    const first = render(App, { env });
+    await enterPin(ADMIN_PIN);
+    await screen.findByText('Pista p1');
+    first.unmount();
+    render(App, { env });
+    expect(await screen.findByText('Pista p1')).toBeTruthy();
+  });
+
+  it('never persists the admin PIN outside session storage', async () => {
+    const env = createMemoryEnv({ fetch: adminServer().fetch });
+    render(App, { env });
+    await enterPin(ADMIN_PIN);
+    await screen.findByText('Pista p1');
+    expect(env.storage.get('la-sala:v1:admin-pin')).toBeNull();
+    expect(env.sessionStorage.get('la-sala:v1:admin-pin')).toBe(ADMIN_PIN);
+  });
+});
