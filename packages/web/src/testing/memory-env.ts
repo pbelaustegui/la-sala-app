@@ -14,6 +14,8 @@ export function createMemoryEnv(overrides: Partial<AppEnv> = {}): AppEnv {
     storage: new MemoryStorage(),
     sessionStorage: new MemoryStorage(),
     onOnline: () => () => undefined,
+    onOffline: () => () => undefined,
+    onPageShow: () => () => undefined,
     wakeLock: null,
     updates: null,
     boardStream: new FakeBoardStream(),

@@ -49,9 +49,21 @@
   onMount(() => {
     store.start();
     if (env.visibility.isVisible()) startTicking();
-    const unwatch = env.visibility.onChange(() => (env.visibility.isVisible() ? startTicking() : stopTicking()));
+    const unwatch = env.visibility.onChange(() => {
+      if (env.visibility.isVisible()) {
+        startTicking();
+        store.retryNow(); // no-op while the feed is healthy
+      } else stopTicking();
+    });
+    // After airplane mode the old connection is dead even if it still looks live: force it.
+    const unwatchOnline = env.onOnline(() => store.retryNow(true));
+    const unwatchOffline = env.onOffline(() => store.markOffline());
+    const unwatchPageShow = env.onPageShow(() => store.retryNow());
     return () => {
       unwatch();
+      unwatchOnline();
+      unwatchOffline();
+      unwatchPageShow();
       stopTicking();
       store.stop();
     };

@@ -27,12 +27,22 @@ function harness() {
   let now = T0;
   let visible = true;
   const visibilityListeners = new Set<() => void>();
+  const onlineListeners = new Set<() => void>();
+  const offlineListeners = new Set<() => void>();
+  const pageShowListeners = new Set<() => void>();
+  const subscribe = (set: Set<() => void>) => (callback: () => void) => {
+    set.add(callback);
+    return () => void set.delete(callback);
+  };
   const stream = new FakeBoardStream();
   const timers = new FakeTimers();
   const env = createMemoryEnv({
     boardStream: stream,
     now: () => now,
     timers,
+    onOnline: subscribe(onlineListeners),
+    onOffline: subscribe(offlineListeners),
+    onPageShow: subscribe(pageShowListeners),
     visibility: {
       isVisible: () => visible,
       onChange: (callback) => {
@@ -51,6 +61,11 @@ function harness() {
       timers.fireWithDelay(250);
       await tick();
     },
+    online: () => onlineListeners.forEach((callback) => callback()),
+    offline: () => offlineListeners.forEach((callback) => callback()),
+    pageShow: () => pageShowListeners.forEach((callback) => callback()),
+    listeners: () => onlineListeners.size + offlineListeners.size + pageShowListeners.size + visibilityListeners.size,
+    advanceClock: (ms: number) => void (now += ms),
     setVisible: (value: boolean) => {
       visible = value;
       visibilityListeners.forEach((callback) => callback());
@@ -218,6 +233,49 @@ describe('public board', () => {
     await h.live('1');
     await h.snapshotOf('1', snapshot(T0 + 20_000, running));
     expect(screen.queryByText('Sin conexión, mostrando el último estado')).toBeNull();
+  });
+
+  it('reconnects at once when the phone comes back online', async () => {
+    const h = harness();
+    render(App, { env: h.env });
+    await h.live('1');
+    h.stream.fail();
+    await tick();
+    h.online();
+    expect(h.stream.opens).toBe(2);
+  });
+
+  it('marks the board stale as soon as the phone goes offline', async () => {
+    const h = harness();
+    render(App, { env: h.env });
+    await h.live('1');
+    h.offline();
+    expect(await screen.findByText('Sin conexión, mostrando el último estado')).toBeTruthy();
+  });
+
+  it('reconnects when the tab is visible again only if the feed is stale or silent', async () => {
+    const h = harness();
+    render(App, { env: h.env });
+    await h.live('1');
+    h.setVisible(false);
+    h.setVisible(true);
+    expect(h.stream.opens).toBe(1); // healthy: nothing to do
+    h.advanceClock(46_000);
+    h.setVisible(false);
+    h.setVisible(true);
+    expect(h.stream.opens).toBe(2); // silent for longer than the watchdog window
+    h.stream.fail();
+    h.pageShow();
+    expect(h.stream.opens).toBe(3); // restored from the back/forward cache while stale
+  });
+
+  it('stops listening to the browser when the spectator leaves', async () => {
+    const h = harness();
+    const view = render(App, { env: h.env });
+    await h.live('1');
+    expect(h.listeners()).toBeGreaterThan(0);
+    view.unmount();
+    expect(h.listeners()).toBe(0);
   });
 
   it('has a discreet link to the judge entry', async () => {

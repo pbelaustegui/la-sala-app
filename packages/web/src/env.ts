@@ -28,6 +28,10 @@ export interface AppEnv {
   readonly sessionStorage: KeyValueStorage;
   /** Calls `callback` whenever the browser regains connectivity. Returns an unsubscribe. */
   readonly onOnline: (callback: () => void) => () => void;
+  /** Calls `callback` whenever the browser loses connectivity. Returns an unsubscribe. */
+  readonly onOffline: (callback: () => void) => () => void;
+  /** Calls `callback` when a page is restored from the back/forward cache (`pageshow` with `persisted`). */
+  readonly onPageShow: (callback: () => void) => () => void;
   /** Screen Wake Lock API, or null where the browser does not offer it. */
   readonly wakeLock: WakeLockPort | null;
   /** Page visibility, used to re-acquire the wake lock after the tab was hidden. */
@@ -99,6 +103,17 @@ export function createBrowserEnv(target: Window = window): AppEnv {
     onOnline: (callback) => {
       target.addEventListener('online', callback);
       return () => target.removeEventListener('online', callback);
+    },
+    onOffline: (callback) => {
+      target.addEventListener('offline', callback);
+      return () => target.removeEventListener('offline', callback);
+    },
+    onPageShow: (callback) => {
+      const listener = (event: PageTransitionEvent) => {
+        if (event.persisted) callback();
+      };
+      target.addEventListener('pageshow', listener);
+      return () => target.removeEventListener('pageshow', listener);
     },
     wakeLock: 'wakeLock' in target.navigator ? (target.navigator.wakeLock as WakeLockPort) : null,
     updates: null,

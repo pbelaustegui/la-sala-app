@@ -98,6 +98,8 @@ export class SpectatorStore {
   private watchdogHandle: unknown = null;
   /** Identifies the current connection so callbacks of a closed one are ignored. */
   private generation = 0;
+  /** Client clock of the latest message on the current connection; null until one arrives. */
+  private lastMessageAt: number | null = null;
 
   constructor(private readonly deps: SpectatorDeps) {}
 
@@ -123,7 +125,36 @@ export class SpectatorStore {
     this.deps.port.close();
   }
 
+  /**
+   * Reconnects now instead of waiting for the backoff or the watchdog: cancels a pending retry,
+   * resets the backoff and replaces the (possibly half-dead) connection, so there is never more
+   * than one. A no-op while live with a message within the watchdog window, unless `force`:
+   * after airplane mode the browser `online` event proves the old connection is dead even
+   * though it still looks healthy.
+   */
+  retryNow(force = false): void {
+    if (!this.running) return;
+    const silentFor = this.lastMessageAt === null ? Infinity : this.deps.now() - this.lastMessageAt;
+    const healthy = this.state.get().connection === 'live' && silentFor < (this.deps.watchdogMs ?? WATCHDOG_MS);
+    if (healthy && !force) return;
+    this.cancelRetry();
+    this.attempt = 0;
+    this.deps.port.close();
+    this.connect();
+  }
+
+  /**
+   * The browser reports no network: show the last data as stale right away (frozen clocks)
+   * instead of waiting for the watchdog. A reconnect already waiting keeps going.
+   */
+  markOffline(): void {
+    if (!this.running) return;
+    if (this.retryHandle === null) this.drop();
+    else this.publish('stale');
+  }
+
   private connect(): void {
+    this.lastMessageAt = null;
     const generation = ++this.generation;
     const live = (fn: () => void) => () => {
       if (generation === this.generation) fn();
@@ -134,6 +165,7 @@ export class SpectatorStore {
       onMessage: (message) => {
         if (generation !== this.generation) return;
         this.attempt = 0;
+        this.lastMessageAt = this.deps.now();
         this.armWatchdog(generation);
         this.receive(message);
       },
