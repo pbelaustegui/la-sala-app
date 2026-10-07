@@ -92,6 +92,35 @@ describe('AdminScreen', () => {
     expect(await screen.findByText('Pista p1')).toBeTruthy();
   });
 
+  it('shows an offline notice and lists the pistes after retrying', async () => {
+    const server = adminServer();
+    let down = true;
+    const fetch: FetchLike = async (path, init) => {
+      if (down) throw new TypeError('network down');
+      return server.fetch(path, init);
+    };
+    const env = createMemoryEnv({ fetch });
+    env.sessionStorage.set('la-sala:v1:admin-pin', ADMIN_PIN);
+    render(App, { env });
+    expect((await screen.findByRole('alert')).textContent).toContain('No se pudo cargar la lista');
+    down = false;
+    await fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByText('Pista p1')).toBeTruthy();
+  });
+
+  it('shows a failure message when creating the pistes fails, keeping the list', async () => {
+    const server = adminServer();
+    const fetch: FetchLike = async (path, init) =>
+      init?.method === 'POST' ? Response.json({ error: 'boom' }, { status: 500 }) : server.fetch(path, init);
+    render(App, { env: createMemoryEnv({ fetch }) });
+    await enterPin(ADMIN_PIN);
+    await fireEvent.input(await screen.findByLabelText('Número de pistas'), { target: { value: '2' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Crear pistas' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Sí, reemplazar todo' }));
+    expect((await screen.findByRole('alert')).textContent).toContain('No se pudieron crear las pistas');
+    expect(screen.getByText('Pista p1')).toBeTruthy();
+  });
+
   it('never persists the admin PIN outside session storage', async () => {
     const env = createMemoryEnv({ fetch: adminServer().fetch });
     render(App, { env });

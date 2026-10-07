@@ -101,6 +101,15 @@ describe('AdminSessionController', () => {
     expect(admin.get()).toMatchObject({ confirming: null, error: 'invalid-count' });
   });
 
+  it.each([1, 100])('accepts the boundary count %s and asks for confirmation', async (count) => {
+    const { admin, calls } = harness({ pin: '9999' });
+    await admin.start();
+    admin.requestCreate(count);
+    expect(admin.get()).toMatchObject({ confirming: count, error: null });
+    await admin.confirmCreate();
+    expect(calls).toEqual(['list', `create:${count}`]);
+  });
+
   it('forgets the PIN and returns to PIN entry on 401 while creating', async () => {
     const { admin, store, state } = harness({ pin: '9999' });
     await admin.start();

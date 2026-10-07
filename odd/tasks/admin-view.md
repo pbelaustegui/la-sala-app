@@ -41,6 +41,7 @@ Explorer (read-only) mapped the web package: mapping trigger, done. Writers: dec
 - A2 done: RED (controller module missing), GREEN 17 tests (store + controller); tsc clean (9b1235b).
 - A3 done: RED (7 failing across router, screen, component tests), GREEN 19 tests; tsc and svelte-check run (0c4c2eb).
 - A4 done: README route table row and organizer screen section (docs, structural readback).
+- Follow-ups closed: tests for the offline retry UI, the create-failed message and the count boundaries 1 and 100.
 
 ## Next step
 Final verification, then PR (human decision).
