@@ -20,7 +20,7 @@ The server already exposes `GET /admin/pistes` and `POST /admin/pistes {count}` 
 
 ## Tasks
 - [x] A1 `ApiClient`: `listAdminPistes` and `createAdminPistes(count)` with the `x-admin-pin` header; tests (200/201, 400, 401, network)
-- [ ] A2 Admin controller + admin PIN store: PIN entry, load list, create with explicit confirmation, 401 returns to PIN entry; DOM-free tests
+- [x] A2 Admin controller + admin PIN store: PIN entry, load list, create with explicit confirmation, 401 returns to PIN entry; DOM-free tests
 - [ ] A3 UI: `#/admin` route (`router.ts`, `App.svelte`), `AdminScreen`, i18n copy, App/component tests
 - [ ] A4 README: route table and admin screen notes
 
@@ -37,7 +37,8 @@ Explorer (read-only) mapped the web package: mapping trigger, done. Writers: dec
 
 ## Progress
 - Branch created, plan written.
-- A1 done: RED (3 new admin tests failing, methods missing) then GREEN; api-client tests pass.
+- A1 done: RED (3 new admin tests failing, methods missing) then GREEN; api-client tests pass (e5a0347).
+- A2 done: RED (controller module missing), GREEN 17 tests (store + controller); tsc clean.
 
 ## Next step
-A2.
+A3.
