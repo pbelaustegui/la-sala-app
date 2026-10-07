@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import App from '../App.svelte';
 import type { FetchLike } from '../core/api-client';
-import { createMemoryEnv } from '../testing/memory-env';
+import { createMemoryEnv, FakeClipboard } from '../testing/memory-env';
 
 const ADMIN_PIN = '9999';
 
@@ -128,5 +128,38 @@ describe('AdminScreen', () => {
     await screen.findByText('Pista p1');
     expect(env.storage.get('la-sala:v1:admin-pin')).toBeNull();
     expect(env.sessionStorage.get('la-sala:v1:admin-pin')).toBe(ADMIN_PIN);
+  });
+
+  describe('copying', () => {
+    async function openList(clipboard: FakeClipboard) {
+      render(App, { env: createMemoryEnv({ fetch: adminServer().fetch, clipboard, origin: 'https://sala.example' }) });
+      await enterPin(ADMIN_PIN);
+      await screen.findByText('Pista p1');
+    }
+
+    it('copies a piste PIN and confirms it', async () => {
+      const clipboard = new FakeClipboard();
+      await openList(clipboard);
+      await fireEvent.click(screen.getByRole('button', { name: 'Copiar PIN de la pista p1' }));
+      expect(clipboard.writes).toEqual(['1111']);
+      expect((await screen.findByRole('status')).textContent).toContain('Copiado');
+    });
+
+    it('copies the spectator link built from the current origin', async () => {
+      const clipboard = new FakeClipboard();
+      await openList(clipboard);
+      await fireEvent.click(screen.getByRole('button', { name: 'Copiar enlace de espectador' }));
+      expect(clipboard.writes).toEqual(['https://sala.example/#/']);
+      expect((await screen.findByRole('status')).textContent).toContain('Copiado');
+    });
+
+    it('says so when the clipboard is unavailable', async () => {
+      const clipboard = new FakeClipboard();
+      clipboard.failing = true;
+      await openList(clipboard);
+      await fireEvent.click(screen.getByRole('button', { name: 'Copiar PIN de la pista p1' }));
+      expect((await screen.findByRole('status')).textContent).toContain('No se pudo copiar');
+      expect(clipboard.writes).toEqual([]);
+    });
   });
 });

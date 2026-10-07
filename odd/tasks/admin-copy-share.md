@@ -19,7 +19,7 @@ The organizer has to hand out PINs and the spectator link by hand; retyping a PI
 
 ## Tasks
 - [x] C1 Clipboard port in `env.ts` (+ memory env fake) and spectator link builder; tests
-- [ ] C2 UI: copy PIN buttons and copy-spectator-link button on the admin screen with feedback, i18n, tests, README line
+- [x] C2 UI: copy PIN buttons and copy-spectator-link button on the admin screen with feedback, i18n, tests, README line
 
 ## Delivery
 Forecast ~150 authored lines; single PR. Branch: `feat/admin-copy-share`.
@@ -31,6 +31,8 @@ Forecast ~150 authored lines; single PR. Branch: `feat/admin-copy-share`.
 
 ## Progress
 - Branch created, plan written.
+- C1 done: `ClipboardPort` + `origin` in `AppEnv`, `FakeClipboard`, `spectatorLink`; RED (missing module) then 2 tests green.
+- C2 done: copy buttons + status feedback on the admin screen; RED (3 new AdminScreen tests failing) then green.
 
 ## Next step
-C1.
+Open the PR.

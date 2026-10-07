@@ -7,6 +7,9 @@
     confirming,
     busy,
     error,
+    copyResult,
+    oncopypin,
+    oncopylink,
     onrequest,
     onconfirm,
     oncancel,
@@ -16,6 +19,9 @@
     confirming: number | null;
     busy: boolean;
     error: 'invalid-count' | 'failed' | 'wrong-pin' | null;
+    copyResult: 'done' | 'failed' | null;
+    oncopypin: (pin: string) => void;
+    oncopylink: () => void;
     onrequest: (count: number) => void;
     onconfirm: () => void;
     oncancel: () => void;
@@ -47,10 +53,18 @@
           aria-label={t('admin.pistes.pin', { piste: piste.id })}
           value={piste.pin}
         />
+        <button class="btn" type="button" onclick={() => oncopypin(piste.pin)}>
+          {t('admin.copy.pin', { piste: piste.id })}
+        </button>
       </li>
     {/each}
   </ul>
 {/if}
+
+<p><button class="btn" type="button" onclick={oncopylink}>{t('admin.copy.link')}</button></p>
+<p role="status" class:error={copyResult === 'failed'}>
+  {#if copyResult === 'done'}{t('admin.copy.done')}{:else if copyResult === 'failed'}{t('admin.copy.failed')}{/if}
+</p>
 
 <h2>{t('admin.create.title')}</h2>
 <form onsubmit={submit}>
