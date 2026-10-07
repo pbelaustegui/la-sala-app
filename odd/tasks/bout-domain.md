@@ -30,7 +30,7 @@ La Sala = live scoreboard for a fencing school's internal tournaments (3-4 simul
 - [x] T1 Scaffold + rules: repo skeleton, tsconfig, vitest, `createRules(weapon, options)` with tests
 - [x] T2 Bout state + clock: `createBout`, clock start/stop, `settle(state, at)`, period end and breaks
 - [x] T3 Scoring: touches, double touch (epee), touch limit win, sabre mid-bout break, cards
-- [ ] T4 Tie-break: priority draw, sudden-death extra period, exclusion win reasons
+- [x] T4 Tie-break: priority draw, sudden-death extra period, exclusion win reasons
 - [ ] T5 Replay + undo: `replay(initial, events)` with `undo` event
 
 ## Layout (planned)
@@ -53,6 +53,8 @@ La Sala = live scoreboard for a fencing school's internal tournaments (3-4 simul
 - T2 done. RED: apply/bout/clock tests failed (modules missing). GREEN: `npm test --workspaces` 36/36 passed; `npx tsc --noEmit -p packages/domain` clean. Commit: 17138a5.
   - Design: `Phase.break` carries `endsAt` and `resumeRemainingMs` (mid-bout); `settle` starts a period break at the clock's expiry instant (not the settle time), and breaks end into a stopped clock (judge must restart). `apply` rejects time going backwards, settles first, then reduces. Events after a time-driven finish fail with `bout-finished`.
   - Assumption: no break before the sudden-death period (last-period tie goes straight to priority draw).
-- T3 done. RED: scoring.test.ts 25 tests failed (events unhandled). GREEN: `npm test --workspaces` 62/62 passed; `npx tsc --noEmit -p packages/domain` clean. Commit hash: recorded in the next task's entry (see `git log`).
+- T3 done. RED: scoring.test.ts 25 tests failed (events unhandled). GREEN: `npm test --workspaces` 62/62 passed; `npx tsc --noEmit -p packages/domain` clean. Commit: 4a82b6c.
   - Design: `scoring.ts` holds pure transitions (`scoreTouch`, `scoreDoubleTouch`, `giveCard`); touch-limit win needs the leader at/above the limit and strictly ahead, so a tied limit (double touch) keeps the bout going (OPEN item, tests named `OPEN simplification`).
   - Assumptions: touches/cards are accepted in `fencing` with the clock running or stopped (judge may stop first, then award); sabre mid-bout break ends at `at + breakDurationMs` and resumes with a stopped clock; yellow card does not touch the clock; a black card stops the clock and finishes immediately.
+- T4 done. RED: 10 of 12 new tiebreak tests failed (`priority-drawn` unhandled, extra-period touches rejected); 2 characterization tests (draw reached, black card on trailing side) and 1 break-card test already passed against T2/T3 code. GREEN: `npm test --workspaces` 76/76 passed; `npx tsc --noEmit -p packages/domain` clean. Commit hash: recorded in the next task's entry (see `git log`).
+  - Assumptions: a sudden-death touch finishes the bout with reason `time` (reason union kept as specified); touches/cards are valid in `fencing` and `extra-period`; cards in `priority-draw` or breaks are rejected. Time-driven finishes (expiry) are only observable via `settle(state, now)`, since `apply` rejects events on a finished bout.

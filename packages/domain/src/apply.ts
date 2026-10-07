@@ -9,6 +9,7 @@ export type BoutEvent =
   | { readonly type: 'break-skipped'; readonly at: number }
   | { readonly type: 'touch-scored'; readonly side: Side; readonly at: number }
   | { readonly type: 'double-touch-scored'; readonly at: number }
+  | { readonly type: 'priority-drawn'; readonly side: Side; readonly at: number }
   | { readonly type: 'card-given'; readonly side: Side; readonly card: Card; readonly at: number };
 
 export type DomainError =
@@ -57,8 +58,19 @@ function skipBreakEvent(state: BoutState, event: BoutEvent) {
   return succeed(settle(state, state.phase.endsAt));
 }
 
+/** Phases in which touches and cards can happen: regular fencing and sudden death. */
 function isFencing(state: BoutState): boolean {
-  return state.phase.kind === 'fencing';
+  return state.phase.kind === 'fencing' || state.phase.kind === 'extra-period';
+}
+
+function drawPriorityEvent(state: BoutState, side: Side, event: BoutEvent) {
+  if (state.phase.kind !== 'priority-draw') return invalidPhase(state, event);
+  return succeed({
+    ...state,
+    phase: { kind: 'extra-period' } as const,
+    priority: side,
+    clock: { remainingMs: state.rules.extraPeriodDurationMs, runningSince: null },
+  });
 }
 
 /** Pure reducer. Time-driven transitions are derived first via `settle`; errors are values. */
@@ -89,6 +101,8 @@ function reduce(state: BoutState, event: BoutEvent): Result<BoutState, DomainErr
         return fail({ type: 'double-touch-not-allowed', weapon: state.rules.weapon });
       }
       return succeed(scoreDoubleTouch(state, event.at));
+    case 'priority-drawn':
+      return drawPriorityEvent(state, event.side, event);
     case 'card-given':
       return isFencing(state)
         ? succeed(giveCard(state, event.side, event.card, event.at))
