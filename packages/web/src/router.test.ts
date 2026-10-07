@@ -22,6 +22,13 @@ describe('parseRoute', () => {
     expect(parseRoute('#/judge/p1')).toEqual({ name: 'judge', pisteId: 'p1' });
   });
 
+  it('maps #/admin to the organizer screen', () => {
+    expect(parseRoute('#/admin')).toEqual({ name: 'admin' });
+    expect(parseRoute('#/admin/')).toEqual({ name: 'admin' });
+    expect(parseRoute('#/admin/x')).toEqual({ name: 'not-found' });
+    expect(hrefTo({ name: 'admin' })).toBe('#/admin');
+  });
+
   it('decodes the piste id and ignores a trailing slash', () => {
     expect(parseRoute('#/judge/pista%201/')).toEqual({ name: 'judge', pisteId: 'pista 1' });
   });

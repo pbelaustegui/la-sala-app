@@ -157,6 +157,28 @@ export const es = {
   'setup.failure.unknown-piste': 'Esa pista no existe.',
   'setup.failure.invalid-format': 'Datos no válidos.',
   'setup.failure.wrong-pin': 'PIN incorrecto.',
+
+  'admin.title': 'Organizador',
+  'admin.pin.label': 'PIN del organizador',
+  'admin.pin.hint': 'Introduce el PIN de organizador para gestionar las pistas.',
+  'admin.pin.submit': 'Entrar',
+  'admin.pin.wrong': 'PIN incorrecto. Inténtalo de nuevo.',
+  'admin.loading': 'Cargando pistas…',
+  'admin.offline': 'No se pudo cargar la lista. Comprueba la conexión.',
+  'admin.retry': 'Reintentar',
+  'admin.lock': 'Cerrar sesión',
+  'admin.pistes.title': 'Pistas',
+  'admin.pistes.empty': 'Todavía no hay pistas.',
+  'admin.pistes.piste': 'Pista {piste}',
+  'admin.pistes.pin': 'PIN de la pista {piste}',
+  'admin.create.title': 'Crear pistas',
+  'admin.create.count': 'Número de pistas',
+  'admin.create.submit': 'Crear pistas',
+  'admin.create.invalid': 'El número de pistas debe ser un entero entre 1 y 100.',
+  'admin.create.failed': 'No se pudieron crear las pistas. Inténtalo de nuevo.',
+  'admin.confirm.warning': 'Vas a crear {count} pistas. Esto reemplaza todas las pistas y combates actuales y reinicia el marcador.',
+  'admin.confirm.yes': 'Sí, reemplazar todo',
+  'admin.confirm.cancel': 'Cancelar',
 } as const;
 
 export type CopyKey = keyof typeof es;

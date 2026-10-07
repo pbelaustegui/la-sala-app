@@ -1,4 +1,5 @@
 import { getContext } from 'svelte';
+import { AdminPinStore } from './core/admin-pin-store';
 import { ApiClient, type FetchLike } from './core/api-client';
 import { ClockOffset } from './core/clock-offset';
 import { EventSourceBoardStream } from './core/board-event-source';
@@ -57,6 +58,7 @@ export interface AppServices {
   readonly clockOffset: ClockOffset;
   readonly api: ApiClient;
   readonly pins: PinStore;
+  readonly adminPin: AdminPinStore;
   readonly pointer: CurrentBoutPointer;
 }
 
@@ -67,6 +69,7 @@ export function createServices(env: AppEnv): AppServices {
     clockOffset,
     api: new ApiClient({ fetch: env.fetch, now: env.now, clockOffset }),
     pins: new PinStore(env.sessionStorage),
+    adminPin: new AdminPinStore(env.sessionStorage),
     pointer: new CurrentBoutPointer(env.storage),
   };
 }

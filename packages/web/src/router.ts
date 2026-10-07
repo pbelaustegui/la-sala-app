@@ -6,6 +6,8 @@ export type Route =
   /** Judge entry: the list of pistes to officiate. */
   | { readonly name: 'judge-list' }
   | { readonly name: 'judge'; readonly pisteId: string }
+  /** Organizer: admin PIN, piste list and creation. Not linked from any public screen. */
+  | { readonly name: 'admin' }
   | { readonly name: 'not-found' };
 
 const NOT_FOUND: Route = { name: 'not-found' };
@@ -18,7 +20,7 @@ function decode(segment: string): string | null {
   }
 }
 
-/** Parses `location.hash` (`#/`, `#/piste/:id`, `#/judge`, `#/judge/:pisteId`). Never throws. */
+/** Parses `location.hash` (`#/`, `#/piste/:id`, `#/judge`, `#/judge/:pisteId`, `#/admin`). Never throws. */
 export function parseRoute(hash: string): Route {
   const path = hash.replace(/^#/, '');
   const segments = path.split('/').filter((segment) => segment !== '');
@@ -26,6 +28,7 @@ export function parseRoute(hash: string): Route {
 
   const [head, pisteId, ...rest] = segments;
   if (head === 'judge' && pisteId === undefined) return { name: 'judge-list' };
+  if (head === 'admin' && pisteId === undefined) return { name: 'admin' };
   if ((head === 'judge' || head === 'piste') && pisteId !== undefined && rest.length === 0) {
     const decoded = decode(pisteId);
     if (decoded === null) return NOT_FOUND;
@@ -45,6 +48,8 @@ export function hrefTo(route: Route): string {
       return '#/judge';
     case 'judge':
       return `#/judge/${encodeURIComponent(route.pisteId)}`;
+    case 'admin':
+      return '#/admin';
     case 'not-found':
       return '#/';
   }

@@ -6,6 +6,7 @@
   import { t } from './i18n/t';
   import { createRouteStore } from './route.svelte';
   import { hrefTo } from './router';
+  import AdminScreen from './routes/AdminScreen.svelte';
   import JudgeScreen from './routes/JudgeScreen.svelte';
   import PisteListScreen from './routes/PisteListScreen.svelte';
   import SpectatorScreen from './routes/SpectatorScreen.svelte';
@@ -39,6 +40,8 @@
   <main class="shell">
     {#if route.name === 'judge-list'}
       <PisteListScreen />
+    {:else if route.name === 'admin'}
+      <AdminScreen />
     {:else if route.name === 'judge'}
       {#key route.pisteId}
         <JudgeScreen pisteId={route.pisteId} />
