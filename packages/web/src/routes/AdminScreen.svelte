@@ -2,15 +2,26 @@
   import { onMount } from 'svelte';
   import AdminPistes from '../components/AdminPistes.svelte';
   import { AdminSessionController } from '../controllers/admin-session';
+  import { spectatorLink } from '../core/spectator-link';
   import { getServices } from '../env';
   import { t } from '../i18n/t';
 
-  const { api, adminPin } = getServices();
+  const { api, adminPin, env } = getServices();
   const admin = new AdminSessionController(api, adminPin);
 
   let pin = $state('');
+  let copyResult = $state<'done' | 'failed' | null>(null);
 
   onMount(() => void admin.start());
+
+  async function copy(text: string): Promise<void> {
+    try {
+      await env.clipboard.writeText(text);
+      copyResult = 'done';
+    } catch {
+      copyResult = 'failed';
+    }
+  }
 
   function submitPin(event: SubmitEvent): void {
     event.preventDefault();
@@ -26,6 +37,9 @@
     confirming={$admin.confirming}
     busy={$admin.busy}
     error={$admin.error}
+    {copyResult}
+    oncopypin={(value) => void copy(value)}
+    oncopylink={() => void copy(spectatorLink(env.origin))}
     onrequest={(count) => admin.requestCreate(count)}
     onconfirm={() => void admin.confirmCreate()}
     oncancel={() => admin.cancelCreate()}

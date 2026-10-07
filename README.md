@@ -42,7 +42,7 @@ Open the site root (`https://host/`) on a phone or a TV: no login, read-only. Th
 
 ### Organizer screen (`#/admin`)
 
-Type the URL by hand: nothing links to it. Enter the admin PIN (the server's `x-admin-pin`) to see every piste with its judge PIN, and use "Crear pistas" (1 to 100) to create them. Creating **replaces all pistes and bouts and resets the live board**, so the screen asks for an explicit confirmation first. The admin PIN is kept in `sessionStorage` only (forgotten when the tab closes, never in `localStorage`) and is not shown after entry; a `401` forgets it and returns to PIN entry. The route is a hash route because the path `/admin` belongs to the API.
+Type the URL by hand: nothing links to it. Enter the admin PIN (the server's `x-admin-pin`) to see every piste with its judge PIN, and use "Crear pistas" (1 to 100) to create them. Creating **replaces all pistes and bouts and resets the live board**, so the screen asks for an explicit confirmation first. The admin PIN is kept in `sessionStorage` only (forgotten when the tab closes, never in `localStorage`) and is not shown after entry; a `401` forgets it and returns to PIN entry. The route is a hash route because the path `/admin` belongs to the API. Each piste has a copy-PIN button and there is a "Copiar enlace de espectador" button that copies `<origin>/#/`; copying needs HTTPS or localhost (the browser Clipboard API is unavailable otherwise, and the screen then says it could not copy).
 
 ## Judge web app (PWA)
 

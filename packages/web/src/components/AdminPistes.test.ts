@@ -8,6 +8,9 @@ const base = {
   confirming: null,
   busy: false,
   error: null,
+  copyResult: null,
+  oncopypin: () => undefined,
+  oncopylink: () => undefined,
   onrequest: () => undefined,
   onconfirm: () => undefined,
   oncancel: () => undefined,
@@ -32,5 +35,15 @@ describe('AdminPistes', () => {
     render(AdminPistes, { ...base, pistes: [], error: 'invalid-count' });
     expect(screen.getByText('Todavía no hay pistas.')).toBeTruthy();
     expect(screen.getByRole('alert').textContent).toContain('entre 1 y 100');
+  });
+
+  it('reports the clicked PIN and link copy requests', async () => {
+    const oncopypin = vi.fn();
+    const oncopylink = vi.fn();
+    render(AdminPistes, { ...base, oncopypin, oncopylink });
+    await fireEvent.click(screen.getByRole('button', { name: 'Copiar PIN de la pista p1' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Copiar enlace de espectador' }));
+    expect(oncopypin).toHaveBeenCalledWith('1111');
+    expect(oncopylink).toHaveBeenCalledTimes(1);
   });
 });
