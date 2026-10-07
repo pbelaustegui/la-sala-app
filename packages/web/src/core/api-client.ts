@@ -10,6 +10,12 @@ export interface Snapshot {
   readonly fencers: { readonly left: string; readonly right: string } | null;
 }
 
+/** A piste as the organizer sees it: its id and the judge PIN. */
+export interface AdminPiste {
+  readonly id: string;
+  readonly pin: string;
+}
+
 export interface PisteStatus {
   readonly id: string;
   /** `idle` when no bout was started, otherwise the phase kind. */
@@ -46,6 +52,7 @@ export interface ApiClientDeps {
 }
 
 export const PIN_HEADER = 'x-piste-pin';
+export const ADMIN_PIN_HEADER = 'x-admin-pin';
 /** Used when a 429 carries no usable Retry-After. */
 export const DEFAULT_RETRY_AFTER_MS = 60_000;
 
@@ -86,10 +93,25 @@ export class ApiClient {
     return this.request<Snapshot>('POST', `/pistes/${encodeURIComponent(pisteId)}/events`, body, pin);
   }
 
-  private async request<T>(method: string, path: string, body?: unknown, pin?: string): Promise<ApiResult<T>> {
+  listAdminPistes(adminPin: string): Promise<ApiResult<readonly AdminPiste[]>> {
+    return this.request<readonly AdminPiste[]>('GET', '/admin/pistes', undefined, adminPin, ADMIN_PIN_HEADER);
+  }
+
+  /** Replaces every piste and bout and resets the board. `count` is an integer 1-100. */
+  createAdminPistes(adminPin: string, count: number): Promise<ApiResult<readonly AdminPiste[]>> {
+    return this.request<readonly AdminPiste[]>('POST', '/admin/pistes', { count }, adminPin, ADMIN_PIN_HEADER);
+  }
+
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    pin?: string,
+    pinHeader: string = PIN_HEADER,
+  ): Promise<ApiResult<T>> {
     const headers: Record<string, string> = {};
     if (body !== undefined) headers['content-type'] = 'application/json';
-    if (pin !== undefined) headers[PIN_HEADER] = pin;
+    if (pin !== undefined) headers[pinHeader] = pin;
 
     const requestStart = this.deps.now();
     let response: Response;
