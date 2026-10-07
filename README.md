@@ -4,6 +4,7 @@ Fencing bout scoring. Monorepo with npm workspaces:
 
 - `packages/domain` (`@la-sala/domain`): pure bout rules and reducer (`apply`, `settle`, `replay`).
 - `packages/server` (`@la-sala/server`): Hono HTTP server. Judges post events per piste, spectators follow live over SSE.
+- `packages/web` (`@la-sala/web`): offline-first PWA for the judge (Svelte + Vite), served by the server from the same origin.
 
 ## Running the server
 
@@ -19,6 +20,7 @@ ADMIN_PIN=choose-a-long-secret npm start -w @la-sala/server
 | `ADMIN_PIN` | yes      | none              | Organizer secret, at least 12 characters; the server refuses to start without it. |
 | `PORT`      | no       | `3000`            | HTTP port.                               |
 | `DB_PATH`   | no       | `la-sala.sqlite`  | SQLite file (created if missing).        |
+| `WEB_DIST`  | no       | unset             | Folder with the built web app (`packages/web/dist`), resolved against the working directory. When set, the server serves the PWA from the same origin; if the folder or its `index.html` is missing the server refuses to start. |
 
 The server runs as a single process: the SSE hub is in-memory, so do not run several instances against one database.
 

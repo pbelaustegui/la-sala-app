@@ -13,7 +13,8 @@ function start(): void {
 
   const { app, close } = compose(config);
   const server = serve({ fetch: app.fetch, port: config.port }, (info) => {
-    console.log(`la-sala server listening on port ${info.port} (db: ${config.dbPath})`);
+    const web = config.webDist ? `, web: ${config.webDist}` : '';
+    console.log(`la-sala server listening on port ${info.port} (db: ${config.dbPath}${web})`);
   });
 
   const shutdown = () => {
