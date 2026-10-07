@@ -15,6 +15,11 @@ import type { VisibilitySource, WakeLockPort } from './core/wake-lock';
  * Everything the screens need from the outside world. The browser build wires real ports;
  * component tests pass fakes, so no screen touches `window`, `fetch` or storage directly.
  */
+/** Writes text to the system clipboard; rejects when the browser does not allow it. */
+export interface ClipboardPort {
+  writeText(text: string): Promise<void>;
+}
+
 export interface AppEnv {
   readonly fetch: FetchLike;
   /** Client clock in epoch ms. */
@@ -41,6 +46,10 @@ export interface AppEnv {
   readonly updates: UpdatePort | null;
   /** The public board feed (one connection for all pistes). */
   readonly boardStream: BoardStreamPort;
+  /** System clipboard. Browsers only offer it in secure contexts (HTTPS or localhost). */
+  readonly clipboard: ClipboardPort;
+  /** Origin the app is served from (`https://host[:port]`), used to build shareable links. */
+  readonly origin: string;
 }
 
 export const ENV_KEY = Symbol('la-sala-env');
@@ -121,6 +130,14 @@ export function createBrowserEnv(target: Window = window): AppEnv {
     wakeLock: 'wakeLock' in target.navigator ? (target.navigator.wakeLock as WakeLockPort) : null,
     updates: null,
     boardStream: new EventSourceBoardStream(),
+    clipboard: {
+      writeText: (text) => {
+        const clipboard = target.navigator.clipboard as Clipboard | undefined;
+        if (!clipboard) return Promise.reject(new Error('Clipboard unavailable'));
+        return clipboard.writeText(text);
+      },
+    },
+    origin: target.location.origin,
     visibility: {
       isVisible: () => target.document.visibilityState !== 'hidden',
       onChange: (callback) => {
