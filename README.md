@@ -61,7 +61,14 @@ curl -X POST http://localhost:3000/admin/pistes -H 'x-admin-pin: choose-a-long-s
   -H 'content-type: application/json' -d '{"count": 4}'     # returns [{id, pin}]
 ```
 
-**HTTPS is required on the phone.** Browsers only register service workers, offer "install" and grant the Screen Wake Lock on secure origins (`https://` or `localhost`). Opening `http://192.168.x.x:3000` from a phone still shows the scoreboard, but without offline start, install or a screen that stays awake. Put the server behind HTTPS (a reverse proxy such as Caddy, or a tunnel) for real use. For development, `npm run dev -w packages/web` serves the app on Vite's port and proxies the API to `localhost:3000`.
+**HTTPS is required on the phone.** Browsers only register service workers, offer "install" and grant the Screen Wake Lock on secure origins (`https://` or `localhost`). Opening `http://192.168.x.x:3000` from a phone still shows the scoreboard, but without offline start, install or a screen that stays awake. Put the server behind HTTPS for real use (a reverse proxy such as Caddy, or a tunnel). For development, `npm run dev -w packages/web` serves the app on Vite's port and proxies the API to `localhost:3000`.
+
+**Whatever sits in front of the server must pass Server-Sent Events (SSE) through unbuffered.** The public board and its live updates depend on `GET /pistes/stream`. If a proxy or tunnel does not support SSE, the board loads and lists the pistes but never shows a bout starting or a score changing.
+
+- **Do not use Cloudflare Quick Tunnels** (`cloudflared tunnel --url ...`): Cloudflare documents that they do not support SSE.
+- Verified to work: an SSH tunnel such as `ssh -R 80:localhost:3000 nokey@localhost.run`, which prints a temporary `https://` address (tested with a phone: the board updated live without reloading).
+- Not tested here: a named Cloudflare Tunnel, Tailscale Funnel, ngrok, or a Caddy/nginx reverse proxy. For nginx-style proxies, turn response buffering off for `/pistes/stream`. Check any of them with a real phone before an event: open the board, start a bout from the judge screen, and watch it appear without reloading.
+- Tunnels publish the server on the internet while they run, including `/admin`. Use a long random `ADMIN_PIN` and stop the tunnel when the event ends.
 
 Other commands: `npm run icons -w packages/web` regenerates the PNG icons from `packages/web/public/icon.svg` (the generated PNGs are committed, builds do not need the tool). `npm run check -w packages/web` runs `svelte-check`.
 
