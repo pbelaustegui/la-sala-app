@@ -32,12 +32,17 @@ The server runs as a single process: the SSE hub is in-memory, so do not run sev
 | `#/piste/:id`         | spectators | Detail of one piste with very large numerals (for a TV).                |
 | `#/judge`             | judges     | List of pistes to officiate (PIN needed to score).                      |
 | `#/judge/:pisteId`    | judges     | PIN, bout setup and the scoreboard for that piste.                      |
+| `#/admin`             | organizer  | Admin PIN, list of pistes with their PINs, create or replace pistes.    |
 
 The installed PWA opens the judge entry (`start_url` is `/#/judge`); the board link "Soy juez" at the bottom of the board leads there. Before this change the judge list lived at `#/` and the scoreboard at `#/judge/:pisteId`: bookmarks of `#/` now show the public board instead.
 
 ## Public board (spectators)
 
 Open the site root (`https://host/`) on a phone or a TV: no login, read-only. The board shows a card per piste (fencers, score, clock, period, phase, cards, and the winner with the reason once finished) in a responsive grid; tapping a card opens the detail with much larger numerals. It uses ONE `EventSource` on `GET /pistes/stream` for all pistes (no polling) and reconnects with backoff; 45 s without any message (snapshots and pings count) is treated as a dead connection, so a phone that silently lost its network does not show stale scores as live. The board also reacts to the browser: `offline` marks it stale at once, and `online` or the tab becoming visible again (also when restored from the back/forward cache) reconnects immediately instead of waiting for the backoff, which can reach 30 s. The running clock is drawn from timestamps (`serverTime` of each message corrected by the phone's offset), redrawn every 250 ms only while the page is visible. While the connection is down the board says "Sin conexión, mostrando el último estado" and freezes the clocks. The error bound of the clock is the one-way network latency: a board can show its clock slightly ahead of the judge's. The service worker never caches the stream.
+
+### Organizer screen (`#/admin`)
+
+Type the URL by hand: nothing links to it. Enter the admin PIN (the server's `x-admin-pin`) to see every piste with its judge PIN, and use "Crear pistas" (1 to 100) to create them. Creating **replaces all pistes and bouts and resets the live board**, so the screen asks for an explicit confirmation first. The admin PIN is kept in `sessionStorage` only (forgotten when the tab closes, never in `localStorage`) and is not shown after entry; a `401` forgets it and returns to PIN entry. The route is a hash route because the path `/admin` belongs to the API.
 
 ## Judge web app (PWA)
 

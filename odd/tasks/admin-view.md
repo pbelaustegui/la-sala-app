@@ -22,7 +22,7 @@ The server already exposes `GET /admin/pistes` and `POST /admin/pistes {count}` 
 - [x] A1 `ApiClient`: `listAdminPistes` and `createAdminPistes(count)` with the `x-admin-pin` header; tests (200/201, 400, 401, network)
 - [x] A2 Admin controller + admin PIN store: PIN entry, load list, create with explicit confirmation, 401 returns to PIN entry; DOM-free tests
 - [x] A3 UI: `#/admin` route (`router.ts`, `App.svelte`), `AdminScreen`, i18n copy, App/component tests
-- [ ] A4 README: route table and admin screen notes
+- [x] A4 README: route table and admin screen notes
 
 ## Delivery
 Forecast ~350 authored lines; single PR (`ask-on-risk`, under the budget). Branch: `feat/admin-view`.
@@ -39,7 +39,8 @@ Explorer (read-only) mapped the web package: mapping trigger, done. Writers: dec
 - Branch created, plan written.
 - A1 done: RED (3 new admin tests failing, methods missing) then GREEN; api-client tests pass (e5a0347).
 - A2 done: RED (controller module missing), GREEN 17 tests (store + controller); tsc clean (9b1235b).
-- A3 done: RED (7 failing across router, screen, component tests), GREEN 19 tests; tsc and svelte-check run.
+- A3 done: RED (7 failing across router, screen, component tests), GREEN 19 tests; tsc and svelte-check run (0c4c2eb).
+- A4 done: README route table row and organizer screen section (docs, structural readback).
 
 ## Next step
-A4.
+Final verification, then PR (human decision).
