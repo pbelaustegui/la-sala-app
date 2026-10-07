@@ -300,4 +300,96 @@ describe('SpectatorStore watchdog', () => {
     timers.advance(5_000);
     expect(store.get().connection).toBe('stale');
   });
+
+  describe('retryNow', () => {
+    const outage = () => {
+      const h = setup();
+      h.store.start();
+      h.port.handlers!.onOpen();
+      h.port.handlers!.onError();
+      // Offline for a long time: the backoff grows well past the first step.
+      for (let i = 0; i < 4; i++) {
+        h.timers.fire();
+        h.port.handlers!.onError();
+      }
+      return h;
+    };
+
+    it('reconnects at once after a long outage and resets the backoff', () => {
+      const { port, timers, store } = outage();
+      const opens = port.opens;
+      expect(timers.delay).toBeGreaterThan(5_000);
+      store.retryNow();
+      expect(port.opens).toBe(opens + 1);
+      expect(timers.pending.size).toBe(1); // only the watchdog of the new attempt
+      port.handlers!.onError();
+      expect(timers.delay).toBe(750); // base step again: 1 s * jitter 0.75
+    });
+
+    it('never opens two connections when a reconnect is already pending', () => {
+      const { port, timers, store } = outage();
+      const opens = port.opens;
+      store.retryNow(true);
+      port.handlers!.onOpen();
+      port.handlers!.onMessage({ kind: 'ping', serverTime: 1 });
+      timers.advance(40_000); // the cancelled backoff timer must not fire a second connection
+      expect(port.opens).toBe(opens + 1);
+      expect(port.handlers).not.toBeNull();
+    });
+
+    it('is a no-op while live with a recent message, unless forced', () => {
+      const { port, timers, store } = setup();
+      store.start();
+      port.handlers!.onOpen();
+      port.handlers!.onMessage({ kind: 'ping', serverTime: 1 });
+      timers.advance(44_000);
+      store.retryNow();
+      expect(port.opens).toBe(1);
+      expect(port.closes).toBe(0);
+      store.retryNow(true);
+      expect(port.opens).toBe(2);
+    });
+
+    it('reconnects a live connection that went silent for the watchdog window', () => {
+      const { port, timers, store } = setup();
+      store.start();
+      port.handlers!.onOpen();
+      port.handlers!.onMessage({ kind: 'ping', serverTime: 1 });
+      timers.now += 45_000; // clock moved without the watchdog firing (suspended page)
+      store.retryNow();
+      expect(port.opens).toBe(2);
+    });
+
+    it('does nothing once stopped', () => {
+      const { port, store } = setup();
+      store.start();
+      store.stop();
+      store.retryNow(true);
+      expect(port.opens).toBe(1);
+    });
+  });
+
+  describe('markOffline', () => {
+    it('marks the last data stale at once, without waiting for the watchdog', () => {
+      const { port, store } = setup();
+      store.start();
+      port.handlers!.onOpen();
+      port.handlers!.onMessage({ kind: 'snapshot', pisteId: '1', snapshot: snap(1) });
+      store.markOffline();
+      expect(store.get().connection).toBe('stale');
+      expect(store.get().pistes[0]!.stale).toBe(true);
+    });
+
+    it('keeps a pending reconnect going instead of scheduling another one', () => {
+      const { port, timers, store } = setup();
+      store.start();
+      port.handlers!.onError();
+      const delay = timers.delay;
+      store.markOffline();
+      expect(timers.pending.size).toBe(1);
+      expect(timers.delay).toBe(delay);
+      timers.fire();
+      expect(port.opens).toBe(2);
+    });
+  });
 });
