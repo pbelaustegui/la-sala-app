@@ -11,12 +11,12 @@ Requires Node 24 (uses the built-in `node:sqlite`, which prints an `Experimental
 
 ```sh
 npm install
-ADMIN_PIN=choose-a-secret npm start -w @la-sala/server
+ADMIN_PIN=choose-a-long-secret npm start -w @la-sala/server
 ```
 
 | Variable    | Required | Default           | Meaning                                  |
 | ----------- | -------- | ----------------- | ---------------------------------------- |
-| `ADMIN_PIN` | yes      | none              | Organizer secret; the server refuses to start without it. |
+| `ADMIN_PIN` | yes      | none              | Organizer secret, at least 12 characters; the server refuses to start without it. |
 | `PORT`      | no       | `3000`            | HTTP port.                               |
 | `DB_PATH`   | no       | `la-sala.sqlite`  | SQLite file (created if missing).        |
 
@@ -47,6 +47,12 @@ Events:
 **Warning:** `POST /admin/pistes` replaces all pistes. Existing pistes, their PINs, current bouts and archived bouts are discarded, and live streams receive an empty snapshot.
 
 PINs are compared in constant time, are never logged and only appear in admin responses.
+
+**Judge PIN throttling:** 5 consecutive wrong PINs for a piste lock that piste's judge PIN out with `429` and a `Retry-After` header (seconds). The first lockout lasts 30 s and doubles on every further lockout up to 15 min. While locked out even the correct PIN gets `429`, so the response never reveals whether a guess was right. A correct PIN resets the piste's history, but only when it is not locked out. State is in memory (per process, cleared on restart). Tradeoff: piste ids are public, so anyone can deliberately lock a piste's judge out of scoring (denial of service) by sending wrong PINs; the organizer can recover by restarting the server or recreating the pistes.
+
+**Admin PIN policy:** `ADMIN_PIN` must be at least 12 characters (after trimming) or the server refuses to start. The admin PIN is never throttled or locked out: a lockout would let any unauthenticated client keep the organizer out of `/admin` for the whole event, so a long PIN is the defense against guessing instead. The PIN is compared in constant time and never logged.
+
+**Residual risk (accepted):** because there is no throttle, `/admin` can be guessed online without any rate limit. Use a long random value (for example 16+ random characters), not a memorable phrase, and stop the server when the event ends. A per-IP failure limit was considered and left out because client IPs behind a proxy come from spoofable headers.
 
 ## Development
 

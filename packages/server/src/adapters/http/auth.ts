@@ -1,6 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import type { MiddlewareHandler } from 'hono';
-import type { PisteRepository } from '../../application/ports';
+import type { AttemptLimiter, PisteRepository } from '../../application/ports';
 
 /**
  * Constant-time string comparison. Inputs of different length are rejected up front:
@@ -21,7 +21,29 @@ export function unauthorized() {
   return Response.json({ error: 'unauthorized' }, { status: 401 });
 }
 
-/** Requires the `x-admin-pin` header to match the configured admin PIN. */
+/** 429 with `Retry-After` in whole seconds. Sent even for a correct PIN so a lockout leaks nothing. */
+function lockedOut(retryAfterMs: number) {
+  const seconds = Math.ceil(retryAfterMs / 1000);
+  return Response.json({ error: 'too-many-attempts' }, { status: 429, headers: { 'retry-after': String(seconds) } });
+}
+
+/** Locks out first, then compares the PIN in constant time and records the outcome. */
+function checkPin(limiter: AttemptLimiter, key: string, candidate: string | undefined, expected: string) {
+  const retryAfterMs = limiter.retryAfterMs(key);
+  if (retryAfterMs > 0) return lockedOut(retryAfterMs);
+  if (!safeEqual(candidate, expected)) {
+    limiter.recordFailure(key);
+    return unauthorized();
+  }
+  limiter.recordSuccess(key);
+  return null;
+}
+
+/**
+ * Requires the `x-admin-pin` header to match the configured admin PIN, in constant time.
+ * Deliberately not throttled: a lockout would let any client keep the organizer out of
+ * /admin. Config enforces a long PIN instead, so guessing is impractical.
+ */
 export function requireAdmin(adminPin: string): MiddlewareHandler {
   return async (c, next) => {
     if (!safeEqual(c.req.header(ADMIN_HEADER), adminPin)) return unauthorized();
@@ -31,13 +53,16 @@ export function requireAdmin(adminPin: string): MiddlewareHandler {
 
 /**
  * Requires `x-piste-pin` to match the PIN of the piste in `:id`.
- * Unknown piste ids answer 404 (ids are public); a wrong PIN answers 401.
+ * Unknown piste ids answer 404 (ids are public); a wrong PIN answers 401 and, repeated,
+ * locks that piste's judge PIN out with 429.
  */
-export function requirePistePin(repository: PisteRepository): MiddlewareHandler {
+export function requirePistePin(repository: PisteRepository, limiter: AttemptLimiter): MiddlewareHandler {
   return async (c, next) => {
-    const piste = await repository.findPiste(c.req.param('id') ?? '');
+    const id = c.req.param('id') ?? '';
+    const piste = await repository.findPiste(id);
     if (!piste) return Response.json({ error: 'unknown-piste' }, { status: 404 });
-    if (!safeEqual(c.req.header(PISTE_HEADER), piste.pin)) return unauthorized();
+    const rejection = checkPin(limiter, `piste:${id}`, c.req.header(PISTE_HEADER), piste.pin);
+    if (rejection) return rejection;
     await next();
   };
 }
