@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PisteView } from '../core/piste-view';
-import { cardLabels, clockText, periodText, phaseLabel, winnerText } from './piste-labels';
+import { cardChips, cardLabels, clockText, periodText, phaseLabel, winnerText } from './piste-labels';
 
 const base: PisteView = {
   pisteId: '1',
@@ -45,5 +45,12 @@ describe('piste labels', () => {
   it('lists only the cards a fencer has', () => {
     expect(cardLabels(base, 'left')).toEqual([]);
     expect(cardLabels(base, 'right')).toEqual(['Amarilla ×2', 'Negra ×1']);
+  });
+});
+
+describe('cardChips', () => {
+  it('labels only the card types with a count', () => {
+    expect(cardChips({ yellow: 2, red: 0, black: 1 })).toEqual(['Amarilla ×2', 'Negra ×1']);
+    expect(cardChips({ yellow: 0, red: 0, black: 0 })).toEqual([]);
   });
 });

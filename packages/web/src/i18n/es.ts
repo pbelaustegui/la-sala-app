@@ -10,6 +10,7 @@ export const es = {
 
   'board.piste': 'Pista {piste}',
   'board.leave': 'Volver a las pistas',
+  'nav.board': 'Ver el marcador público',
   'board.phase.scheduled': 'Listo para empezar',
   'board.phase.period': 'Periodo {period} de {periods}',
   'board.phase.break': 'Descanso',
@@ -170,6 +171,8 @@ export const es = {
   'admin.pistes.title': 'Pistas',
   'admin.pistes.empty': 'Todavía no hay pistas.',
   'admin.pistes.piste': 'Pista {piste}',
+  'admin.pistes.judge': 'Arbitrar la pista {piste}',
+  'admin.pistes.watch': 'Ver la pista {piste} como espectador',
   'admin.pistes.pin': 'PIN de la pista {piste}',
   'admin.copy.pin': 'Copiar PIN de la pista {piste}',
   'admin.copy.link': 'Copiar enlace de espectador',

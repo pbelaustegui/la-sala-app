@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 import App from '../App.svelte';
@@ -123,6 +123,40 @@ describe('scoreboard', () => {
     // A red card is a touch for the opponent.
     expect(score('right')).toBe('1');
     expect(screen.queryByRole('group', { name: 'Tarjetas' })).toBeNull();
+  });
+
+  it('shows the given card as a chip on the right side of the judge scoreboard', async () => {
+    const h = harness();
+    await open(h);
+    await click('Iniciar reloj');
+    expect(document.querySelector('.half.left .chip')).toBeNull();
+    await click('Tarjetas');
+    await click('Tarjeta amarilla a Bea');
+
+    expect(document.querySelector('.half.right .chip')?.textContent).toBe('Amarilla ×1');
+    expect(document.querySelector('.half.left .chip')).toBeNull();
+  });
+
+  it('still shows the cards of a resumed bout', async () => {
+    const h = harness();
+    await open(h);
+    await click('Iniciar reloj');
+    await click('Tarjetas');
+    await click('Tarjeta roja a Ana');
+    await waitFor(() => expect(screen.getByText('Todo sincronizado')).toBeTruthy());
+    cleanup();
+
+    await open(h);
+    expect(document.querySelector('.half.left .chip')?.textContent).toBe('Roja ×1');
+  });
+
+  it('links to the public board in the same tab, next to the leave link', async () => {
+    const h = harness();
+    await open(h);
+    const board = screen.getByRole('link', { name: 'Ver el marcador público' });
+    expect(board.getAttribute('href')).toBe('#/');
+    expect(board.getAttribute('target')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Volver a las pistas' }).getAttribute('href')).toBe('#/judge');
   });
 
   it('keeps scoring offline, shows the pending count and flushes when the connection returns', async () => {

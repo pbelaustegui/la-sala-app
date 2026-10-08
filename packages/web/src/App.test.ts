@@ -104,6 +104,14 @@ describe('piste list', () => {
     expect(link.getAttribute('href')).toBe('#/judge/p1');
   });
 
+  it('links to the public board in the same tab', async () => {
+    const { env } = setup();
+    render(App, { env });
+    const link = await screen.findByRole('link', { name: 'Ver el marcador público' });
+    expect(link.getAttribute('href')).toBe('#/');
+    expect(link.getAttribute('target')).toBeNull();
+  });
+
   it('is not the public board: the board lives at #/ and the judge list at #/judge', async () => {
     const { env } = setup();
     window.location.hash = '#/';

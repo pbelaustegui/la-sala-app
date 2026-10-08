@@ -1,4 +1,5 @@
 import type { Card, Side } from '@la-sala/domain';
+import { type CardCounts } from '../core/card-counts';
 import { formatClock } from '../core/scoreboard-view';
 import type { PisteView } from '../core/piste-view';
 import { t } from '../i18n/t';
@@ -27,9 +28,12 @@ export function winnerText(view: PisteView): string | null {
   return `${t('board.result', { name: view.fencers[view.winner] })} ${t(`board.reason.${view.reason}`)}`;
 }
 
+/** One label per card type with a count ("Amarilla ×2"); empty when there are none. */
+export function cardChips(counts: CardCounts): string[] {
+  return CARDS.filter((card) => counts[card] > 0).map((card) => t(`spectator.card.${card}`, { count: counts[card] }));
+}
+
 /** One label per card type the fencer has received ("Amarilla ×2"); empty when none. */
 export function cardLabels(view: PisteView, side: Side): string[] {
-  return CARDS.filter((card) => view.cards[side][card] > 0).map((card) =>
-    t(`spectator.card.${card}`, { count: view.cards[side][card] }),
-  );
+  return cardChips(view.cards[side]);
 }
