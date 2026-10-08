@@ -38,7 +38,9 @@
 {:else}
   <header class="shell">
     <a class="brand" href={hrefTo({ name: 'judge-list' })}>{t('app.title')}</a>
-    <span class="tagline">{t('app.tagline')}</span>
+    {#if route.name !== 'admin'}
+      <span class="tagline">{t('app.tagline')}</span>
+    {/if}
     {#if showAdminLink}
       <a class="admin" href={hrefTo({ name: 'admin' })}>{t('nav.admin')}</a>
     {/if}
