@@ -6,9 +6,48 @@ Fencing bout scoring. Monorepo with npm workspaces:
 - `packages/server` (`@la-sala/server`): Hono HTTP server. Judges post events per piste, spectators follow live over SSE.
 - `packages/web` (`@la-sala/web`): offline-first PWA for the judge plus the public live board for spectators (Svelte + Vite), served by the server from the same origin.
 
+## Quick start (local)
+
+Requires Node 24. Run everything from the repository root.
+
+**1. Serve the built app (the closest thing to production):**
+
+```sh
+npm install
+npm run build -w packages/web
+ADMIN_PIN=choose-a-long-secret WEB_DIST=packages/web/dist \
+  npx tsx packages/server/src/main.ts
+```
+
+Open <http://localhost:3000>. After any change to the web code, run the build again and restart the server. The ADMIN_PIN must have at least 12 characters.
+
+**2. Create the pistes:** open <http://localhost:3000/#/admin>, enter the admin PIN and use "Crear pistas". Each piste shows its judge PIN. Creating pistes **replaces all pistes and bouts**, and the data lives in `la-sala.sqlite` in the folder you started the server from (delete the file for a clean slate).
+
+**3. Try it:** `#/judge/1` is the scoreboard for piste 1 (enter its PIN), `#/` is the public board. Open them in two tabs to watch a bout appear live.
+
+**Hot reload while editing the web code:** keep the server from step 1 running, and in a second terminal run `npm run dev -w packages/web`. Open Vite's address (<http://localhost:5173> by default); it proxies the API to port 3000. The service worker and installable PWA only behave like production on the built app from step 1.
+
+### Testing on phones over HTTPS
+
+Phones need `https://` for the service worker, install and the screen wake lock (see "HTTPS is required on the phone" below). To test your local server from real phones, expose the built app (step 1, port 3000) through a tunnel:
+
+```sh
+ssh -R 80:localhost:3000 nokey@localhost.run
+```
+
+It prints a temporary `https://…` address. Open it on each phone: `/#/` for the board, `/#/judge/1` for a judge. The phones do not need to be on your network. Then:
+
+1. Create the pistes from `/#/admin` on your computer, using the same `https://` address so the PIN stays in that tab.
+2. On one phone open the judge screen, enter the piste PIN, set up a bout and start the clock.
+3. On the other phones open the board and check that the score and clock change without reloading.
+
+Do not use Cloudflare Quick Tunnels (no SSE support), and stop the tunnel when you finish: while it runs, your server, including `/admin`, is public. More tunnel notes are in the HTTPS section below, and [Manual device checklist](#manual-device-checklist) lists what to check on the devices.
+
 ## Running the server
 
 Requires Node 24 (uses the built-in `node:sqlite`, which prints an `ExperimentalWarning` on start; it works without flags).
+
+This starts the **API only**, without the web app. To see the app, set `WEB_DIST` as in the [Quick start](#quick-start-local).
 
 ```sh
 npm install
@@ -34,8 +73,7 @@ The server runs as a single process: the SSE hub is in-memory, so do not run sev
 | `#/judge/:pisteId`    | judges     | PIN, bout setup and the scoreboard for that piste.                      |
 | `#/admin`             | organizer  | Admin PIN, list of pistes with their PINs, create or replace pistes.    |
 
-The installed PWA opens the judge entry (`start_url` is `/#/judge`); the board link "Soy juez" at the bottom of the board leads there. The judge list and the scoreboard link back to the public board ("Ver el marcador público", same tab; leaving the scoreboard stops its sync until the judge returns, and the bout resumes). Before this change the judge list lived at `#/` and the scoreboard at `#/judge/:pisteId`: bookmarks of `#/` now show the public board instead.
-
+The installed PWA opens the judge entry (`start_url` is `/#/judge`); the board link "Soy juez" at the bottom of the board leads there. The judge list and the scoreboard link back to the public board ("Ver el marcador público", same tab; leaving the scoreboard stops its sync until the judge returns, and the bout resumes).
 ## Public board (spectators)
 
 Open the site root (`https://host/`) on a phone or a TV: no login, read-only. The board shows a card per piste (fencers, score, clock, period, phase, cards, and the winner with the reason once finished) in a responsive grid; tapping a card opens the detail with much larger numerals. It uses ONE `EventSource` on `GET /pistes/stream` for all pistes (no polling) and reconnects with backoff; 45 s without any message (snapshots and pings count) is treated as a dead connection, so a phone that silently lost its network does not show stale scores as live. The board also reacts to the browser: `offline` marks it stale at once, and `online` or the tab becoming visible again (also when restored from the back/forward cache) reconnects immediately instead of waiting for the backoff, which can reach 30 s. The running clock is drawn from timestamps (`serverTime` of each message corrected by the phone's offset), redrawn every 250 ms only while the page is visible. While the connection is down the board says "Sin conexión, mostrando el último estado" and freezes the clocks. The error bound of the clock is the one-way network latency: a board can show its clock slightly ahead of the judge's. The service worker never caches the stream.
@@ -59,7 +97,7 @@ ADMIN_PIN=choose-a-long-secret WEB_DIST=packages/web/dist \
 
 `WEB_DIST` is resolved against the directory the server is started from. `npm start -w @la-sala/server` runs inside `packages/server`, so with it use `WEB_DIST=../web/dist`. If the folder or its `index.html` is missing the server refuses to start and says so. The API and the app share one origin, so the app needs no extra configuration: `/pistes`, `/admin` and `/health` keep answering as before and every other `GET` path serves the app (`index.html` and the service worker are sent with `Cache-Control: no-cache`, hashed files under `/assets/` are cached for a year).
 
-Create the pistes first (the organizer screens are not built yet), then open the app on the phone:
+Create the pistes first, either from `#/admin` or with `curl`, then open the app on the phone:
 
 ```sh
 curl -X POST http://localhost:3000/admin/pistes -H 'x-admin-pin: choose-a-long-secret' \
