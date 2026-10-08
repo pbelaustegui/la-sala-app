@@ -197,3 +197,7 @@ npm run build -w packages/web
 ```
 
 The server is hexagonal: `src/application` holds use cases and ports, `src/adapters` holds HTTP (Hono), memory, SQLite and system (crypto, clock) adapters. Repository contract tests run against both the memory and SQLite adapters.
+
+## License
+
+[MIT](LICENSE)

@@ -17,5 +17,6 @@
   "devDependencies": {
     "@types/node": "^24.19.1",
     "tsx": "^4.23.15"
-  }
+  },
+  "license": "MIT"
 }
