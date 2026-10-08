@@ -1,7 +1,9 @@
 <script lang="ts">
   import type { Card, Side } from '@la-sala/domain';
   import type { ScoreboardModel } from '../controllers/scoreboard-controller';
+  import { countCards } from '../core/card-counts';
   import { t } from '../i18n/t';
+  import { cardChips } from './piste-labels';
   import CardsSheet from './CardsSheet.svelte';
 
   let {
@@ -32,6 +34,7 @@
   } = $props();
 
   let cardsOpen = $state(false);
+  const cardCounts = $derived(countCards(model.cards));
 
   const SIDES: readonly Side[] = ['left', 'right'];
 
@@ -61,6 +64,11 @@
       >
         <span class="name">{names[side]}</span>
         <span class="score">{model.score[side]}</span>
+        <span class="cards">
+          {#each cardChips(cardCounts[side]) as label (label)}
+            <span class="chip">{label}</span>
+          {/each}
+        </span>
       </button>
     {/each}
   </div>
@@ -192,6 +200,20 @@
     font-weight: 800;
     line-height: 1;
     font-variant-numeric: tabular-nums;
+  }
+  .cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem;
+    min-height: 1.75rem;
+  }
+  .chip {
+    padding: 0.1rem 0.5rem;
+    border: 2px solid #fff;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 1rem;
   }
   .big {
     min-height: 72px;

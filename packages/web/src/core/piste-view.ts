@@ -1,7 +1,8 @@
-import { remainingAt, settle, type Card, type FinishReason, type PhaseKind, type Side } from '@la-sala/domain';
+import { remainingAt, settle, type FinishReason, type PhaseKind, type Side } from '@la-sala/domain';
+import { countCards, type CardCounts } from './card-counts';
 import type { BoardEntry } from './spectator-store';
 
-export type CardCounts = Readonly<Record<Card, number>>;
+export type { CardCounts };
 
 /** Everything a board card or the detail screen shows for one piste. Pure data, no copy. */
 export interface PisteView {
@@ -27,8 +28,6 @@ export interface PisteView {
   readonly stale: boolean;
 }
 
-const noCards = (): CardCounts => ({ yellow: 0, red: 0, black: 0 });
-
 /**
  * Derives the display fields from the latest snapshot of a piste.
  *
@@ -40,18 +39,16 @@ const noCards = (): CardCounts => ({ yellow: 0, red: 0, black: 0 });
 export function toPisteView(entry: BoardEntry, clientNow: number): PisteView {
   const { snapshot, stale, pisteId } = entry;
   const serverNow = stale ? snapshot.serverTime : clientNow + entry.offsetMs;
-  const cards = { left: noCards(), right: noCards() } as { left: Record<Card, number>; right: Record<Card, number> };
 
   if (!snapshot.bout) {
     return {
       pisteId, phase: 'idle', fencers: null, score: { left: 0, right: 0 }, remainingMs: null, running: false,
-      period: null, periods: 0, breakRemainingMs: null, priority: null, winner: null, reason: null, cards, stale,
+      period: null, periods: 0, breakRemainingMs: null, priority: null, winner: null, reason: null, cards: countCards([]), stale,
     };
   }
 
   const state = settle(snapshot.bout, serverNow);
   const { phase, rules } = state;
-  for (const record of state.cards) cards[record.side][record.card]++;
 
   const timed = phase.kind === 'fencing' || phase.kind === 'extra-period' || phase.kind === 'scheduled';
   let remainingMs: number | null = null;
@@ -70,7 +67,7 @@ export function toPisteView(entry: BoardEntry, clientNow: number): PisteView {
     priority: state.priority,
     winner: phase.kind === 'finished' ? phase.winner : null,
     reason: phase.kind === 'finished' ? phase.reason : null,
-    cards,
+    cards: countCards(state.cards),
     stale,
   };
 }
