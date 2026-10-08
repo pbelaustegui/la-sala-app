@@ -25,7 +25,7 @@
   <span class="fencers">
     {#each sides as side (side)}
       {@const name = view.fencers[side]}
-      <span class="fencer" class:winner={view.winner === side}>
+      <span class="fencer {side}" class:winner={view.winner === side}>
         <span class="name">{name}</span>
         <span class="score" aria-label={t('spectator.score', { name })}>{view.score[side]}</span>
         <span class="cards">
@@ -78,9 +78,14 @@
     border-radius: 0.75rem;
     min-width: 0;
   }
+  .fencer.left {
+    background: var(--side-left);
+  }
+  .fencer.right {
+    background: var(--side-right);
+  }
   .fencer.winner {
     border-color: var(--accent);
-    background: rgb(255 210 63 / 0.15);
   }
   .name {
     font-weight: 700;

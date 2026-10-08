@@ -31,7 +31,7 @@ export const es = {
   'board.card.red': 'Tarjeta roja a {name}',
   'board.card.black': 'Tarjeta negra a {name}',
   'board.skipBreak': 'Saltar descanso',
-  'board.hint.start': 'Pulsa «Iniciar reloj» para empezar.',
+  'board.hint.start': 'Pulsa ▶ para empezar.',
   'board.priority.title': 'Sorteo de prioridad',
   'board.priority.hint': 'Echad la moneda y elige quién gana el sorteo.',
   'board.priority.pick': 'Gana el sorteo: {name}',

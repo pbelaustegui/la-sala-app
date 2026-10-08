@@ -89,6 +89,17 @@ describe('scoreboard', () => {
     expect(screen.getByRole('button', { name: 'Iniciar reloj' })).toBeTruthy();
   });
 
+  it('the clock button shows a play glyph while stopped and a pause glyph while running', async () => {
+    const h = harness();
+    await open(h);
+    const stopped = screen.getByRole('button', { name: 'Iniciar reloj' });
+    expect(stopped.textContent?.trim()).toBe('▶');
+
+    await click('Iniciar reloj');
+    const running = screen.getByRole('button', { name: 'Parar reloj' });
+    expect(running.textContent?.trim()).toBe('⏸');
+  });
+
   it('undo reverts a mis-tap', async () => {
     const h = harness();
     await open(h);

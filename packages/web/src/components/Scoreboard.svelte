@@ -109,8 +109,13 @@
   {/if}
 
   {#if model.clockAction}
-    <button class="btn big clock-button {model.clockAction}" type="button" onclick={onclock}>
-      {model.clockAction === 'start' ? t('board.clock.start') : t('board.clock.stop')}
+    <button
+      class="btn big clock-button {model.clockAction}"
+      type="button"
+      aria-label={model.clockAction === 'start' ? t('board.clock.start') : t('board.clock.stop')}
+      onclick={onclock}
+    >
+      <span aria-hidden="true">{model.clockAction === 'start' ? '▶' : '⏸'}</span>
     </button>
   {/if}
 
@@ -180,10 +185,10 @@
     touch-action: manipulation;
   }
   .half.left {
-    background: #c62828;
+    background: var(--side-left);
   }
   .half.right {
-    background: #1565c0;
+    background: var(--side-right);
   }
   .half:disabled {
     opacity: 0.55;
