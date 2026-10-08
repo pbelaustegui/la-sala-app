@@ -1,6 +1,7 @@
 <script lang="ts">
   import { setContext } from 'svelte';
   import UpdateBanner from './components/UpdateBanner.svelte';
+  import { hasAdminPin } from './core/admin-pin-store';
   import { UpdateNotice } from './core/update-notice';
   import { createBrowserEnv, createServices, ENV_KEY, SERVICES_KEY, type AppEnv } from './env';
   import { t } from './i18n/t';
@@ -24,17 +25,23 @@
 
   const router = createRouteStore();
   const route = $derived(router.current);
+  // sessionStorage is not reactive: reading `route` makes this re-evaluate on every navigation.
+  // Only the presence of the PIN is checked; it is never read into the UI.
+  const showAdminLink = $derived(route.name !== 'admin' && route.name !== 'not-found' && hasAdminPin(env.sessionStorage));
 </script>
 
 <UpdateBanner notice={updates} />
 
 {#if route.name === 'board' || route.name === 'piste'}
   <!-- One instance for both spectator screens: moving between them keeps the single connection. -->
-  <SpectatorScreen pisteId={route.name === 'piste' ? route.pisteId : null} />
+  <SpectatorScreen pisteId={route.name === 'piste' ? route.pisteId : null} {showAdminLink} />
 {:else}
   <header class="shell">
     <a class="brand" href={hrefTo({ name: 'judge-list' })}>{t('app.title')}</a>
     <span class="tagline">{t('app.tagline')}</span>
+    {#if showAdminLink}
+      <a class="admin" href={hrefTo({ name: 'admin' })}>{t('nav.admin')}</a>
+    {/if}
   </header>
 
   <main class="shell">
@@ -66,6 +73,10 @@
     text-decoration: none;
     display: inline-flex;
     align-items: center;
+  }
+  .admin {
+    margin-left: 0.75rem;
+    font-size: 0.9rem;
   }
   .tagline {
     color: var(--muted);

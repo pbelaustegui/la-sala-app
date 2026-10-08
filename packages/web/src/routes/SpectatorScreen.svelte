@@ -8,7 +8,7 @@
   import { t } from '../i18n/t';
   import { hrefTo } from '../router';
 
-  let { pisteId = null }: { pisteId?: string | null } = $props();
+  let { pisteId = null, showAdminLink = false }: { pisteId?: string | null; showAdminLink?: boolean } = $props();
 
   /** UI-only redraw rate: a running clock is derived from timestamps, no message is needed. */
   const TICK_MS = 250;
@@ -104,6 +104,9 @@
 
   <footer class="foot">
     <a class="judge" href={hrefTo({ name: 'judge-list' })}>{t('spectator.judgeLink')}</a>
+    {#if showAdminLink}
+      <a class="judge" href={hrefTo({ name: 'admin' })}>{t('nav.admin')}</a>
+    {/if}
   </footer>
 </div>
 

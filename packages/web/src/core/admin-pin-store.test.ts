@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AdminPinStore } from './admin-pin-store';
+import { AdminPinStore, hasAdminPin } from './admin-pin-store';
 import { PinStore } from './pin-store';
 import { MemoryStorage } from './storage';
 
@@ -18,5 +18,17 @@ describe('AdminPinStore', () => {
     new AdminPinStore(storage).set('9999');
     expect(new PinStore(storage).get('admin-pin')).toBeNull();
     expect(new PinStore(storage).get('')).toBeNull();
+  });
+});
+
+describe('hasAdminPin', () => {
+  it('is false until a PIN is stored and false again once it is forgotten', () => {
+    const storage = new MemoryStorage();
+    const store = new AdminPinStore(storage);
+    expect(hasAdminPin(storage)).toBe(false);
+    store.set('a-long-secret');
+    expect(hasAdminPin(storage)).toBe(true);
+    store.forget();
+    expect(hasAdminPin(storage)).toBe(false);
   });
 });
