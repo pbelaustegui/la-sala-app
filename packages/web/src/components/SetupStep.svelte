@@ -82,9 +82,11 @@
     <p class="error" role="alert">{setupFailureMessage(failure)}</p>
   {/if}
 
-  <button class="btn primary" type="submit" disabled={submitting}>
-    {submitting ? t('setup.submitting') : t('setup.submit')}
-  </button>
+  <div class="actions">
+    <button class="btn primary" type="submit" disabled={submitting}>
+      {submitting ? t('setup.submitting') : t('setup.submit')}
+    </button>
+  </div>
 </form>
 
 <style>

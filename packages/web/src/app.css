@@ -67,7 +67,8 @@ h1 {
 }
 
 .btn:focus-visible,
-input:focus-visible {
+input:focus-visible,
+textarea:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
@@ -86,7 +87,11 @@ input:focus-visible {
 
 input[type='text'],
 input[type='number'],
-input[type='password'] {
+input[type='password'],
+input[type='email'],
+input[type='tel'],
+input[type='search'],
+textarea {
   font: inherit;
   min-height: var(--tap);
   padding: 0 0.75rem;

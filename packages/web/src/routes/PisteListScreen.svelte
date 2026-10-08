@@ -41,13 +41,15 @@
   </ul>
 {/if}
 
-<button class="btn" type="button" onclick={() => void list.refresh()}>{t('pistes.refresh')}</button>
-
-<p class="board-link"><a href={hrefTo({ name: 'board' })}>{t('nav.board')}</a></p>
+<div class="actions">
+  <button class="btn" type="button" onclick={() => void list.refresh()}>{t('pistes.refresh')}</button>
+  <a class="btn" href={hrefTo({ name: 'board' })}>{t('nav.board')}</a>
+</div>
 
 <style>
   .pistes {
     list-style: none;
+    margin: 0;
     padding: 0;
     display: grid;
     gap: 0.5rem;
@@ -57,9 +59,6 @@
     text-decoration: none;
     width: 100%;
     box-sizing: border-box;
-  }
-  .board-link {
-    text-align: center;
   }
   .status {
     color: var(--muted);

@@ -16,12 +16,15 @@
 {:else if $notice.offlineReady}
   <div class="banner" role="status">
     <p>{t('pwa.offlineReady')}</p>
-    <button class="btn" type="button" onclick={() => notice.dismiss()}>{t('pwa.dismiss')}</button>
+    <div class="actions">
+      <button class="btn" type="button" onclick={() => notice.dismiss()}>{t('pwa.dismiss')}</button>
+    </div>
   </div>
 {/if}
 
 <style>
   .banner {
+    width: calc(100% - 2rem);
     max-width: 40rem;
     margin: 0.5rem auto;
     padding: 0.75rem 1rem;
@@ -30,11 +33,9 @@
     box-sizing: border-box;
   }
   p {
-    margin: 0 0 0.5rem;
+    margin: 0;
   }
   .actions {
-    display: grid;
-    grid-auto-flow: column;
-    gap: 0.5rem;
+    margin: 0.5rem 0 0;
   }
 </style>

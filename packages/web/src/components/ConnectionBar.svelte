@@ -46,26 +46,36 @@
 </div>
 
 {#if connection.status === 'offline'}
-  <p class="notice">
-    {t('conn.offlineHelp')}
-    <button class="btn" type="button" onclick={onretry}>{t('conn.retry')}</button>
-  </p>
+  <div class="notice">
+    <p>{t('conn.offlineHelp')}</p>
+    <div class="actions">
+      <button class="btn" type="button" onclick={onretry}>{t('conn.retry')}</button>
+    </div>
+  </div>
 {/if}
 
 {#if connection.status === 'needs-attention' && connection.reason}
   <div class="notice" role="alert">
     {#if connection.reason.kind === 'rate-limited'}
       <p>{t('conn.attention.rate-limited', { seconds: secondsToWait(connection) })}</p>
-      <button class="btn" type="button" onclick={onretry}>{t('conn.retry')}</button>
+      <div class="actions">
+        <button class="btn" type="button" onclick={onretry}>{t('conn.retry')}</button>
+      </div>
     {:else if connection.reason.kind === 'unauthorized'}
       <p>{t('conn.attention.unauthorized')}</p>
-      <button class="btn primary" type="button" onclick={onreauth}>{t('conn.attention.unauthorized.action')}</button>
+      <div class="actions">
+        <button class="btn primary" type="button" onclick={onreauth}>{t('conn.attention.unauthorized.action')}</button>
+      </div>
     {:else if connection.reason.kind === 'resynced'}
       <p>{t('conn.attention.resynced', { count: connection.reason.discarded })}</p>
-      <button class="btn primary" type="button" onclick={onretry}>{t('conn.attention.resynced.action')}</button>
+      <div class="actions">
+        <button class="btn primary" type="button" onclick={onretry}>{t('conn.attention.resynced.action')}</button>
+      </div>
     {:else}
       <p>{t(`conn.attention.${connection.reason.kind}`)}</p>
-      <button class="btn" type="button" onclick={onretry}>{t('conn.retry')}</button>
+      <div class="actions">
+        <button class="btn" type="button" onclick={onretry}>{t('conn.retry')}</button>
+      </div>
     {/if}
   </div>
 {/if}
@@ -107,5 +117,8 @@
   }
   .notice {
     margin: 0.25rem 0;
+  }
+  .notice p {
+    margin: 0;
   }
 </style>
