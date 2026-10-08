@@ -40,7 +40,7 @@ Forecast ~250 authored lines; single PR, two work-unit commits. Branch: `feat/na
 ## Progress
 - Branch created, plan written, explorer mapped the code.
 - N1 done (commit a4ad853). RED: new ScoreboardScreen tests (chip on right side; resumed bout) failed with no `.chip` found, card-counts test failed on missing module. GREEN: new `core/card-counts.ts` (`countCards`, shared with `piste-view.ts`), `cardChips` in `piste-labels.ts`, chips rendered in `Scoreboard.svelte`. Checks: vitest 313 passed, tsc clean, svelte-check 0 errors.
-- N2 done (commit c5b2905). RED: 3 new link tests (judge list, scoreboard, admin) failed before implementation. GREEN: `nav.board` link on `PisteListScreen`/`ScoreboardScreen`/`AdminPistes`, per-piste judge and spectator-detail links in `AdminPistes`, copy in `i18n/es.ts`, README updated. Checks: vitest 316 passed, tsc clean, svelte-check 0 errors, vite build ok.
+- N2 done (commit fb1a95d). RED: 3 new link tests (judge list, scoreboard, admin) failed before implementation. GREEN: `nav.board` link on `PisteListScreen`/`ScoreboardScreen`/`AdminPistes`, per-piste judge and spectator-detail links in `AdminPistes`, copy in `i18n/es.ts`, README updated. Checks: vitest 316 passed, tsc clean, svelte-check 0 errors, vite build ok.
 
 ## Next step
-Delegate the writer for N1-N2.
+Push and open the PR (user decision).
