@@ -20,6 +20,22 @@
     onreauth: () => void;
   } = $props();
 
+  // Every scored point starts a sync that usually ends within milliseconds. Showing "Syncing…" for it
+  // would just flash, so the label only appears once a sync lasts long enough to be noticed.
+  const SYNC_LABEL_DELAY_MS = 600;
+  let syncIsSlow = $state(false);
+
+  $effect(() => {
+    if (connection.status !== 'syncing') {
+      syncIsSlow = false;
+      return;
+    }
+    const timer = setTimeout(() => (syncIsSlow = true), SYNC_LABEL_DELAY_MS);
+    return () => clearTimeout(timer);
+  });
+
+  const shownStatus = $derived(connection.status === 'syncing' && !syncIsSlow ? 'online' : connection.status);
+
   const statusKey = $derived(
     (
       {
@@ -28,7 +44,7 @@
         syncing: 'conn.syncing',
         'needs-attention': 'conn.attention',
       } as const
-    )[connection.status],
+    )[shownStatus],
   );
 
   function secondsToWait(state: ConnectionState): number {
@@ -37,7 +53,7 @@
   }
 </script>
 
-<div class="bar" data-status={connection.status}>
+<div class="bar" data-status={shownStatus}>
   <span class="dot" aria-hidden="true"></span>
   <span class="status" role="status">{t(statusKey)}</span>
   <span class="pending">
