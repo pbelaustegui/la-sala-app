@@ -89,11 +89,19 @@ docker run --rm -v la-sala_app-data:/data -v "$PWD":/backup alpine \
   cp /data/la-sala.sqlite /backup/la-sala.sqlite
 ```
 
-The volume name is `<folder name>_app-data`; confirm it with `docker volume ls`. If the file is missing, also copy `la-sala.sqlite-wal` and `la-sala.sqlite-shm` if present. Then download it:
+The volume name is `<folder name>_app-data` (`la-sala_app-data` when the repository folder is `la-sala`, as tested); confirm it with `docker volume ls`. If the file is missing, also copy `la-sala.sqlite-wal` and `la-sala.sqlite-shm` if present. Then download it:
 
 ```sh
 scp root@<server-ip>:/opt/la-sala/la-sala.sqlite .
 ```
+
+Check that the downloaded file is a healthy database before you destroy the server. Node 24 (already required by the project) ships `node:sqlite`, so no `sqlite3` install is needed:
+
+```sh
+node -e "const {DatabaseSync}=require('node:sqlite');const db=new DatabaseSync('la-sala.sqlite',{readOnly:true});console.log(db.prepare('select name from sqlite_master').all())"
+```
+
+A healthy backup lists the tables `pistes`, `bouts` and `events` (plus their indexes and `sqlite_sequence`). An error or an empty list means the backup is not usable: do not destroy the server yet. The `ExperimentalWarning` printed by Node is harmless.
 
 To resume the event after a backup: `docker compose start app`.
 
