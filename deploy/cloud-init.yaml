@@ -1,0 +1,124 @@
+#cloud-config
+#
+# La Sala: one-step setup for a fresh Ubuntu 24.04 DigitalOcean Droplet.
+#
+# Usage: paste this whole file into the "User data" field when you create the
+# Droplet (Advanced Options). See docs/deploy.md, "Fast path (cloud-init)".
+#
+# To deploy a branch or tag other than `main`, change REPO_REF in the script
+# below before pasting.
+#
+# The ADMIN_PIN is NOT in this file. User data is visible in the provider
+# panel and readable from the metadata service, so the PIN is generated on the
+# server (openssl) and only written to /opt/la-sala/.env (mode 600).
+# Read it over SSH: grep ADMIN_PIN /opt/la-sala/.env
+#
+# Progress log: /var/log/la-sala-bootstrap.log
+# When everything is up, /root/la-sala-ready contains the public URL.
+#
+# Custom domain: edit SITE_ADDRESS in /opt/la-sala/.env afterwards and run
+# `docker compose up -d` in /opt/la-sala.
+
+package_update: true
+packages:
+  - git
+  - curl
+  - openssl
+
+write_files:
+  - path: /usr/local/bin/la-sala-bootstrap.sh
+    owner: root:root
+    permissions: "0700"
+    content: |
+      #!/usr/bin/env bash
+      # Safe to re-run: every step checks whether it is already done.
+      # Never turn on shell tracing here: it would print secrets to the log.
+      set -euo pipefail
+
+      # --- Settings -------------------------------------------------------
+      REPO_URL="https://github.com/pbelaustegui/la-sala-app.git"
+      REPO_REF="main"          # branch or tag to deploy
+      APP_DIR="/opt/la-sala"
+      LOG_FILE="/var/log/la-sala-bootstrap.log"
+      READY_FILE="/root/la-sala-ready"
+
+      # Send all output (stdout and stderr) to the log file.
+      exec >>"$LOG_FILE" 2>&1
+      echo "=== La Sala bootstrap started: $(date -u +%FT%TZ) ==="
+
+      # --- 1. Docker ------------------------------------------------------
+      if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+        echo "Docker already installed, skipping."
+      else
+        echo "Installing Docker..."
+        curl -fsSL https://get.docker.com | sh
+      fi
+
+      # --- 2. Repository --------------------------------------------------
+      if [ -d "$APP_DIR/.git" ]; then
+        echo "Checkout already present in $APP_DIR, skipping clone."
+      else
+        echo "Cloning $REPO_URL at $REPO_REF..."
+        git clone --branch "$REPO_REF" "$REPO_URL" "$APP_DIR"
+      fi
+      cd "$APP_DIR"
+
+      # --- 3. Public address ----------------------------------------------
+      # DigitalOcean metadata service first; public lookup as a fallback.
+      PUBLIC_IP="$(curl -fsS --max-time 5 \
+        http://169.254.169.254/metadata/v1/interfaces/public/0/ipv4/address 2>/dev/null || true)"
+      if [ -z "$PUBLIC_IP" ]; then
+        echo "Metadata service gave no IP, using api.ipify.org."
+        PUBLIC_IP="$(curl -4 -fsS --max-time 10 https://api.ipify.org)"
+      fi
+      SITE_ADDRESS="${PUBLIC_IP//./-}.sslip.io"
+      echo "Public IP: $PUBLIC_IP, site address: $SITE_ADDRESS"
+
+      # --- 4. .env (only if missing, so a re-run never changes the PIN) ----
+      if [ -f .env ]; then
+        echo ".env already exists, leaving it untouched."
+      else
+        echo "Creating .env (the PIN is generated here and is not logged)."
+        umask 077
+        {
+          echo "ADMIN_PIN=$(openssl rand -base64 24)"
+          echo "SITE_ADDRESS=$SITE_ADDRESS"
+        } > .env
+        chmod 600 .env
+      fi
+
+      # SITE_ADDRESS for the ready marker comes from .env so a custom domain
+      # set by the organizer is respected on re-runs.
+      FINAL_ADDRESS="$(grep '^SITE_ADDRESS=' .env | cut -d= -f2-)"
+
+      # --- 5. Start -------------------------------------------------------
+      echo "Starting the stack..."
+      docker compose up -d --build
+
+      # --- 6. Wait for the app to be healthy (up to ~3 minutes) -----------
+      echo "Waiting for the app container to be healthy..."
+      healthy=""
+      for _ in $(seq 1 36); do
+        cid="$(docker compose ps -q app)"
+        status=""
+        if [ -n "$cid" ]; then
+          status="$(docker inspect --format '{{.State.Health.Status}}' "$cid" 2>/dev/null || true)"
+        fi
+        if [ "$status" = "healthy" ]; then
+          healthy="yes"
+          break
+        fi
+        sleep 5
+      done
+
+      if [ -z "$healthy" ]; then
+        echo "ERROR: app did not become healthy in time. Check: docker compose logs app"
+        exit 1
+      fi
+
+      # --- 7. Ready marker (URL only, never the PIN) ----------------------
+      echo "https://$FINAL_ADDRESS" > "$READY_FILE"
+      echo "=== Ready: https://$FINAL_ADDRESS ==="
+
+runcmd:
+  - /usr/local/bin/la-sala-bootstrap.sh

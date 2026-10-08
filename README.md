@@ -75,7 +75,7 @@ curl -X POST http://localhost:3000/admin/pistes -H 'x-admin-pin: choose-a-long-s
 - Not tested here: a named Cloudflare Tunnel, Tailscale Funnel, ngrok, or a Caddy/nginx reverse proxy. For nginx-style proxies, turn response buffering off for `/pistes/stream`. Check any of them with a real phone before an event: open the board, start a bout from the judge screen, and watch it appear without reloading.
 - Tunnels publish the server on the internet while they run, including `/admin`. Use a long random `ADMIN_PIN` and stop the tunnel when the event ends.
 
-**Deploying for an event:** the repository ships a `Dockerfile`, `compose.yaml` and `Caddyfile` (app + Caddy with automatic HTTPS and unbuffered SSE). [docs/deploy.md](docs/deploy.md) is the runbook for an ephemeral VPS: create it, deploy, verify from a phone, back up the SQLite file and destroy it.
+**Deploying for an event:** the repository ships a `Dockerfile`, `compose.yaml` and `Caddyfile` (app + Caddy with automatic HTTPS and unbuffered SSE). [docs/deploy.md](docs/deploy.md) is the runbook for an ephemeral VPS (with a one-paste cloud-init fast path for DigitalOcean): create it, deploy, verify from a phone, back up the SQLite file and destroy it.
 
 Other commands: `npm run icons -w packages/web` regenerates the PNG icons from `packages/web/public/icon.svg` (the generated PNGs are committed, builds do not need the tool). `npm run check -w packages/web` runs `svelte-check`.
 
