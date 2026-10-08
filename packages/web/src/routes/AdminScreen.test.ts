@@ -48,6 +48,17 @@ describe('AdminScreen', () => {
     expect(screen.queryByDisplayValue(ADMIN_PIN)).toBeNull();
   });
 
+  it('links to the public board and, per piste, to its judge screen and spectator detail', async () => {
+    render(App, { env: createMemoryEnv({ fetch: adminServer().fetch }) });
+    await enterPin(ADMIN_PIN);
+    await screen.findByText('Pista p1');
+    expect(screen.getByRole('link', { name: 'Ver el marcador público' }).getAttribute('href')).toBe('#/');
+    expect(screen.getByRole('link', { name: 'Arbitrar la pista p1' }).getAttribute('href')).toBe('#/judge/p1');
+    expect(screen.getByRole('link', { name: 'Ver la pista p1 como espectador' }).getAttribute('href')).toBe('#/piste/p1');
+    // PINs never travel in a URL.
+    for (const link of screen.getAllByRole('link')) expect(link.getAttribute('href')).not.toContain('1111');
+  });
+
   it('stays on PIN entry with an error for a wrong PIN', async () => {
     render(App, { env: createMemoryEnv({ fetch: adminServer().fetch }) });
     await enterPin('0000');

@@ -67,11 +67,18 @@
   {onnewbout}
 />
 
-<p class="leave"><a href={hrefTo({ name: 'judge-list' })}>{t('board.leave')}</a></p>
+<p class="leave">
+  <a href={hrefTo({ name: 'judge-list' })}>{t('board.leave')}</a>
+  <a href={hrefTo({ name: 'board' })}>{t('nav.board')}</a>
+</p>
 
 <style>
   .leave {
     text-align: center;
     margin-top: 1.5rem;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
   }
 </style>

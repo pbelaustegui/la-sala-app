@@ -150,6 +150,15 @@ describe('scoreboard', () => {
     expect(document.querySelector('.half.left .chip')?.textContent).toBe('Roja ×1');
   });
 
+  it('links to the public board in the same tab, next to the leave link', async () => {
+    const h = harness();
+    await open(h);
+    const board = screen.getByRole('link', { name: 'Ver el marcador público' });
+    expect(board.getAttribute('href')).toBe('#/');
+    expect(board.getAttribute('target')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Volver a las pistas' }).getAttribute('href')).toBe('#/judge');
+  });
+
   it('keeps scoring offline, shows the pending count and flushes when the connection returns', async () => {
     const h = harness();
     await open(h);

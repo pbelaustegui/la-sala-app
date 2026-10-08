@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { AdminPiste } from '../core/api-client';
   import { t } from '../i18n/t';
+  import { hrefTo } from '../router';
 
   let {
     pistes,
@@ -56,11 +57,14 @@
         <button class="btn" type="button" onclick={() => oncopypin(piste.pin)}>
           {t('admin.copy.pin', { piste: piste.id })}
         </button>
+        <a href={hrefTo({ name: 'judge', pisteId: piste.id })}>{t('admin.pistes.judge', { piste: piste.id })}</a>
+        <a href={hrefTo({ name: 'piste', pisteId: piste.id })}>{t('admin.pistes.watch', { piste: piste.id })}</a>
       </li>
     {/each}
   </ul>
 {/if}
 
+<p><a href={hrefTo({ name: 'board' })}>{t('nav.board')}</a></p>
 <p><button class="btn" type="button" onclick={oncopylink}>{t('admin.copy.link')}</button></p>
 <p role="status" class:error={copyResult === 'failed'}>
   {#if copyResult === 'done'}{t('admin.copy.done')}{:else if copyResult === 'failed'}{t('admin.copy.failed')}{/if}
@@ -101,7 +105,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
   }
   .pin {
     font-size: 1.25rem;
