@@ -8,6 +8,50 @@ Read this first:
 - **`/admin` is public on the internet** while the VPS runs. Use a long random `ADMIN_PIN` (16+ random characters). It is never rate-limited.
 - **Destroy the VPS when the event ends.** Hourly billing only helps if you actually delete the server.
 
+## Fast path (cloud-init)
+
+On DigitalOcean you can skip sections 1 to 6: one paste of [`deploy/cloud-init.yaml`](../deploy/cloud-init.yaml) installs Docker, clones this public repository into `/opt/la-sala`, writes `.env` and starts the stack.
+
+1. Create a Droplet with Ubuntu 24.04, at least 1 GB RAM (2 GB preferred, see troubleshooting) and your SSH key. In "Advanced Options", tick "Add Initialization scripts" and paste the whole file into "User data". To deploy a branch or tag other than `main`, change `REPO_REF` in the script first.
+2. Wait for the setup to finish (a few minutes, the image build is the slow part):
+
+   ```sh
+   ssh root@<droplet-ip> cloud-init status --wait
+   ```
+
+   If it ends in `error`, read `/var/log/la-sala-bootstrap.log` on the server.
+3. Read the admin PIN:
+
+   ```sh
+   ssh root@<droplet-ip> "grep ADMIN_PIN /opt/la-sala/.env"
+   ```
+
+4. Verify (the host name is the IP with dashes plus `.sslip.io`; `/root/la-sala-ready` on the server holds the exact URL):
+
+   ```sh
+   curl -i https://<ip-with-dashes>.sslip.io/health
+   ```
+
+5. Continue at "8. Create the pistes". Sections 9 (backup) and 10 (destroy) apply to both paths. For the phone checks in section 7, use the same HTTPS address.
+
+Why the PIN is generated on the server: user data is visible in the provider panel and any process on the server can read it from the metadata service, so a secret placed there is not secret. The script creates `.env` (mode 600) only if it does not exist, so a re-run never changes the PIN.
+
+For a custom domain, point an `A` record to the Droplet, edit `SITE_ADDRESS` in `/opt/la-sala/.env` and run `docker compose up -d` in `/opt/la-sala`.
+
+### Not verified
+
+`cloud-init` and Docker cannot run on the development machine. The file was only checked statically (YAML parse, `cloud-init schema`, `bash -n` on the script). The first real run happens on a Droplet. The DigitalOcean metadata path (`/metadata/v1/interfaces/public/0/ipv4/address`) comes from the provider documentation and was not tested here; the script falls back to `https://api.ipify.org` if it gives nothing.
+
+### Troubleshooting
+
+- **Certificate not issued yet:** wait a minute or two, then check `docker compose logs caddy` in `/opt/la-sala`. Ports 80 and 443 must be reachable.
+- **`cloud-init status` shows `error`:** read `/var/log/la-sala-bootstrap.log`. After fixing the cause, re-run `/usr/local/bin/la-sala-bootstrap.sh` (it skips what is already done).
+- **512 MB Droplet runs out of memory during the build:** use at least 1 GB, preferably 2 GB.
+
+## Manual path
+
+Sections 1 to 6 are the manual alternative to the fast path. Use them on other providers or if you prefer to see each step.
+
 ## 1. Create the VPS
 
 Use any provider with hourly billing (Hetzner, DigitalOcean, Vultr, ...). A small shared-CPU instance with Ubuntu 24.04 is enough. Allow inbound TCP 22, 80 and 443 only. Provider prices, regions and plans change: check them yourself before you pick one.
