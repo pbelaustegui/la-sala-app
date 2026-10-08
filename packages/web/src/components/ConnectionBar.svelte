@@ -34,6 +34,23 @@
     return () => clearTimeout(timer);
   });
 
+  // Same idea for the pending count: right after a point it is 1 for a moment. While offline or stuck
+  // the count matters, so it shows at once there.
+  let pendingIsLasting = $state(false);
+
+  $effect(() => {
+    if (connection.pending === 0) {
+      pendingIsLasting = false;
+      return;
+    }
+    if (connection.status === 'offline' || connection.status === 'needs-attention') {
+      pendingIsLasting = true;
+      return;
+    }
+    const timer = setTimeout(() => (pendingIsLasting = true), SYNC_LABEL_DELAY_MS);
+    return () => clearTimeout(timer);
+  });
+
   const shownStatus = $derived(connection.status === 'syncing' && !syncIsSlow ? 'online' : connection.status);
 
   const statusKey = $derived(
@@ -57,7 +74,7 @@
   <span class="dot" aria-hidden="true"></span>
   <span class="status" role="status">{t(statusKey)}</span>
   <span class="pending">
-    {connection.pending > 0 ? t('conn.pending', { count: connection.pending }) : t('conn.synced')}
+    {connection.pending > 0 && pendingIsLasting ?t('conn.pending', { count: connection.pending }) : t('conn.synced')}
   </span>
 </div>
 

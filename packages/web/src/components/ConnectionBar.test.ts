@@ -35,6 +35,28 @@ describe('ConnectionBar', () => {
     expect(screen.getByRole('status').textContent).toBe('Sincronizando…');
   });
 
+  it('does not flash the pending count while a sync is brief', async () => {
+    const view = render(ConnectionBar, { ...props, connection: state('online', 1) });
+    await vi.advanceTimersByTimeAsync(100);
+    expect(screen.queryByText('1 sin sincronizar')).toBeNull();
+    expect(screen.getByText('Todo sincronizado')).toBeTruthy();
+
+    await view.rerender({ ...props, connection: state('online', 0) });
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(screen.queryByText('1 sin sincronizar')).toBeNull();
+  });
+
+  it('shows the pending count once it lingers', async () => {
+    render(ConnectionBar, { ...props, connection: state('syncing', 2) });
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(screen.getByText('2 sin sincronizar')).toBeTruthy();
+  });
+
+  it('shows the pending count at once when offline', () => {
+    render(ConnectionBar, { ...props, connection: state('offline', 3) });
+    expect(screen.getByText('3 sin sincronizar')).toBeTruthy();
+  });
+
   it('shows the other states immediately', () => {
     render(ConnectionBar, { ...props, connection: state('offline') });
     expect(screen.getByRole('status').textContent).toBe('Sin conexión');
