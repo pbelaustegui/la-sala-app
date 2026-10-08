@@ -3,6 +3,7 @@
   import AdminPistes from '../components/AdminPistes.svelte';
   import { AdminSessionController } from '../controllers/admin-session';
   import { spectatorLink } from '../core/spectator-link';
+  import { judgeShareMessage } from '../core/judge-share';
   import { getServices } from '../env';
   import { t } from '../i18n/t';
 
@@ -40,6 +41,7 @@
     {copyResult}
     oncopypin={(value) => void copy(value)}
     oncopylink={() => void copy(spectatorLink(env.origin))}
+    oncopyjudges={() => void copy(judgeShareMessage(env.origin, $admin.pistes))}
     onrequest={(count) => admin.requestCreate(count)}
     onconfirm={() => void admin.confirmCreate()}
     oncancel={() => admin.cancelCreate()}

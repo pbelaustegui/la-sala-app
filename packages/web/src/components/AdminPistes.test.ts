@@ -11,6 +11,7 @@ const base = {
   copyResult: null,
   oncopypin: () => undefined,
   oncopylink: () => undefined,
+  oncopyjudges: () => undefined,
   onrequest: () => undefined,
   onconfirm: () => undefined,
   oncancel: () => undefined,
@@ -45,5 +46,12 @@ describe('AdminPistes', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Copiar enlace de espectador' }));
     expect(oncopypin).toHaveBeenCalledWith('1111');
     expect(oncopylink).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports the judges share request', async () => {
+    const oncopyjudges = vi.fn();
+    render(AdminPistes, { ...base, oncopyjudges });
+    await fireEvent.click(screen.getByRole('button', { name: 'Copiar enlace y PINs para jueces' }));
+    expect(oncopyjudges).toHaveBeenCalledTimes(1);
   });
 });
