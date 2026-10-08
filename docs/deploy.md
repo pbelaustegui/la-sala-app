@@ -12,7 +12,7 @@ Read this first:
 
 On DigitalOcean you can skip sections 1 to 6: one paste of [`deploy/cloud-init.yaml`](../deploy/cloud-init.yaml) installs Docker, clones this public repository into `/opt/la-sala`, writes `.env` and starts the stack.
 
-1. Create a Droplet with Ubuntu 24.04, at least 1 GB RAM (2 GB preferred, see troubleshooting) and your SSH key. In "Advanced Options", tick "Add Initialization scripts" and paste the whole file into "User data". To deploy a branch or tag other than `main`, change `REPO_REF` in the script first.
+1. Create a Droplet with Ubuntu 24.04, at least 1 GB RAM (2 GB preferred, see troubleshooting) and your SSH key. Before you click create, open the advanced section above "Finalize Details" (called "Advanced Options" with an "Add Initialization scripts" box, or "Additional Options" with "Startup scripts", depending on the panel version) and paste the whole file, starting with the `#cloud-config` line, into the text box. User data can only be set while creating the Droplet: if you create it with the field empty you must destroy it and start again. To deploy a branch or tag other than `main`, change `REPO_REF` in the script first.
 2. Wait for the setup to finish (a few minutes, the image build is the slow part):
 
    ```sh
@@ -38,12 +38,15 @@ Why the PIN is generated on the server: user data is visible in the provider pan
 
 For a custom domain, point an `A` record to the Droplet, edit `SITE_ADDRESS` in `/opt/la-sala/.env` and run `docker compose up -d` in `/opt/la-sala`.
 
-### Not verified
+### Verification status
 
-`cloud-init` and Docker cannot run on the development machine. The file was only checked statically (YAML parse, `cloud-init schema`, `bash -n` on the script). The first real run happens on a Droplet. The DigitalOcean metadata path (`/metadata/v1/interfaces/public/0/ipv4/address`) comes from the provider documentation and was not tested here; the script falls back to `https://api.ipify.org` if it gives nothing.
+Verified on a real DigitalOcean Droplet (Ubuntu 24.04, 2 GB RAM, nyc1): `cloud-init status --wait` ended in `done`, `/root/la-sala-ready` and the generated PIN were present, and `https://<ip-with-dashes>.sslip.io/health` answered over a valid certificate. The file was also checked statically (YAML parse, `cloud-init schema`, `bash -n` on the script).
+
+Not verified: whether the public IP came from the DigitalOcean metadata path (`/metadata/v1/interfaces/public/0/ipv4/address`) or from the `https://api.ipify.org` fallback (the log does not say which); other providers; and Droplets smaller than 2 GB.
 
 ### Troubleshooting
 
+- **`.env` does not exist, `/var/log/la-sala-bootstrap.log` is missing and `cloud-init status` says `done`:** the script never ran because the User data field was empty at creation. Check with `ls /usr/local/bin/la-sala-bootstrap.sh` (missing) and `head -n 3 /var/lib/cloud/instance/user-data.txt` (empty). `DataSourceConfigDrive` in `cloud-init status --long` is normal on DigitalOcean. Destroy the Droplet and create a new one with the field filled in.
 - **Certificate not issued yet:** wait a minute or two, then check `docker compose logs caddy` in `/opt/la-sala`. Ports 80 and 443 must be reachable.
 - **`cloud-init status` shows `error`:** read `/var/log/la-sala-bootstrap.log`. After fixing the cause, re-run `/usr/local/bin/la-sala-bootstrap.sh` (it skips what is already done).
 - **512 MB Droplet runs out of memory during the build:** use at least 1 GB, preferably 2 GB.
