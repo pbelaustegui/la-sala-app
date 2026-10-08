@@ -202,3 +202,52 @@ describe('judge entry', () => {
     expect(screen.getByRole('link', { name: 'La Sala' }).getAttribute('href')).toBe('#/judge');
   });
 });
+
+describe('link back to the admin screen', () => {
+  const ADMIN_KEY = 'la-sala:v1:admin-pin';
+  const adminLink = () => screen.queryByRole('link', { name: 'Soy organizador' });
+
+  it('is hidden from the board and the judge list while no admin PIN is stored', async () => {
+    const { env } = setup();
+    window.location.hash = '#/';
+    render(App, { env });
+    expect(adminLink()).toBeNull();
+    window.location.hash = '#/judge';
+    await screen.findByRole('heading', { name: 'Pistas' });
+    expect(adminLink()).toBeNull();
+  });
+
+  it('shows on the board and the judge list once the PIN is stored, without a reload', async () => {
+    const { env } = setup();
+    window.location.hash = '#/admin';
+    render(App, { env });
+    expect(adminLink()).toBeNull();
+    env.sessionStorage.set(ADMIN_KEY, 'a-long-secret');
+    window.location.hash = '#/';
+    expect((await screen.findByRole('link', { name: 'Soy organizador' })).getAttribute('href')).toBe('#/admin');
+    window.location.hash = '#/judge';
+    expect((await screen.findByRole('link', { name: 'Soy organizador' })).getAttribute('href')).toBe('#/admin');
+    expect(document.body.innerHTML).not.toContain('a-long-secret');
+  });
+
+  it('is not shown on the admin route itself', async () => {
+    const { env } = setup();
+    env.sessionStorage.set(ADMIN_KEY, 'a-long-secret');
+    window.location.hash = '#/admin';
+    render(App, { env });
+    await screen.findByRole('heading', { name: 'Organizador' });
+    expect(adminLink()).toBeNull();
+  });
+
+  it('disappears after the PIN is forgotten', async () => {
+    const { env } = setup();
+    env.sessionStorage.set(ADMIN_KEY, 'a-long-secret');
+    window.location.hash = '#/judge';
+    render(App, { env });
+    await screen.findByRole('link', { name: 'Soy organizador' });
+    env.sessionStorage.remove(ADMIN_KEY);
+    window.location.hash = '#/';
+    await screen.findByRole('link', { name: 'Soy juez' });
+    expect(adminLink()).toBeNull();
+  });
+});

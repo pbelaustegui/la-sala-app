@@ -52,6 +52,7 @@ export const es = {
   'spectator.stale': 'Sin conexión, mostrando el último estado',
   'spectator.staleCard': 'Último estado conocido',
   'spectator.judgeLink': 'Soy juez',
+  'nav.admin': 'Soy organizador',
   'spectator.back': 'Volver al tablero',
   'spectator.missing': 'Esa pista no existe',
   'spectator.phase.idle': 'Sin combate',
