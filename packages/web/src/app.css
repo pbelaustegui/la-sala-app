@@ -4,6 +4,8 @@
   --fg: #f4f6ff;
   --muted: #aab3d1;
   --accent: #ffd23f;
+  --side-left: #c62828;
+  --side-right: #1565c0;
   --tap: 48px;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }

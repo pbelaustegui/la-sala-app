@@ -122,6 +122,17 @@ describe('public board', () => {
     expect(within(screen.getByRole('link', { name: /Pista 2/ })).getByText('Sin combate')).toBeTruthy();
   });
 
+  it('tags each fencer with the side the judge sees: left first, right second', async () => {
+    const h = harness();
+    render(App, { env: h.env });
+    await h.live('1');
+    await h.snapshotOf('1', snapshot(T0, running));
+
+    const card = screen.getByRole('link', { name: /Pista 1/ });
+    expect(within(card).getByText('Ana').closest('.fencer')?.classList.contains('left')).toBe(true);
+    expect(within(card).getByText('Bea').closest('.fencer')?.classList.contains('right')).toBe(true);
+  });
+
   it('updates a card when a new snapshot arrives', async () => {
     const h = harness();
     render(App, { env: h.env });
