@@ -11,6 +11,7 @@
     copyResult,
     oncopypin,
     oncopylink,
+    oncopyjudges,
     onrequest,
     onconfirm,
     oncancel,
@@ -23,6 +24,7 @@
     copyResult: 'done' | 'failed' | null;
     oncopypin: (pin: string) => void;
     oncopylink: () => void;
+    oncopyjudges: () => void;
     onrequest: (count: number) => void;
     onconfirm: () => void;
     oncancel: () => void;
@@ -66,6 +68,9 @@
 
 <p><a href={hrefTo({ name: 'board' })}>{t('nav.board')}</a></p>
 <p><button class="btn" type="button" onclick={oncopylink}>{t('admin.copy.link')}</button></p>
+{#if pistes.length > 0}
+  <p><button class="btn" type="button" onclick={oncopyjudges}>{t('admin.copy.judges')}</button></p>
+{/if}
 <p role="status" class:error={copyResult === 'failed'}>
   {#if copyResult === 'done'}{t('admin.copy.done')}{:else if copyResult === 'failed'}{t('admin.copy.failed')}{/if}
 </p>

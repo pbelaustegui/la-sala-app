@@ -164,6 +164,16 @@ describe('AdminScreen', () => {
       expect((await screen.findByRole('status')).textContent).toContain('Copiado');
     });
 
+    it('copies the judge link with every piste and its PIN', async () => {
+      const clipboard = new FakeClipboard();
+      await openList(clipboard);
+      await fireEvent.click(screen.getByRole('button', { name: 'Copiar enlace y PINs para jueces' }));
+      expect(clipboard.writes).toHaveLength(1);
+      expect(clipboard.writes[0]).toContain('https://sala.example/#/judge');
+      expect(clipboard.writes[0]).toContain('Pista p1: PIN 1111');
+      expect((await screen.findByRole('status')).textContent).toContain('Copiado');
+    });
+
     it('says so when the clipboard is unavailable', async () => {
       const clipboard = new FakeClipboard();
       clipboard.failing = true;
