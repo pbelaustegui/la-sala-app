@@ -1,7 +1,7 @@
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
-import { PWA_OPTIONS } from './pwa.config';
+import { PWA_OPTIONS } from './pwa.config.ts';
 
 const SERVER = 'http://localhost:3000';
 
