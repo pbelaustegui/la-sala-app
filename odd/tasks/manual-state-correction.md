@@ -24,7 +24,7 @@ The bout is an event-sourced log replayed by the domain (`packages/domain/src/re
 - [x] B1 Web: `ScoreboardController.setState` via EventFactory, undo of a correction, tests
 - [x] B2 Web: correction sheet UI (reset clock, reset scores, set values, reopen), i18n keys, component/route tests
 - [x] B3a README feature mention
-- [ ] B3b Manual check by the user on a phone
+- [x] B3b Manual check by the user on a phone
 
 ## Out of scope
 Audit marker or reason shown to spectators, editing cards/priority directly, correcting archived bouts.
@@ -39,7 +39,7 @@ Domain and server behavior: RED first with deterministic tests. UI: component/ro
 Delegated direct, one writer per work unit (A then B), sequential. Trigger: writer rule (2+ non-trivial files per unit).
 
 ## Progress
-Branch `feat/manual-state-correction`. A1 and A2 done (uncommitted, parent commits). Domain RED observed (42 failing) before implementing; server tests were added together with the zod variant (no separate RED). Verified: domain 134 tests + typecheck, server 171 tests + typecheck, web vitest + `npm run check`.
+Closed: PR #41 merged on main (`b81dd76`, merge of `a324afb`); branch deleted. A1 and A2 done (uncommitted, parent commits). Domain RED observed (42 failing) before implementing; server tests were added together with the zod variant (no separate RED). Verified: domain 134 tests + typecheck, server 171 tests + typecheck, web vitest + `npm run check`. B3b: the user tested the correction sheet on a real phone (before the PR, with the PR #41 fix in place) and reported it working.
 
 ## Decisions made by the writer
 - `state-set` fields are flat on the event (`score?`, `remainingMs?`, `period?`), implemented in `packages/domain/src/state-set.ts`; `apply` bypasses the `bout-finished` guard only for this event.
