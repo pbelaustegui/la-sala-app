@@ -22,6 +22,7 @@ export const startBoutBody = z.object({
 });
 
 const side = z.enum(['left', 'right']);
+const count = z.number().int().nonnegative();
 const common = { id: z.string().min(1).max(100), at: z.number().finite() };
 
 const eventSchema = z.discriminatedUnion('type', [
@@ -33,6 +34,15 @@ const eventSchema = z.discriminatedUnion('type', [
   z.object({ ...common, type: z.literal('priority-drawn'), side }),
   z.object({ ...common, type: z.literal('card-given'), side, card: z.enum(['yellow', 'red', 'black']) }),
   z.object({ ...common, type: z.literal('undo') }),
+  // Ranges that depend on the rules (period count, period duration) and the empty patch are
+  // left to the domain, which answers 422.
+  z.object({
+    ...common,
+    type: z.literal('state-set'),
+    score: z.object({ left: count, right: count }).optional(),
+    remainingMs: count.optional(),
+    period: positiveInt.optional(),
+  }),
 ]);
 
 export const MAX_EVENTS_PER_BATCH = 500;

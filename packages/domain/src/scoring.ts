@@ -6,20 +6,26 @@ export function opponentOf(side: Side): Side {
   return side === 'left' ? 'right' : 'left';
 }
 
+/** Reaching the limit while strictly ahead wins; a tie at or above it keeps the bout going. */
+export function finishedByTouchLimit(state: BoutState): BoutState | null {
+  const { left, right } = state.score;
+  if (Math.max(left, right) < state.rules.touchLimit || left === right) return null;
+  const winner: Side = left > right ? 'left' : 'right';
+  return { ...state, phase: { kind: 'finished', winner, reason: 'touch-limit' } };
+}
+
 /**
- * Decides what a score change leads to. Reaching the limit while strictly ahead wins;
- * a tie at or above the limit (only reachable by double touches) keeps the bout going.
- * Otherwise the sabre mid-bout break starts the first time a fencer reaches its threshold.
+ * Decides what a score change leads to. Reaching the limit while strictly ahead wins
+ * (see `finishedByTouchLimit`). Otherwise the sabre mid-bout break starts the first time
+ * a fencer reaches its threshold.
  */
 function afterScoreChange(state: BoutState, at: number): BoutState {
   const { left, right } = state.score;
-  const { touchLimit, midBoutBreakAt, breakDurationMs } = state.rules;
+  const { midBoutBreakAt, breakDurationMs } = state.rules;
   const best = Math.max(left, right);
 
-  if (best >= touchLimit && left !== right) {
-    const winner: Side = left > right ? 'left' : 'right';
-    return { ...state, phase: { kind: 'finished', winner, reason: 'touch-limit' } };
-  }
+  const finished = finishedByTouchLimit(state);
+  if (finished) return finished;
 
   if (
     state.phase.kind === 'fencing' &&

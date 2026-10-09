@@ -329,6 +329,125 @@ describe('judge endpoints', () => {
       expect(await res.json()).toEqual({ index: 0, error: { type: 'bout-finished' } });
     });
 
+    describe('state-set corrections', () => {
+      const finishBout = async () => {
+        await send(app, 'POST', '/pistes/1/bout', { ...startBody, options: { touchLimit: 1 } }, judge());
+        await send(
+          app,
+          'POST',
+          '/pistes/1/events',
+          { events: [ev('a', 'clock-started', T0), ev('b', 'touch-scored', T0 + 1, { side: 'left' })] },
+          judge(),
+        );
+      };
+
+      it('accepts a valid correction and the snapshot reflects it', async () => {
+        const res = await send(
+          app,
+          'POST',
+          '/pistes/1/events',
+          {
+            events: [
+              ev('a', 'clock-started', T0),
+              ev('b', 'touch-scored', T0 + 1000, { side: 'left' }),
+              ev('c', 'state-set', T0 + 2000, { score: { left: 4, right: 2 }, remainingMs: 120_000, period: 2 }),
+            ],
+          },
+          judge(),
+        );
+        expect(res.status).toBe(200);
+        const bout = ((await res.json()) as any).bout;
+        expect(bout.score).toEqual({ left: 4, right: 2 });
+        expect(bout.clock).toEqual({ remainingMs: 120_000, runningSince: null });
+        expect(bout.phase).toEqual({ kind: 'fencing', period: 2 });
+        const state = (await (await app.request('/pistes/1/state')).json()) as any;
+        expect(state.bout.score).toEqual({ left: 4, right: 2 });
+      });
+
+      it('rejects an invalid correction with 422 {index,error} and persists nothing', async () => {
+        const res = await send(
+          app,
+          'POST',
+          '/pistes/1/events',
+          { events: [ev('a', 'clock-started', T0), ev('b', 'state-set', T0 + 1, { period: 4 })] },
+          judge(),
+        );
+        expect(res.status).toBe(422);
+        expect(await res.json()).toEqual({ index: 1, error: { type: 'state-set-invalid-period', periods: 3 } });
+        const state = (await (await app.request('/pistes/1/state')).json()) as any;
+        expect(state.bout.phase).toEqual({ kind: 'scheduled' });
+      });
+
+      it('rejects an empty correction with 422', async () => {
+        const res = await send(app, 'POST', '/pistes/1/events', { events: [ev('a', 'state-set', T0)] }, judge());
+        expect(res.status).toBe(422);
+        expect(await res.json()).toEqual({ index: 0, error: { type: 'state-set-empty' } });
+      });
+
+      it('accepts a correction after the bout finished and reopens it', async () => {
+        await finishBout();
+        const res = await send(
+          app,
+          'POST',
+          '/pistes/1/events',
+          { events: [ev('c', 'state-set', T0 + 2, { score: { left: 0, right: 0 } })] },
+          judge(),
+        );
+        expect(res.status).toBe(200);
+        const bout = ((await res.json()) as any).bout;
+        expect(bout.phase.kind).toBe('fencing');
+        expect(bout.score).toEqual({ left: 0, right: 0 });
+      });
+
+      it('still rejects other events after the correction finished the bout again', async () => {
+        await finishBout();
+        await send(app, 'POST', '/pistes/1/events', { events: [ev('c', 'state-set', T0 + 2, { score: { left: 0, right: 0 } })] }, judge());
+        await send(app, 'POST', '/pistes/1/events', { events: [ev('d', 'state-set', T0 + 3, { score: { left: 1, right: 0 } })] }, judge());
+        const res = await send(app, 'POST', '/pistes/1/events', { events: [ev('e', 'clock-stopped', T0 + 4)] }, judge());
+        expect(await res.json()).toEqual({ index: 0, error: { type: 'bout-finished' } });
+      });
+
+      it('undoes a correction of a finished bout', async () => {
+        await finishBout();
+        const res = await send(
+          app,
+          'POST',
+          '/pistes/1/events',
+          {
+            events: [
+              ev('c', 'state-set', T0 + 2, { score: { left: 0, right: 0 } }),
+              ev('d', 'undo', T0 + 3),
+            ],
+          },
+          judge(),
+        );
+        expect(res.status).toBe(200);
+        expect(((await res.json()) as any).bout.phase.kind).toBe('finished');
+      });
+
+      it('skips a resubmitted id instead of applying the correction twice', async () => {
+        const correction = ev('c', 'state-set', T0 + 1, { score: { left: 2, right: 2 } });
+        await send(app, 'POST', '/pistes/1/events', { events: [ev('a', 'clock-started', T0), correction] }, judge());
+        await send(app, 'POST', '/pistes/1/events', { events: [ev('d', 'touch-scored', T0 + 2, { side: 'left' })] }, judge());
+        const res = await send(app, 'POST', '/pistes/1/events', { events: [correction] }, judge());
+        expect(res.status).toBe(200);
+        expect(((await res.json()) as any).bout.score).toEqual({ left: 3, right: 2 });
+      });
+
+      it.each([
+        [{ score: { left: -1, right: 0 } }],
+        [{ score: { left: 1.5, right: 0 } }],
+        [{ score: { left: 1 } }],
+        [{ remainingMs: -1 }],
+        [{ remainingMs: 1.5 }],
+        [{ period: 0 }],
+        [{ period: 'two' }],
+      ])('rejects the malformed correction %j with 400', async (patch) => {
+        const res = await send(app, 'POST', '/pistes/1/events', { events: [ev('a', 'state-set', T0, patch)] }, judge());
+        expect(res.status).toBe(400);
+      });
+    });
+
     it.each([
       [{}],
       [{ events: 'x' }],
