@@ -251,3 +251,23 @@ describe('link back to the admin screen', () => {
     expect(adminLink()).toBeNull();
   });
 });
+
+describe('shell tagline', () => {
+  const tagline = () => screen.queryByText('Mesa de juez de esgrima');
+
+  it('shows on the judge list', async () => {
+    const { env } = setup();
+    window.location.hash = '#/judge';
+    render(App, { env });
+    await screen.findByRole('heading', { name: 'Pistas' });
+    expect(tagline()).toBeTruthy();
+  });
+
+  it('is hidden on the admin route', async () => {
+    const { env } = setup();
+    window.location.hash = '#/admin';
+    render(App, { env });
+    await screen.findByRole('heading', { name: 'Organizador' });
+    expect(tagline()).toBeNull();
+  });
+});
