@@ -82,6 +82,51 @@ describe('scoreboardView', () => {
     expect(scoreboardView(over.state, T0 + 2).correction).toMatchObject({ period: 3, inExtraPeriod: false });
   });
 
+  it('a scheduled bout prefills the correction with a full period', () => {
+    // The clock has never started, so it reads 0: leftover time; the sheet must still offer the
+    // full period, or a judge correcting before the first touch would get an empty clock.
+    const view = scoreboardView(stateAfter('foil', []), T0);
+    expect(view.phase).toBe('scheduled');
+    expect(view.correction).toEqual({
+      period: 1,
+      periods: 3,
+      remainingMs: 180_000,
+      periodDurationMs: 180_000,
+      extraPeriodDurationMs: 60_000,
+      inExtraPeriod: false,
+    });
+  });
+
+  it('an extra period keeps the last regular period and flags itself', () => {
+    const tied = settle(
+      stateAfter('foil', [
+        { type: 'clock-started', at: T0 },
+        { type: 'touch-scored', side: 'left', at: T0 + 10_000 },
+        { type: 'touch-scored', side: 'right', at: T0 + 20_000 },
+        { type: 'clock-started', at: T0 + 30_000 },
+        { type: 'clock-started', at: T0 + 260_000 },
+        { type: 'clock-started', at: T0 + 500_000 },
+      ]),
+      T0 + 680_000,
+    );
+    const extra = replay(tied, [{ type: 'priority-drawn', side: 'right', at: T0 + 700_000 }]);
+    if (!extra.ok) throw new Error('fixture is invalid');
+    const view = scoreboardView(extra.state, T0 + 701_000);
+    expect(view.phase).toBe('extra-period');
+    // The extra period is not a fourth period in the form, and `apply.ts` hands the bout a fresh
+    // stopped one-minute clock when the draw moves it there, so the sheet prefills 1:00 (not the
+    // 0:00 of a break or of the priority draw itself). `inExtraPeriod` is what tells it that a
+    // clock reset means that same minute and not the regular 3:00.
+    expect(view.correction).toEqual({
+      period: 3,
+      periods: 3,
+      remainingMs: 60_000,
+      periodDurationMs: 180_000,
+      extraPeriodDurationMs: 60_000,
+      inExtraPeriod: true,
+    });
+  });
+
   it('double touch is only offered for epee', () => {
     const running: BoutEvent[] = [{ type: 'clock-started', at: T0 }];
     const epee = scoreboardView(stateAfter('epee', running), T0);
