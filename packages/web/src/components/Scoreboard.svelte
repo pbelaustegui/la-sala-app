@@ -262,6 +262,15 @@
     grid-auto-columns: 1fr;
     gap: 0.5rem;
   }
+  /*
+   * Three labels in equal columns on a narrow phone: at 360px the shell leaves 328px, so each
+   * column is 104px, and the global 1rem side padding plus the 2px border leaves a 68px text box
+   * — "Doble toque" (11 characters) does not fit and wraps while its neighbours stay on one line.
+   * Only the chrome of this row shrinks; the touch target keeps its height.
+   */
+  .row > .btn {
+    padding: 0.5rem 0.5rem;
+  }
   .correct {
     margin-top: 1rem;
   }

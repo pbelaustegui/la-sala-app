@@ -17,7 +17,7 @@ Audit at ~360px found lone or inline buttons, bare links, a non-wrapping shell h
 - [x] T5 app.css input selector covers textarea and other text-like types
 
 ## Out of scope
-Scoreboard `.row` button padding (audit item 9): needs a real render to judge, skipped.
+Scoreboard `.row` button padding (audit item 9): needed a real render to judge, so it was skipped here. Addressed later on its own branch `style/scoreboard-row-padding`: the three-button row keeps the global `.btn` height but halves its side padding (`.row > .btn { padding: 0.5rem 0.5rem; }`), because at 360px the global 1rem side padding plus the 2px border left a ~68px text box and "Doble toque" wrapped while its neighbours did not. The user judged the result on a real render.
 
 ## Acceptance
 - `npx vitest run` in packages/web passes (327 tests), no test edits needed beyond selectors that legitimately changed.
