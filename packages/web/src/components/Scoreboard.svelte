@@ -269,7 +269,7 @@
    * Only the chrome of this row shrinks; the touch target keeps its height.
    */
   .row > .btn {
-    padding: 0.5rem 0.5rem;
+    padding-inline: 0.5rem;
   }
   .correct {
     margin-top: 1rem;
