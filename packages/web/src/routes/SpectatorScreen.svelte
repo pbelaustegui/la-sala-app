@@ -103,9 +103,9 @@
   {/if}
 
   <footer class="foot">
-    <a class="judge" href={hrefTo({ name: 'judge-list' })}>{t('spectator.judgeLink')}</a>
+    <a class="btn judge" href={hrefTo({ name: 'judge-list' })}>{t('spectator.judgeLink')}</a>
     {#if showAdminLink}
-      <a class="judge" href={hrefTo({ name: 'admin' })}>{t('nav.admin')}</a>
+      <a class="btn judge" href={hrefTo({ name: 'admin' })}>{t('nav.admin')}</a>
     {/if}
   </footer>
 </div>
@@ -113,7 +113,7 @@
 <style>
   .spectator {
     min-height: 100vh;
-    padding: 0.75rem 1rem 1rem;
+    padding: 0.75rem max(1rem, env(safe-area-inset-right)) 1rem max(1rem, env(safe-area-inset-left));
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -135,8 +135,11 @@
   .back {
     display: inline-flex;
     align-items: center;
-    padding: 0 0.5rem;
+    padding: 0.5rem 1rem;
     font-weight: 700;
+    border: 2px solid var(--muted);
+    border-radius: 0.75rem;
+    text-decoration: none;
   }
   .banner {
     margin: 0;
@@ -162,13 +165,12 @@
   }
   .foot {
     margin-top: auto;
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
   }
   .judge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 1rem;
     color: var(--muted);
     font-size: 0.9rem;
   }

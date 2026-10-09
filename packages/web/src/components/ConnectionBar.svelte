@@ -20,6 +20,39 @@
     onreauth: () => void;
   } = $props();
 
+  // Every scored point starts a sync that usually ends within milliseconds. Showing "Syncing…" for it
+  // would just flash, so the label only appears once a sync lasts long enough to be noticed.
+  const SYNC_LABEL_DELAY_MS = 600;
+  let syncIsSlow = $state(false);
+
+  $effect(() => {
+    if (connection.status !== 'syncing') {
+      syncIsSlow = false;
+      return;
+    }
+    const timer = setTimeout(() => (syncIsSlow = true), SYNC_LABEL_DELAY_MS);
+    return () => clearTimeout(timer);
+  });
+
+  // Same idea for the pending count: right after a point it is 1 for a moment. While offline or stuck
+  // the count matters, so it shows at once there.
+  let pendingIsLasting = $state(false);
+
+  $effect(() => {
+    if (connection.pending === 0) {
+      pendingIsLasting = false;
+      return;
+    }
+    if (connection.status === 'offline' || connection.status === 'needs-attention') {
+      pendingIsLasting = true;
+      return;
+    }
+    const timer = setTimeout(() => (pendingIsLasting = true), SYNC_LABEL_DELAY_MS);
+    return () => clearTimeout(timer);
+  });
+
+  const shownStatus = $derived(connection.status === 'syncing' && !syncIsSlow ? 'online' : connection.status);
+
   const statusKey = $derived(
     (
       {
@@ -28,7 +61,7 @@
         syncing: 'conn.syncing',
         'needs-attention': 'conn.attention',
       } as const
-    )[connection.status],
+    )[shownStatus],
   );
 
   function secondsToWait(state: ConnectionState): number {
@@ -37,35 +70,45 @@
   }
 </script>
 
-<div class="bar" data-status={connection.status}>
+<div class="bar" data-status={shownStatus}>
   <span class="dot" aria-hidden="true"></span>
   <span class="status" role="status">{t(statusKey)}</span>
   <span class="pending">
-    {connection.pending > 0 ? t('conn.pending', { count: connection.pending }) : t('conn.synced')}
+    {connection.pending > 0 && pendingIsLasting ?t('conn.pending', { count: connection.pending }) : t('conn.synced')}
   </span>
 </div>
 
 {#if connection.status === 'offline'}
-  <p class="notice">
-    {t('conn.offlineHelp')}
-    <button class="btn" type="button" onclick={onretry}>{t('conn.retry')}</button>
-  </p>
+  <div class="notice">
+    <p>{t('conn.offlineHelp')}</p>
+    <div class="actions">
+      <button class="btn" type="button" onclick={onretry}>{t('conn.retry')}</button>
+    </div>
+  </div>
 {/if}
 
 {#if connection.status === 'needs-attention' && connection.reason}
   <div class="notice" role="alert">
     {#if connection.reason.kind === 'rate-limited'}
       <p>{t('conn.attention.rate-limited', { seconds: secondsToWait(connection) })}</p>
-      <button class="btn" type="button" onclick={onretry}>{t('conn.retry')}</button>
+      <div class="actions">
+        <button class="btn" type="button" onclick={onretry}>{t('conn.retry')}</button>
+      </div>
     {:else if connection.reason.kind === 'unauthorized'}
       <p>{t('conn.attention.unauthorized')}</p>
-      <button class="btn primary" type="button" onclick={onreauth}>{t('conn.attention.unauthorized.action')}</button>
+      <div class="actions">
+        <button class="btn primary" type="button" onclick={onreauth}>{t('conn.attention.unauthorized.action')}</button>
+      </div>
     {:else if connection.reason.kind === 'resynced'}
       <p>{t('conn.attention.resynced', { count: connection.reason.discarded })}</p>
-      <button class="btn primary" type="button" onclick={onretry}>{t('conn.attention.resynced.action')}</button>
+      <div class="actions">
+        <button class="btn primary" type="button" onclick={onretry}>{t('conn.attention.resynced.action')}</button>
+      </div>
     {:else}
       <p>{t(`conn.attention.${connection.reason.kind}`)}</p>
-      <button class="btn" type="button" onclick={onretry}>{t('conn.retry')}</button>
+      <div class="actions">
+        <button class="btn" type="button" onclick={onretry}>{t('conn.retry')}</button>
+      </div>
     {/if}
   </div>
 {/if}
@@ -107,5 +150,8 @@
   }
   .notice {
     margin: 0.25rem 0;
+  }
+  .notice p {
+    margin: 0;
   }
 </style>

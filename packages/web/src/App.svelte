@@ -65,9 +65,15 @@
 
 <style>
   .shell {
-    padding: 0.75rem 1rem;
+    padding: 0.75rem max(1rem, env(safe-area-inset-right)) 0.75rem max(1rem, env(safe-area-inset-left));
     max-width: 40rem;
     margin: 0 auto;
+  }
+  header.shell {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
   }
   .brand {
     font-weight: 700;
@@ -77,11 +83,12 @@
     align-items: center;
   }
   .admin {
-    margin-left: 0.75rem;
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
     font-size: 0.9rem;
   }
   .tagline {
     color: var(--muted);
-    margin-left: 0.5rem;
   }
 </style>

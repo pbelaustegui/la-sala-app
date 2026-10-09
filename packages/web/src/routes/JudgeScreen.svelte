@@ -37,7 +37,9 @@
 {:else if $flow.step === 'offline'}
   <h1>{t('entry.offline.title')}</h1>
   <p>{t('entry.offline.body')}</p>
-  <button class="btn primary" type="button" onclick={() => void flow.start()}>{t('entry.offline.retry')}</button>
+  <div class="actions">
+    <button class="btn primary" type="button" onclick={() => void flow.start()}>{t('entry.offline.retry')}</button>
+  </div>
 {:else}
   {#key $flow.boutId}
     <ScoreboardScreen

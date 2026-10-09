@@ -44,6 +44,8 @@
   const retry = () => void session.queue.retryNow();
 </script>
 
+<h1 class="piste">{t('board.piste', { piste: pisteId })}</h1>
+
 <ConnectionBar
   connection={$connection}
   persisted={$controller.persisted}
@@ -67,18 +69,17 @@
   {onnewbout}
 />
 
-<p class="leave">
-  <a href={hrefTo({ name: 'judge-list' })}>{t('board.leave')}</a>
-  <a href={hrefTo({ name: 'board' })}>{t('nav.board')}</a>
-</p>
+<div class="actions leave">
+  <a class="btn" href={hrefTo({ name: 'judge-list' })}>{t('board.leave')}</a>
+  <a class="btn" href={hrefTo({ name: 'board' })}>{t('nav.board')}</a>
+</div>
 
 <style>
+  .piste {
+    font-size: 1.1rem;
+    margin: 0.25rem 0;
+  }
   .leave {
-    text-align: center;
     margin-top: 1.5rem;
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.5rem 1.5rem;
   }
 </style>

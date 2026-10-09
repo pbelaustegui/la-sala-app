@@ -35,7 +35,9 @@
   {#if error}
     <p class="error" role="alert">{pinErrorMessage(error)}</p>
   {/if}
-  <button class="btn primary" type="submit">{t('pin.submit')}</button>
+  <div class="actions">
+    <button class="btn primary" type="submit">{t('pin.submit')}</button>
+  </div>
 </form>
 
 <style>
