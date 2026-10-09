@@ -60,6 +60,28 @@ describe('scoreboardView', () => {
     expect(view.canScore).toBe(true);
   });
 
+  it('exposes the basis of a manual correction for every kind of phase', () => {
+    const running: BoutEvent[] = [{ type: 'clock-started', at: T0 }];
+    const fencing = scoreboardView(settle(stateAfter('foil', running), T0 + 20_000), T0 + 20_000);
+    expect(fencing.correction).toEqual({
+      period: 1,
+      periods: 3,
+      remainingMs: 160_000,
+      periodDurationMs: 180_000,
+      extraPeriodDurationMs: 60_000,
+      inExtraPeriod: false,
+    });
+
+    const brk = scoreboardView(settle(stateAfter('foil', running), T0 + 190_000), T0 + 190_000);
+    expect(brk.phase).toBe('break');
+    expect(brk.correction).toMatchObject({ period: 1, remainingMs: 0 });
+
+    const finished = stateAfter('foil', [...running, { type: 'clock-stopped', at: T0 }], { touchLimit: 1 });
+    const over = replay(finished, [{ type: 'touch-scored', side: 'left', at: T0 + 1 }]);
+    if (!over.ok) throw new Error('fixture is invalid');
+    expect(scoreboardView(over.state, T0 + 2).correction).toMatchObject({ period: 3, inExtraPeriod: false });
+  });
+
   it('double touch is only offered for epee', () => {
     const running: BoutEvent[] = [{ type: 'clock-started', at: T0 }];
     const epee = scoreboardView(stateAfter('epee', running), T0);

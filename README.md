@@ -84,7 +84,7 @@ Nothing links to it from the public screens, so type the URL by hand. Once the o
 
 ## Judge web app (PWA)
 
-`packages/web` is the judge's scoreboard: enter the piste PIN, set up the bout, score touches, run the clock, give cards, undo. It keeps working without a connection: every event is stored on the phone first and sent to the server in order when the network allows (see "Sync and clock" below). The UI is in Spanish.
+`packages/web` is the judge's scoreboard: enter the piste PIN, set up the bout, score touches, run the clock, give cards, undo, and correct the bout by hand ("Corregir marcador y reloj": reset the clock, reset the scores to 0-0, or set scores, remaining time and period; a confirmation step comes first, it also reopens a finished bout, and "Deshacer" reverts it). It keeps working without a connection: every event is stored on the phone first and sent to the server in order when the network allows (see "Sync and clock" below). The UI is in Spanish.
 
 ### Build and serve it from the server
 

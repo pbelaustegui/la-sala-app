@@ -221,6 +221,52 @@ describe('state-set: terminal checks', () => {
   });
 });
 
+describe('state-set: from the extra period and the priority draw', () => {
+  /** Tied at the end of the only period, then the priority drawn: in the extra period. */
+  const extraPeriod = () => {
+    let state = ok(bout('foil', { periods: 1 }), { type: 'clock-started', at: 0 });
+    state = ok(state, { type: 'state-set', score: { left: 4, right: 4 }, remainingMs: 1_000, at: 100 });
+    state = ok(state, { type: 'clock-started', at: 200 });
+    return ok(state, { type: 'priority-drawn', side: 'right', at: 5_000 });
+  };
+
+  it('expires the extra period through the normal logic: the side holding priority wins', () => {
+    const state = extraPeriod();
+    expect(state.phase).toEqual({ kind: 'extra-period' });
+    const next = ok(state, { type: 'state-set', remainingMs: 0, at: 6_000 });
+    expect(next.phase).toEqual({ kind: 'finished', winner: 'right', reason: 'priority' });
+    expect(next.clock).toEqual({ remainingMs: 0, runningSince: null });
+  });
+
+  it('reopens a priority draw in the last regular period when the time is given', () => {
+    const started = ok(bout('foil', { periods: 1 }), { type: 'clock-started', at: 0 });
+    const awaiting = ok(started, { type: 'state-set', score: { left: 2, right: 2 }, remainingMs: 0, at: 1_000 });
+    expect(awaiting.phase).toEqual({ kind: 'priority-draw' });
+
+    const next = ok(awaiting, { type: 'state-set', remainingMs: 30_000, at: 2_000 });
+    expect(next.phase).toEqual({ kind: 'fencing', period: 1 });
+    expect(next.clock).toEqual({ remainingMs: 30_000, runningSince: null });
+    expect(next.score).toEqual({ left: 2, right: 2 });
+  });
+
+  it('needs the time to leave a priority draw', () => {
+    const awaiting = ok(bout('foil', { periods: 2 }), {
+      type: 'state-set',
+      score: { left: 2, right: 2 },
+      period: 2,
+      remainingMs: 0,
+      at: 1_000,
+    });
+    expect(awaiting.phase).toEqual({ kind: 'priority-draw' });
+    expect(apply(awaiting, { type: 'state-set', score: { left: 3, right: 2 }, at: 2_000 })).toEqual({
+      ok: false,
+      error: { type: 'state-set-needs-time' },
+    });
+    const next = ok(awaiting, { type: 'state-set', remainingMs: 45_000, at: 2_000 });
+    expect(next.phase).toEqual({ kind: 'fencing', period: 2 });
+  });
+});
+
 describe('state-set: replay and undo', () => {
   it('undo reverts a correction', () => {
     const events: BoutEvent[] = [

@@ -150,6 +150,93 @@ describe('ScoreboardController', () => {
     expect(h.controller.get().priority).toBe('right');
   });
 
+  describe('setState', () => {
+    it('applies a correction, updating the view, the log and the sync', () => {
+      const h = harness();
+      h.controller.toggleClock();
+      h.advance(10_000);
+      h.controller.touch('left');
+      const kicks = h.kicks();
+      h.advance(1_000);
+
+      expect(h.controller.setState({ score: { left: 0, right: 0 }, remainingMs: 120_000 })).toBe(true);
+      const view = h.controller.get();
+      expect(view.score).toEqual({ left: 0, right: 0 });
+      expect(view.clockText).toBe('2:00');
+      expect(view.clockRunning).toBe(false);
+      expect(h.bout.events().at(-1)?.event).toEqual({
+        type: 'state-set',
+        score: { left: 0, right: 0 },
+        remainingMs: 120_000,
+        at: T0 + 11_000,
+      });
+      expect(h.kicks()).toBe(kicks + 1);
+    });
+
+    it('rejects an invalid correction, leaving the state and the log untouched', () => {
+      const h = harness();
+      h.controller.toggleClock();
+      const events = h.bout.events().length;
+      const kicks = h.kicks();
+
+      expect(h.controller.setState({ remainingMs: 999_999_999 })).toBe(false);
+      expect(h.controller.get().error).toBe('state-set-invalid-remaining');
+      expect(h.controller.get().errorParams).toEqual({ maxMs: 180_000 });
+      expect(h.bout.events()).toHaveLength(events);
+      expect(h.kicks()).toBe(kicks);
+      expect(h.controller.get().clockRunning).toBe(true);
+
+      expect(h.controller.setState({})).toBe(false);
+      expect(h.controller.get().error).toBe('state-set-empty');
+    });
+
+    it('undo reverts a correction', () => {
+      const h = harness();
+      h.controller.toggleClock();
+      h.advance(1_000);
+      h.controller.touch('right');
+      h.advance(1_000);
+      h.controller.setState({ score: { left: 5, right: 5 } });
+      expect(h.controller.get().score).toEqual({ left: 5, right: 5 });
+
+      h.advance(1_000);
+      h.controller.undo();
+      expect(h.controller.get().score).toEqual({ left: 0, right: 1 });
+    });
+
+    it('reopens a finished bout and undo restores the result', () => {
+      const h = harness({ weapon: 'foil', options: { touchLimit: 1 }, left: 'Ana', right: 'Bea' });
+      h.controller.toggleClock();
+      h.advance(1_000);
+      h.controller.touch('left');
+      expect(h.controller.get().phase).toBe('finished');
+      expect(h.controller.get().canScore).toBe(false);
+
+      h.advance(1_000);
+      expect(h.controller.setState({ score: { left: 0, right: 0 } })).toBe(true);
+      expect(h.controller.get().phase).toBe('fencing');
+      expect(h.controller.get().result).toBeNull();
+      expect(h.controller.get().canScore).toBe(true);
+
+      h.advance(1_000);
+      h.controller.undo();
+      expect(h.controller.get().phase).toBe('finished');
+      expect(h.controller.get().score).toEqual({ left: 1, right: 0 });
+    });
+
+    it('exposes what the correction form starts from', () => {
+      const h = harness();
+      expect(h.controller.get().correction).toEqual({
+        period: 1,
+        periods: 3,
+        remainingMs: 180_000,
+        periodDurationMs: 180_000,
+        extraPeriodDurationMs: 60_000,
+        inExtraPeriod: false,
+      });
+    });
+  });
+
   it('refresh shows the clock moving without touching the log', () => {
     const h = harness();
     h.controller.toggleClock();
