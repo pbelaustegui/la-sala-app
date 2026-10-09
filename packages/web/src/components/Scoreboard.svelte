@@ -120,7 +120,24 @@
       aria-label={model.clockAction === 'start' ? t('board.clock.start') : t('board.clock.stop')}
       onclick={onclock}
     >
-      <span aria-hidden="true">{model.clockAction === 'start' ? '▶︎' : '⏸︎'}</span>
+      <!--
+        Drawn here instead of the Unicode play/pause characters (U+25B6 / U+23F8): both have an
+        emoji presentation, and phones ignore `U+FE0E` when their font stack has no text glyph for
+        them, so the system's colour emoji won over the button's `color`. An inline SVG cannot be
+        overruled that way.
+      -->
+      <span class="clock-icon" aria-hidden="true">
+        {#if model.clockAction === 'start'}
+          <svg viewBox="0 0 16 16" fill="currentColor" data-icon="play">
+            <path d="M5.2 2.6v10.8L13.4 8z" />
+          </svg>
+        {:else}
+          <svg viewBox="0 0 16 16" fill="currentColor" data-icon="pause">
+            <rect x="4.2" y="2.8" width="3" height="10.4" rx="1" />
+            <rect x="8.8" y="2.8" width="3" height="10.4" rx="1" />
+          </svg>
+        {/if}
+      </span>
     </button>
   {/if}
 
@@ -255,6 +272,12 @@
     background: #5dd68a;
     border-color: #5dd68a;
     color: #0b1020;
+  }
+  /* Scales with the button's font-size and inherits its colour, like the character did. */
+  .clock-icon svg {
+    display: block;
+    width: 1.15em;
+    height: 1.15em;
   }
   .row {
     display: grid;

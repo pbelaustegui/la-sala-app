@@ -94,15 +94,17 @@ describe('scoreboard', () => {
     expect(screen.getByRole('button', { name: 'Iniciar reloj' })).toBeTruthy();
   });
 
-  it('the clock button shows a play glyph while stopped and a pause glyph while running', async () => {
+  it('the clock button shows a play icon while stopped and a pause icon while running', async () => {
     const h = harness();
     await open(h);
     const stopped = screen.getByRole('button', { name: 'Iniciar reloj' });
-    expect(stopped.textContent?.trim()).toBe('▶︎');
+    expect(stopped.querySelector('[data-icon="play"]')).toBeTruthy();
+    expect(stopped.querySelector('[data-icon="pause"]')).toBeNull();
 
     await click('Iniciar reloj');
     const running = screen.getByRole('button', { name: 'Parar reloj' });
-    expect(running.textContent?.trim()).toBe('⏸︎');
+    expect(running.querySelector('[data-icon="pause"]')).toBeTruthy();
+    expect(running.querySelector('[data-icon="play"]')).toBeNull();
   });
 
   it('undo reverts a mis-tap', async () => {

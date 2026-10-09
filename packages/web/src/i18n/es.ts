@@ -58,7 +58,9 @@ export const es = {
   'board.correct.error.period': 'El periodo debe estar entre 1 y {periods}.',
   'board.correct.error.needsTime': 'Indica el tiempo que queda para reabrir el combate.',
   'board.skipBreak': 'Saltar descanso',
-  'board.hint.start': 'Pulsa ▶︎ para empezar.',
+  // No symbol here: the play/pause characters render as a colour emoji on phones and ignore the
+  // button's colour, so the hint names the button instead. It also doubles as a build marker.
+  'board.hint.start': 'Pulsa el botón verde para empezar.',
   'board.priority.title': 'Sorteo de prioridad',
   'board.priority.hint': 'Echad la moneda y elige quién gana el sorteo.',
   'board.priority.pick': 'Gana el sorteo: {name}',
