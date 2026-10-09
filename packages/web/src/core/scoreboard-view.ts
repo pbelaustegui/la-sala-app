@@ -14,7 +14,11 @@ export interface CorrectionBasis {
   /** Regular period the bout is in (the last one when it is in the extra period or over). */
   readonly period: number;
   readonly periods: number;
-  /** Time left on the stopped clock of the bout (0 in a break, a priority draw or after time). */
+  /**
+   * Time left on the stopped clock. The full period while the bout is scheduled, the priority
+   * minute while it is in the extra period (the domain hands the bout a fresh stopped clock
+   * there), and 0 in a break, in the priority draw and once the time is up.
+   */
   readonly remainingMs: number;
   readonly periodDurationMs: number;
   readonly extraPeriodDurationMs: number;
