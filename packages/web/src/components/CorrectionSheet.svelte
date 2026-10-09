@@ -44,7 +44,9 @@
   let fields = $state({ ...initial });
   let step = $state<'form' | 'confirm'>('form');
   let attempted = $state(false);
-  let notice = $state<'none' | 'no-changes'>('none');
+  let notice = $state<'none' | 'no-changes' | 'clock-current' | 'score-current'>('none');
+  /** A changed group has a field the form cannot even express: block before confirming. */
+  let blocked = $state<{ key: CopyKey; params: Record<string, string | number> } | null>(null);
 
   const scoreChanged = $derived(fields.left !== initial.left || fields.right !== initial.right);
   const clockChanged = $derived(fields.minutes !== initial.minutes || fields.seconds !== initial.seconds);
@@ -82,12 +84,39 @@
     basis.inExtraPeriod && !periodChanged ? basis.extraPeriodDurationMs : basis.periodDurationMs,
   );
 
+  const DIGITS = /^\d+$/;
+
+  /**
+   * The first changed group with a blank or non-numeric field, in the order the domain
+   * validates them. Only expressibility is checked here: ranges stay with the domain.
+   */
+  function blockedField(): { key: CopyKey; params: Record<string, string | number> } | null {
+    if (scoreChanged && (!DIGITS.test(fields.left.trim()) || !DIGITS.test(fields.right.trim()))) {
+      return { key: 'board.correct.error.score', params: {} };
+    }
+    if (periodChanged && !DIGITS.test(fields.period.trim())) {
+      return { key: 'board.correct.error.period', params: { periods: basis.periods } };
+    }
+    if (clockChanged && (!DIGITS.test(fields.minutes.trim()) || !DIGITS.test(fields.seconds.trim()))) {
+      return { key: 'board.correct.error.remaining', params: { max: formatClock(fullDurationMs) } };
+    }
+    return null;
+  }
+
   function review(): void {
     attempted = false;
     if (Object.keys(buildPatch()).length === 0) {
+      blocked = null;
       notice = 'no-changes';
       return;
     }
+    const problem = blockedField();
+    if (problem !== null) {
+      blocked = problem;
+      notice = 'none';
+      return;
+    }
+    blocked = null;
     notice = 'none';
     step = 'confirm';
   }
@@ -96,12 +125,24 @@
     const total = Math.ceil(fullDurationMs / 1000);
     fields.minutes = String(Math.floor(total / 60));
     fields.seconds = String(total % 60);
+    if (Object.keys(buildPatch()).length === 0) {
+      attempted = false;
+      blocked = null;
+      notice = 'clock-current';
+      return;
+    }
     review();
   }
 
   function resetScores(): void {
     fields.left = '0';
     fields.right = '0';
+    if (Object.keys(buildPatch()).length === 0) {
+      attempted = false;
+      blocked = null;
+      notice = 'score-current';
+      return;
+    }
     review();
   }
 
@@ -162,13 +203,19 @@
       </label>
     {/if}
 
-    {#if errorKey}
+    {#if blocked !== null}
+      <p class="error" role="alert">{t(blocked.key, blocked.params)}</p>
+    {:else if errorKey}
       <p class="error" role="alert">
         {t(errorKey, { ...errorParams, max: formatClock(errorParams.maxMs ?? 0) })}
       </p>
     {/if}
     {#if notice === 'no-changes'}
       <p class="hint">{t('board.correct.noChanges')}</p>
+    {:else if notice === 'clock-current'}
+      <p class="hint">{t('board.correct.clockCurrent', { time: formatClock(fullDurationMs) })}</p>
+    {:else if notice === 'score-current'}
+      <p class="hint">{t('board.correct.scoreCurrent', { score: '0-0' })}</p>
     {/if}
 
     <div class="actions">

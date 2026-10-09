@@ -148,13 +148,76 @@ describe('CorrectionSheet', () => {
     expect(value('Minutos')).toBe('9');
   });
 
+  it('blocks the review while the minutes are blank, without reaching the confirmation', async () => {
+    const { onsubmit } = mount();
+    await type('Minutos', '');
+    await click('Revisar cambios');
+    expect(screen.getByRole('alert').textContent?.trim()).toBe('El tiempo debe estar entre 0:00 y 3:00.');
+    expect(screen.queryByRole('button', { name: 'Sí, aplicar el cambio' })).toBeNull();
+    expect(onsubmit).not.toHaveBeenCalled();
+  });
+
+  it('blocks the review while the seconds are blank', async () => {
+    const { onsubmit } = mount();
+    await type('Segundos', '');
+    await click('Revisar cambios');
+    expect(screen.getByRole('alert').textContent?.trim()).toBe('El tiempo debe estar entre 0:00 y 3:00.');
+    expect(screen.queryByRole('button', { name: 'Sí, aplicar el cambio' })).toBeNull();
+    expect(onsubmit).not.toHaveBeenCalled();
+  });
+
+  it('blocks the review while the period is blank', async () => {
+    const { onsubmit } = mount();
+    await type(/^Periodo/, '');
+    await click('Revisar cambios');
+    expect(screen.getByRole('alert').textContent?.trim()).toBe('El periodo debe estar entre 1 y 3.');
+    expect(screen.queryByRole('button', { name: 'Sí, aplicar el cambio' })).toBeNull();
+    expect(onsubmit).not.toHaveBeenCalled();
+  });
+
+  it('blocks the review while a score is not a number', async () => {
+    const { onsubmit } = mount();
+    await type('Tocados de Ana', 'x');
+    await click('Revisar cambios');
+    expect(screen.getByRole('alert').textContent?.trim()).toBe('Los tocados deben ser números enteros, de 0 en adelante.');
+    expect(screen.queryByRole('button', { name: 'Sí, aplicar el cambio' })).toBeNull();
+    expect(onsubmit).not.toHaveBeenCalled();
+  });
+
+  it('drops the blocked message once the field is valid again', async () => {
+    mount();
+    await type('Minutos', '');
+    await click('Revisar cambios');
+    expect(screen.getByRole('alert')).toBeTruthy();
+    await type('Minutos', '2');
+    await click('Revisar cambios');
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByText('Se va a cambiar el reloj a 2:35.')).toBeTruthy();
+  });
+
+  it('reset clock says the clock is already there when nothing would change', async () => {
+    const { onsubmit } = mount({ basis: { ...basis, remainingMs: 180_000 } });
+    await click('Reiniciar reloj');
+    expect(screen.getByText('El reloj ya está en 3:00.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Sí, aplicar el cambio' })).toBeNull();
+    expect(onsubmit).not.toHaveBeenCalled();
+  });
+
+  it('reset scores says the score is already there when nothing would change', async () => {
+    const { onsubmit } = mount({ score: { left: 0, right: 0 } });
+    await click('Marcador a 0-0');
+    expect(screen.getByText('El marcador ya está 0-0.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Sí, aplicar el cambio' })).toBeNull();
+    expect(onsubmit).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['state-set-invalid-score', {}, 'Los tocados deben ser números enteros, de 0 en adelante.'],
     ['state-set-invalid-period', { periods: 3 }, 'El periodo debe estar entre 1 y 3.'],
     ['state-set-needs-time', {}, 'Indica el tiempo que queda para reabrir el combate.'],
   ])('explains %s', async (error, errorParams, text) => {
     mount({ onsubmit: () => false, error, errorParams });
-    await type('Tocados de Ana', 'x');
+    await type('Tocados de Ana', '4');
     await click('Revisar cambios');
     await click('Sí, aplicar el cambio');
     expect(screen.getByRole('alert').textContent?.trim()).toBe(text);
