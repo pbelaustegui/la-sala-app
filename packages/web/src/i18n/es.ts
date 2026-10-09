@@ -41,6 +41,8 @@ export const es = {
   'board.correct.period': 'Periodo (1 a {periods})',
   'board.correct.review': 'Revisar cambios',
   'board.correct.noChanges': 'No has cambiado nada.',
+  'board.correct.clockCurrent': 'El reloj ya está en {time}.',
+  'board.correct.scoreCurrent': 'El marcador ya está {score}.',
   'board.correct.close': 'Cerrar corrección',
   'board.correct.change.score': 'el marcador a {left} {leftScore} - {rightScore} {right}',
   'board.correct.change.clock': 'el reloj a {time}',
