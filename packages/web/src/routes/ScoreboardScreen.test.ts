@@ -58,6 +58,11 @@ afterEach(() => {
 });
 
 describe('scoreboard', () => {
+  it('tells the judge which piste they are scoring', async () => {
+    await open(harness());
+    expect(screen.getByRole('heading', { name: 'Pista p1' })).toBeTruthy();
+  });
+
   it('shows the names, the clock and locks scoring until the clock starts', async () => {
     const h = harness();
     await open(h);

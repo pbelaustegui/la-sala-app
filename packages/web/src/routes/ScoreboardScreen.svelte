@@ -44,6 +44,8 @@
   const retry = () => void session.queue.retryNow();
 </script>
 
+<h1 class="piste">{t('board.piste', { piste: pisteId })}</h1>
+
 <ConnectionBar
   connection={$connection}
   persisted={$controller.persisted}
@@ -73,6 +75,10 @@
 </div>
 
 <style>
+  .piste {
+    font-size: 1.1rem;
+    margin: 0.25rem 0;
+  }
   .leave {
     margin-top: 1.5rem;
   }
