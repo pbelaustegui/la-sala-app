@@ -9,6 +9,18 @@ export interface Label {
 
 export type DoubleTouchState = 'hidden' | 'disabled' | 'enabled';
 
+/** What the manual correction form starts from and is bounded by. */
+export interface CorrectionBasis {
+  /** Regular period the bout is in (the last one when it is in the extra period or over). */
+  readonly period: number;
+  readonly periods: number;
+  /** Time left on the stopped clock of the bout (0 in a break, a priority draw or after time). */
+  readonly remainingMs: number;
+  readonly periodDurationMs: number;
+  readonly extraPeriodDurationMs: number;
+  readonly inExtraPeriod: boolean;
+}
+
 /** Everything the scoreboard shows, derived from a settled `BoutState`. */
 export interface ScoreboardView {
   readonly phase: PhaseKind;
@@ -30,6 +42,7 @@ export interface ScoreboardView {
   readonly weapon: Weapon;
   /** A bout is under way: the screen should stay awake. */
   readonly active: boolean;
+  readonly correction: CorrectionBasis;
 }
 
 /**
@@ -43,6 +56,21 @@ export function formatClock(ms: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+function currentPeriod(state: BoutState): number {
+  const { phase, rules } = state;
+  switch (phase.kind) {
+    case 'scheduled':
+      return 1;
+    case 'fencing':
+    case 'break':
+      return phase.period;
+    case 'priority-draw':
+    case 'extra-period':
+    case 'finished':
+      return rules.periods;
+  }
 }
 
 function phaseLabel(state: BoutState): Label {
@@ -96,6 +124,14 @@ export function scoreboardView(state: BoutState, now: number): ScoreboardView {
     cards: state.cards,
     weapon: rules.weapon,
     active: phase.kind !== 'scheduled' && phase.kind !== 'finished',
+    correction: {
+      period: currentPeriod(state),
+      periods: rules.periods,
+      remainingMs: phase.kind === 'scheduled' ? rules.periodDurationMs : remainingAt(clock, now),
+      periodDurationMs: rules.periodDurationMs,
+      extraPeriodDurationMs: rules.extraPeriodDurationMs,
+      inExtraPeriod: phase.kind === 'extra-period',
+    },
   };
 }
 

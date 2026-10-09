@@ -84,7 +84,7 @@ Nothing links to it from the public screens, so type the URL by hand. Once the o
 
 ## Judge web app (PWA)
 
-`packages/web` is the judge's scoreboard: enter the piste PIN, set up the bout, score touches, run the clock, give cards, undo. It keeps working without a connection: every event is stored on the phone first and sent to the server in order when the network allows (see "Sync and clock" below). The UI is in Spanish.
+`packages/web` is the judge's scoreboard: enter the piste PIN, set up the bout, score touches, run the clock, give cards, undo, and correct the bout by hand ("Corregir marcador y reloj": reset the clock, reset the scores to 0-0, or set scores, remaining time and period; a confirmation step comes first, it also reopens a finished bout, and "Deshacer" reverts it). It keeps working without a connection: every event is stored on the phone first and sent to the server in order when the network allows (see "Sync and clock" below). The UI is in Spanish.
 
 ### Build and serve it from the server
 
@@ -172,6 +172,7 @@ Board feed (`GET /pistes/stream`, registered before `/pistes/:id/...`): `event: 
 Events:
 
 - Each event carries a client-generated `id`. An id already applied to the current bout is skipped, so offline clients can resend a batch safely.
+- `state-set` is the judge's manual correction: `{id, type: 'state-set', at, score?: {left, right}, remainingMs?, period?}` with at least one field. It is a normal event (idempotent by `id`, undoable) and the only one accepted after the bout finished, which it reopens. The result is a stopped clock in fencing (a bout already in the extra period stays in the extra period unless `period` says otherwise); cards, priority and the mid-bout break flag are untouched, and omitted fields keep their value. Scores and `remainingMs` are non-negative integers, `remainingMs` is at most the duration of the target period (the extra period has its own) and `period` is within 1..periods. If the corrected state is terminal under the usual rules (touch limit reached while ahead, empty clock) the bout moves on or finishes again. Reopening from an empty clock (finished by time, break) needs `remainingMs`. Domain errors: `state-set-empty`, `state-set-invalid-score`, `state-set-invalid-remaining`, `state-set-invalid-period`, `state-set-needs-time`.
 - A batch is atomic. On the first domain error the response is `422 {index, error}` (index within the submitted batch) and nothing from the batch is stored.
 - Starting a bout is required first (`409` otherwise). Unknown piste: `404`. Invalid body: `400`.
 - Spectators compute their clock offset as `serverTime - Date.now()` at receipt and derive the running clock from the state timestamps.

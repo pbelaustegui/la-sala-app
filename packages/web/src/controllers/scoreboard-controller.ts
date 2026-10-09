@@ -1,4 +1,4 @@
-import type { Card, DomainError, Side } from '@la-sala/domain';
+import type { Card, DomainError, Side, StateSetPatch } from '@la-sala/domain';
 import { EventFactory, type EventDraft } from '../core/event-factory';
 import type { LocalBout } from '../core/local-bout';
 import { Observable } from '../core/observable';
@@ -11,6 +11,8 @@ export interface ScoreboardModel extends ScoreboardView {
   readonly persisted: boolean;
   /** Domain error type of the last refused action, until the next success. */
   readonly error: DomainError['type'] | 'duplicate-event' | null;
+  /** Limits carried by the last refused action (`maxMs`, `periods`), for specific messages. */
+  readonly errorParams: Readonly<Record<string, number>>;
 }
 
 export interface ScoreboardDeps {
@@ -24,6 +26,8 @@ export interface ScoreboardDeps {
 
 export const TICK_MS = 100;
 
+const NO_ERROR = { error: null, errorParams: {} } as const;
+
 /**
  * Turns judge actions into domain events on the local bout. The screen only calls these
  * methods and renders the model; rules stay in the domain and `LocalBout` validates every
@@ -31,10 +35,10 @@ export const TICK_MS = 100;
  */
 export class ScoreboardController extends Observable<ScoreboardModel> {
   private readonly factory: EventFactory;
-  private error: ScoreboardModel['error'] = null;
+  private error: Pick<ScoreboardModel, 'error' | 'errorParams'> = NO_ERROR;
 
   constructor(private readonly deps: ScoreboardDeps) {
-    super(compute(deps, null));
+    super(compute(deps, NO_ERROR));
     // Event time is the corrected clock but never earlier than the last stored event: a
     // better clock sample can move the estimate backwards and the domain rejects that.
     this.factory = new EventFactory({
@@ -75,6 +79,14 @@ export class ScoreboardController extends Observable<ScoreboardModel> {
     this.perform({ type: 'card-given', side, card });
   }
 
+  /**
+   * Manual correction of scores, clock and period. Works on a finished bout too (reopens it).
+   * Returns whether the domain accepted it; on refusal `error` and `errorParams` say why.
+   */
+  setState(patch: StateSetPatch): boolean {
+    return this.perform({ type: 'state-set', ...patch });
+  }
+
   undo(): void {
     if (!canUndo(this.deps.bout.events().map((stored) => stored.event))) return;
     this.perform({ type: 'undo' });
@@ -96,15 +108,16 @@ export class ScoreboardController extends Observable<ScoreboardModel> {
     };
   }
 
-  private perform(draft: EventDraft): void {
+  private perform(draft: EventDraft): boolean {
     const result = this.deps.bout.append(this.factory.create(draft));
     if (result.ok) {
-      this.error = null;
+      this.error = NO_ERROR;
       this.deps.sync.kick();
     } else {
-      this.error = result.error.type;
+      this.error = { error: result.error.type, errorParams: limits(result.error) };
     }
     this.refresh();
+    return result.ok;
   }
 }
 
@@ -113,13 +126,20 @@ function lastEventAt(bout: LocalBout): number {
   return events[events.length - 1]?.event.at ?? Number.NEGATIVE_INFINITY;
 }
 
-function compute(deps: ScoreboardDeps, error: ScoreboardModel['error']): ScoreboardModel {
+function limits(error: object): Record<string, number> {
+  const found: Record<string, number> = {};
+  if ('maxMs' in error && typeof error.maxMs === 'number') found.maxMs = error.maxMs;
+  if ('periods' in error && typeof error.periods === 'number') found.periods = error.periods;
+  return found;
+}
+
+function compute(deps: ScoreboardDeps, error: Pick<ScoreboardModel, 'error' | 'errorParams'>): ScoreboardModel {
   const now = deps.now();
   const events = deps.bout.events().map((stored) => stored.event);
   return {
     ...scoreboardView(deps.bout.state(now), now),
     canUndo: canUndo(events),
     persisted: deps.bout.persisted,
-    error,
+    ...error,
   };
 }

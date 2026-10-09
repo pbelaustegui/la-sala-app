@@ -66,6 +66,7 @@
   oncard={(side, card) => controller.giveCard(side, card)}
   onskipbreak={() => controller.skipBreak()}
   onpriority={(side) => controller.drawPriority(side)}
+  oncorrect={(patch) => controller.setState(patch)}
   {onnewbout}
 />
 

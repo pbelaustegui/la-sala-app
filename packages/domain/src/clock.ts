@@ -31,7 +31,7 @@ function expiryOf(state: BoutState): number | null {
   return clock.runningSince + clock.remainingMs;
 }
 
-function onClockExpired(state: BoutState, expiry: number): BoutState {
+export function onClockExpired(state: BoutState, expiry: number): BoutState {
   const { phase, rules } = state;
   if (phase.kind === 'fencing') {
     if (phase.period < rules.periods) {

@@ -1,10 +1,11 @@
 <script lang="ts">
-  import type { Card, Side } from '@la-sala/domain';
+  import type { Card, Side, StateSetPatch } from '@la-sala/domain';
   import type { ScoreboardModel } from '../controllers/scoreboard-controller';
   import { countCards } from '../core/card-counts';
   import { t } from '../i18n/t';
   import { cardChips } from './piste-labels';
   import CardsSheet from './CardsSheet.svelte';
+  import CorrectionSheet from './CorrectionSheet.svelte';
 
   let {
     model,
@@ -17,6 +18,7 @@
     oncard,
     onskipbreak,
     onpriority,
+    oncorrect,
     onnewbout,
   }: {
     model: ScoreboardModel;
@@ -30,10 +32,13 @@
     oncard: (side: Side, card: Card) => void;
     onskipbreak: () => void;
     onpriority: (side: Side) => void;
+    /** Returns whether the correction was accepted. */
+    oncorrect: (patch: StateSetPatch) => boolean;
     onnewbout: () => void;
   } = $props();
 
   let cardsOpen = $state(false);
+  let correctOpen = $state(false);
   const cardCounts = $derived(countCards(model.cards));
 
   const SIDES: readonly Side[] = ['left', 'right'];
@@ -73,7 +78,7 @@
     {/each}
   </div>
 
-  {#if model.error}
+  {#if model.error && !model.error.startsWith('state-set-')}
     <p class="error" role="alert">{t('board.error')}</p>
   {/if}
 
@@ -137,6 +142,22 @@
 
   {#if cardsOpen}
     <CardsSheet {names} disabled={!model.canScore} ongive={give} onclose={() => (cardsOpen = false)} />
+  {/if}
+
+  <!-- Apart from the scoring areas and always enabled: it is how a finished bout is reopened. -->
+  {#if correctOpen}
+    <CorrectionSheet
+      {names}
+      score={model.score}
+      basis={model.correction}
+      finished={model.result !== null}
+      error={model.error}
+      errorParams={model.errorParams}
+      onsubmit={oncorrect}
+      onclose={() => (correctOpen = false)}
+    />
+  {:else}
+    <button class="btn correct" type="button" onclick={() => (correctOpen = true)}>{t('board.correct')}</button>
   {/if}
 </section>
 
@@ -240,6 +261,9 @@
     grid-auto-flow: column;
     grid-auto-columns: 1fr;
     gap: 0.5rem;
+  }
+  .correct {
+    margin-top: 1rem;
   }
   .panel {
     padding: 0.75rem;
