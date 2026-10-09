@@ -2,6 +2,10 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
+    // vite.config.ts imports ./pwa.config.ts with the extension so Vite's `configLoader: 'native'`
+    // (the default in a future major) can load the config. TypeScript only allows that with this
+    // flag, which is why the two go together.
+    "allowImportingTsExtensions": true,
     "lib": [
       "ES2022",
       "DOM",
