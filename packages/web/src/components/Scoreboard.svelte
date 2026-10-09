@@ -120,7 +120,7 @@
       aria-label={model.clockAction === 'start' ? t('board.clock.start') : t('board.clock.stop')}
       onclick={onclock}
     >
-      <span aria-hidden="true">{model.clockAction === 'start' ? '▶' : '⏸'}</span>
+      <span aria-hidden="true">{model.clockAction === 'start' ? '▶︎' : '⏸︎'}</span>
     </button>
   {/if}
 
