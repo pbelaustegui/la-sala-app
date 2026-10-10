@@ -10,10 +10,16 @@ On the spectator views, hide the "back to board" and "I'm a judge" (and admin) b
 - The brand/title link stays visible. Applies to both the board list and the piste detail.
 
 ## Tasks
-- [ ] A1 Idle-reveal controller on injectable timers + SpectatorScreen wiring, tests first
+- [x] A1 Idle-reveal controller on injectable timers + SpectatorScreen wiring, tests first
 
 ## Route
 Delegated direct: one writer.
 
 ## Out of scope
 Judge screens, hiding the stale banner or the brand.
+
+## Evidence
+- RED: `npx vitest run src/core/idle-reveal.test.ts` failed (module missing); `SpectatorScreen.test.ts` idle chrome: 8 failed before wiring.
+- GREEN: `npx vitest run` (packages/web): 414 passed; `npm run check`: 0 errors, 0 warnings.
+- Design: `core/idle-reveal.ts` (injectable Timers, IDLE_MS=5000, interact/hold/dispose); SpectatorScreen toggles `.idle` + `inert` on `.back`/`.foot` (`data-idle-chrome`), CSS opacity/visibility transition, disabled under prefers-reduced-motion; focus inside the chrome holds visibility.
+- Not verified in a real browser (jsdom has no CSS transitions or inert reflection).

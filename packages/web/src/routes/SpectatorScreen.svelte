@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import PisteCard from '../components/PisteCard.svelte';
   import PisteDetail from '../components/PisteDetail.svelte';
+  import { createIdleReveal } from '../core/idle-reveal';
   import { toPisteView } from '../core/piste-view';
   import { SpectatorStore } from '../core/spectator-store';
   import { getEnv } from '../env';
@@ -24,6 +25,7 @@
 
   let now = $state(env.now());
   let tickHandle: unknown = null;
+  let idle = $state(false);
 
   const views = $derived($store.pistes.map((entry) => toPisteView(entry, now)));
   const detail = $derived(pisteId === null ? null : (views.find((view) => view.pisteId === pisteId) ?? null));
@@ -59,7 +61,24 @@
     const unwatchOnline = env.onOnline(() => store.retryNow(true));
     const unwatchOffline = env.onOffline(() => store.markOffline());
     const unwatchPageShow = env.onPageShow(() => store.retryNow());
+    // Secondary controls fade out when nobody touches the screen; any interaction brings them back.
+    const reveal = createIdleReveal({ timers: env.timers, onChange: (visible) => (idle = !visible) });
+    const inChrome = (target: EventTarget | null) => target instanceof Element && target.closest('[data-idle-chrome]') !== null;
+    const onInteract = () => reveal.interact();
+    const onFocusIn = (event: Event) => {
+      reveal.interact();
+      reveal.hold(inChrome(event.target));
+    };
+    const onFocusOut = (event: FocusEvent) => reveal.hold(inChrome(event.relatedTarget));
+    const interactions = ['pointermove', 'pointerdown', 'touchstart', 'keydown'] as const;
+    for (const type of interactions) window.addEventListener(type, onInteract, { passive: true });
+    document.addEventListener('focusin', onFocusIn);
+    document.addEventListener('focusout', onFocusOut);
     return () => {
+      for (const type of interactions) window.removeEventListener(type, onInteract);
+      document.removeEventListener('focusin', onFocusIn);
+      document.removeEventListener('focusout', onFocusOut);
+      reveal.dispose();
       unwatch();
       unwatchOnline();
       unwatchOffline();
@@ -70,11 +89,11 @@
   });
 </script>
 
-<div class="spectator">
+<div class="spectator" class:idle>
   <header class="bar">
     <a class="brand" href={hrefTo({ name: 'board' })}>{t('app.title')}</a>
     {#if pisteId !== null}
-      <a class="back" href={hrefTo({ name: 'board' })}>{t('spectator.back')}</a>
+      <a class="back" data-idle-chrome inert={idle} href={hrefTo({ name: 'board' })}>{t('spectator.back')}</a>
     {/if}
   </header>
 
@@ -102,7 +121,7 @@
     <p class="message">{t('spectator.missing')}</p>
   {/if}
 
-  <footer class="foot">
+  <footer class="foot" data-idle-chrome inert={idle}>
     <a class="btn judge" href={hrefTo({ name: 'judge-list' })}>{t('spectator.judgeLink')}</a>
     {#if showAdminLink}
       <a class="btn judge" href={hrefTo({ name: 'admin' })}>{t('nav.admin')}</a>
@@ -173,5 +192,28 @@
   .judge {
     color: var(--muted);
     font-size: 0.9rem;
+  }
+  .back,
+  .foot {
+    transition:
+      opacity 0.4s ease,
+      visibility 0s;
+  }
+  .idle .back,
+  .idle .foot {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.4s ease,
+      visibility 0s 0.4s;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .back,
+    .foot,
+    .idle .back,
+    .idle .foot {
+      transition: none;
+    }
   }
 </style>
