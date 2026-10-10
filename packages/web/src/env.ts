@@ -4,6 +4,7 @@ import { ApiClient, type FetchLike } from './core/api-client';
 import { ClockOffset } from './core/clock-offset';
 import { EventSourceBoardStream } from './core/board-event-source';
 import { CurrentBoutPointer } from './core/current-bout';
+import { FacingAudiencePreference } from './core/facing-audience';
 import { PinStore } from './core/pin-store';
 import type { BoardStreamPort } from './core/spectator-store';
 import { LocalStorageAdapter, type KeyValueStorage } from './core/storage';
@@ -69,6 +70,8 @@ export interface AppServices {
   readonly pins: PinStore;
   readonly adminPin: AdminPinStore;
   readonly pointer: CurrentBoutPointer;
+  /** Judge-side display preference, remembered on this device only. */
+  readonly facing: FacingAudiencePreference;
 }
 
 export function createServices(env: AppEnv): AppServices {
@@ -80,6 +83,7 @@ export function createServices(env: AppEnv): AppServices {
     pins: new PinStore(env.sessionStorage),
     adminPin: new AdminPinStore(env.sessionStorage),
     pointer: new CurrentBoutPointer(env.storage),
+    facing: new FacingAudiencePreference(env.storage),
   };
 }
 

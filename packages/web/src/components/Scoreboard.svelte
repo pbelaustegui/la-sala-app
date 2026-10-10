@@ -20,6 +20,8 @@
     onpriority,
     oncorrect,
     onnewbout,
+    facing = false,
+    onfacing,
   }: {
     model: ScoreboardModel;
     names: Readonly<Record<Side, string>>;
@@ -35,13 +37,17 @@
     /** Returns whether the correction was accepted. */
     oncorrect: (patch: StateSetPatch) => boolean;
     onnewbout: () => void;
+    /** The judge faces the audience: show the fencers mirrored. Display only. */
+    facing?: boolean;
+    onfacing?: (facing: boolean) => void;
   } = $props();
 
   let cardsOpen = $state(false);
   let correctOpen = $state(false);
   const cardCounts = $derived(countCards(model.cards));
 
-  const SIDES: readonly Side[] = ['left', 'right'];
+  // Only the on-screen order changes; sides, events and colours stay with the domain side.
+  const SIDES = $derived<readonly Side[]>(facing ? ['right', 'left'] : ['left', 'right']);
 
   function give(side: Side, card: Card): void {
     oncard(side, card);
@@ -158,12 +164,13 @@
   </div>
 
   {#if cardsOpen}
-    <CardsSheet {names} disabled={!model.canScore} ongive={give} onclose={() => (cardsOpen = false)} />
+    <CardsSheet mirrored={facing} {names} disabled={!model.canScore} ongive={give} onclose={() => (cardsOpen = false)} />
   {/if}
 
   <!-- Apart from the scoring areas and always enabled: it is how a finished bout is reopened. -->
   {#if correctOpen}
     <CorrectionSheet
+      mirrored={facing}
       {names}
       score={model.score}
       basis={model.correction}
@@ -175,6 +182,13 @@
     />
   {:else}
     <button class="btn correct" type="button" onclick={() => (correctOpen = true)}>{t('board.correct')}</button>
+  {/if}
+
+  {#if onfacing}
+    <label class="facing">
+      <input type="checkbox" checked={facing} onchange={(e) => onfacing(e.currentTarget.checked)} />
+      <span>{t('board.facing')}</span>
+    </label>
   {/if}
 </section>
 
@@ -296,6 +310,19 @@
   }
   .correct {
     margin-top: 1rem;
+  }
+  /* Whole row is the tap target; wraps instead of overflowing on a narrow phone. */
+  .facing {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 48px;
+    cursor: pointer;
+  }
+  .facing input {
+    width: 1.5rem;
+    height: 1.5rem;
+    flex: none;
   }
   .panel {
     padding: 0.75rem;

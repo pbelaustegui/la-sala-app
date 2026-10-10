@@ -32,6 +32,11 @@
   const session = createJudgeSession({ services, pisteId, pin, bout, startedOffline });
   const controller = session.controller;
   const connection = session.queue.connection;
+  let facing = $state(services.facing.get());
+  function setFacing(value: boolean): void {
+    facing = value;
+    services.facing.set(value);
+  }
   const wakeLock = session.wakeLock;
   // svelte-ignore state_referenced_locally
   const names = {
@@ -68,6 +73,8 @@
   onpriority={(side) => controller.drawPriority(side)}
   oncorrect={(patch) => controller.setState(patch)}
   {onnewbout}
+  {facing}
+  onfacing={setFacing}
 />
 
 <div class="actions leave">

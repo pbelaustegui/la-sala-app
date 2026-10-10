@@ -30,6 +30,7 @@ export const es = {
   'board.card.yellow': 'Tarjeta amarilla a {name}',
   'board.card.red': 'Tarjeta roja a {name}',
   'board.card.black': 'Tarjeta negra a {name}',
+  'board.facing': 'Estoy de cara al público',
   'board.correct': 'Corregir marcador y reloj',
   'board.correct.title': 'Corregir el combate',
   'board.correct.hint': 'Cambia lo que haga falta. El reloj queda parado y puedes deshacerlo después.',
