@@ -391,3 +391,79 @@ describe('piste detail', () => {
     expect(screen.getByRole('link', { name: 'Volver al tablero' })).toBeTruthy();
   });
 });
+
+describe('idle chrome', () => {
+  const root = () => document.querySelector('.spectator') as HTMLElement;
+  // jsdom has no `inert` reflection, so Svelte's property assignment is read back as a plain property.
+  const isInert = (el: Element | null) => (el as (Element & { inert?: boolean }) | null)?.inert === true;
+  const foot = () => document.querySelector('.foot') as HTMLElement;
+
+  it('starts visible and hides the footer links after 5 seconds without interaction', async () => {
+    const h = harness();
+    render(App, { env: h.env });
+    await h.live('1');
+    expect(root().classList.contains('idle')).toBe(false);
+    h.timers.fireWithDelay(5_000);
+    await tick();
+    expect(root().classList.contains('idle')).toBe(true);
+    expect(isInert(foot())).toBe(true);
+    expect(isInert(document.querySelector('.brand'))).toBe(false);
+  });
+
+  it('hides the back link in the piste detail and keeps the brand', async () => {
+    const h = harness();
+    window.location.hash = '#/piste/1';
+    render(App, { env: h.env });
+    await h.live('1');
+    h.timers.fireWithDelay(5_000);
+    await tick();
+    expect(isInert(document.querySelector('.back'))).toBe(true);
+    expect(isInert(document.querySelector('.brand'))).toBe(false);
+  });
+
+  it.each([
+    ['pointermove', window],
+    ['pointerdown', window],
+    ['touchstart', window],
+    ['keydown', window],
+    ['focusin', document],
+  ] as const)('shows the links again on %s', async (type, target) => {
+    const h = harness();
+    render(App, { env: h.env });
+    await h.live('1');
+    h.timers.fireWithDelay(5_000);
+    await tick();
+    expect(root().classList.contains('idle')).toBe(true);
+    target.dispatchEvent(new Event(type, { bubbles: true }));
+    await tick();
+    expect(root().classList.contains('idle')).toBe(false);
+    expect(h.timers.scheduled.size).toBeGreaterThan(0);
+  });
+
+  it('does not hide while a footer link has focus, and counts down again after blur', async () => {
+    const h = harness();
+    render(App, { env: h.env });
+    await h.live('1');
+    const link = screen.getByRole('link', { name: 'Soy juez' });
+    link.focus();
+    await tick();
+    h.timers.fireWithDelay(5_000);
+    await tick();
+    expect(root().classList.contains('idle')).toBe(false);
+    link.blur();
+    await tick();
+    h.timers.fireWithDelay(5_000);
+    await tick();
+    expect(root().classList.contains('idle')).toBe(true);
+  });
+
+  it('removes its listeners and timer when the spectator leaves', async () => {
+    const h = harness();
+    const view = render(App, { env: h.env });
+    await h.live('1');
+    view.unmount();
+    expect([...h.timers.scheduled.values()].some((t) => t.ms === 5_000)).toBe(false);
+    window.dispatchEvent(new Event('pointermove'));
+    expect([...h.timers.scheduled.values()].some((t) => t.ms === 5_000)).toBe(false);
+  });
+});
