@@ -84,6 +84,10 @@ describe('index.html', () => {
     expect(html).toContain('viewport-fit=cover');
   });
 
+  it('resizes the page for the on-screen keyboard so a form can scroll its button above it', () => {
+    expect(html).toContain('interactive-widget=resizes-content');
+  });
+
   it('opts into standalone mode on iOS with the touch icon', () => {
     expect(html).toContain('name="apple-mobile-web-app-capable" content="yes"');
     expect(html).toContain('name="mobile-web-app-capable" content="yes"');

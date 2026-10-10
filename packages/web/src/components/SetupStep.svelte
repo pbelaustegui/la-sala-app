@@ -90,6 +90,10 @@
 </form>
 
 <style>
+  /* Air below the submit button, so it can scroll clear of the keyboard and its suggestion strip. */
+  form {
+    padding-bottom: 1.5rem;
+  }
   fieldset {
     border: 0;
     padding: 0;
