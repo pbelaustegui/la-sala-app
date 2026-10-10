@@ -364,6 +364,26 @@ describe('judge endpoints', () => {
         expect(state.bout.score).toEqual({ left: 4, right: 2 });
       });
 
+      it('accepts clearCards, clears the cards and keeps the score', async () => {
+        const res = await send(
+          app,
+          'POST',
+          '/pistes/1/events',
+          {
+            events: [
+              ev('a', 'clock-started', T0),
+              ev('b', 'card-given', T0 + 1000, { side: 'left', card: 'red' }),
+              ev('c', 'state-set', T0 + 2000, { clearCards: true }),
+            ],
+          },
+          judge(),
+        );
+        expect(res.status).toBe(200);
+        const bout = ((await res.json()) as any).bout;
+        expect(bout.cards).toEqual([]);
+        expect(bout.score).toEqual({ left: 0, right: 1 });
+      });
+
       it('rejects an invalid correction with 422 {index,error} and persists nothing', async () => {
         const res = await send(
           app,
@@ -442,6 +462,8 @@ describe('judge endpoints', () => {
         [{ remainingMs: 1.5 }],
         [{ period: 0 }],
         [{ period: 'two' }],
+        [{ clearCards: false }],
+        [{ clearCards: 'yes' }],
       ])('rejects the malformed correction %j with 400', async (patch) => {
         const res = await send(app, 'POST', '/pistes/1/events', { events: [ev('a', 'state-set', T0, patch)] }, judge());
         expect(res.status).toBe(400);

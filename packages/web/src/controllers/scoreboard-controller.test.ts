@@ -173,6 +173,23 @@ describe('ScoreboardController', () => {
       expect(h.kicks()).toBe(kicks + 1);
     });
 
+    it('clears the cards of both fencers and undo brings them back', () => {
+      const h = harness();
+      h.controller.toggleClock();
+      h.controller.giveCard('left', 'yellow');
+      expect(h.controller.get().cards).toHaveLength(1);
+      h.controller.giveCard('right', 'yellow');
+      h.advance(1_000);
+
+      expect(h.controller.setState({ clearCards: true })).toBe(true);
+      expect(h.controller.get().cards).toEqual([]);
+      expect(h.bout.events().at(-1)?.event).toMatchObject({ type: 'state-set', clearCards: true });
+
+      h.advance(1_000);
+      h.controller.undo();
+      expect(h.controller.get().cards).toHaveLength(2);
+    });
+
     it('rejects an invalid correction, leaving the state and the log untouched', () => {
       const h = harness();
       h.controller.toggleClock();

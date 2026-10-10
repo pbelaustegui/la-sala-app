@@ -71,13 +71,62 @@ describe('state-set: corrections', () => {
     expect(next.phase).toEqual({ kind: 'fencing', period: 2 });
   });
 
-  it('leaves cards, priority and the mid-bout break flag untouched', () => {
+  it('leaves cards, priority and the mid-bout break flag untouched unless told otherwise', () => {
     let state = ok(bout('sabre'), { type: 'clock-started', at: 0 });
     state = ok(state, { type: 'card-given', side: 'left', card: 'yellow', at: 1_000 });
     const next = ok(state, { type: 'state-set', score: { left: 1, right: 1 }, at: 2_000 });
     expect(next.cards).toEqual(state.cards);
     expect(next.priority).toBe(state.priority);
     expect(next.midBoutBreakTaken).toBe(state.midBoutBreakTaken);
+  });
+
+  it('clears the cards of both fencers, as a patch on its own', () => {
+    let state = ok(bout('sabre'), { type: 'clock-started', at: 0 });
+    state = ok(state, { type: 'card-given', side: 'left', card: 'yellow', at: 1_000 });
+    state = ok(state, { type: 'card-given', side: 'right', card: 'yellow', at: 2_000 });
+    const next = ok(state, { type: 'state-set', clearCards: true, at: 3_000 });
+    expect(next.cards).toEqual([]);
+    expect(next.score).toEqual(state.score);
+    expect(next.clock).toEqual({ remainingMs: 177_000, runningSince: null });
+    expect(next.priority).toBe(state.priority);
+  });
+
+  it('does not revert the touch a red card awarded', () => {
+    let state = ok(bout(), { type: 'clock-started', at: 0 });
+    state = ok(state, { type: 'card-given', side: 'left', card: 'red', at: 1_000 });
+    expect(state.score).toEqual({ left: 0, right: 1 });
+    const next = ok(state, { type: 'state-set', clearCards: true, at: 2_000 });
+    expect(next.cards).toEqual([]);
+    expect(next.score).toEqual({ left: 0, right: 1 });
+  });
+
+  it('reopens a bout excluded by a black card with the cards gone', () => {
+    let state = ok(bout(), { type: 'clock-started', at: 0 });
+    state = ok(state, { type: 'card-given', side: 'left', card: 'black', at: 1_000 });
+    expect(state.phase.kind).toBe('finished');
+    const next = ok(state, { type: 'state-set', clearCards: true, at: 2_000 });
+    expect(next.phase.kind).toBe('fencing');
+    expect(next.cards).toEqual([]);
+  });
+
+  it('combines with other fields and keeps clearing idempotent on an empty list', () => {
+    let state = ok(bout(), { type: 'clock-started', at: 0 });
+    state = ok(state, { type: 'card-given', side: 'right', card: 'yellow', at: 0 });
+    const next = ok(state, { type: 'state-set', clearCards: true, score: { left: 2, right: 2 }, at: 1 });
+    expect(next.cards).toEqual([]);
+    expect(next.score).toEqual({ left: 2, right: 2 });
+    expect(ok(next, { type: 'state-set', clearCards: true, at: 2 }).cards).toEqual([]);
+  });
+
+  it('is undone by the normal history and replays identically', () => {
+    const events: BoutEvent[] = [
+      { type: 'clock-started', at: 0 },
+      { type: 'card-given', side: 'left', card: 'yellow', at: 0 },
+      { type: 'state-set', clearCards: true, at: 1 },
+    ];
+    expect(replayOk(bout(), events).cards).toEqual([]);
+    expect(replayOk(bout(), events)).toEqual(replayOk(bout(), events));
+    expect(replayOk(bout(), [...events, { type: 'undo', at: 2 }]).cards).toHaveLength(1);
   });
 
   it('starts a scheduled bout in the target period with a stopped clock', () => {
