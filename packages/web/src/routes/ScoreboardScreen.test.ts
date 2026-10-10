@@ -364,3 +364,56 @@ describe('manual correction', () => {
     expect(score('left')).toBe('1');
   });
 });
+
+describe('facing the audience', () => {
+  const halves = () => Array.from(document.querySelectorAll('.halves .half')).map((el) => el.classList[1]);
+  const names = (selector: string) =>
+    Array.from(document.querySelectorAll(selector)).map((el) => el.textContent?.trim());
+  const toggle = () => screen.getByRole('checkbox', { name: 'Estoy de cara al público' }) as HTMLInputElement;
+
+  it('is off by default and keeps the domain order', async () => {
+    await open(harness());
+    expect(toggle().checked).toBe(false);
+    expect(halves()).toEqual(['left', 'right']);
+  });
+
+  it('mirrors the halves but keeps sides, colours and events', async () => {
+    const h = harness();
+    await open(h);
+    await fireEvent.click(toggle());
+    expect(halves()).toEqual(['right', 'left']);
+    expect(names('.halves .name')).toEqual(['Bea', 'Ana']);
+
+    await click('Iniciar reloj');
+    await click('Tocado para Bea');
+    expect(score('right')).toBe('1');
+    await waitFor(() => expect(h.server.events.map((e) => e.event.type)).toEqual(['clock-started', 'touch-scored']));
+    expect(h.server.events[1]?.event).toMatchObject({ side: 'right' });
+  });
+
+  it('mirrors the cards sheet columns', async () => {
+    await open(harness());
+    await fireEvent.click(toggle());
+    await click('Tarjetas');
+    expect(names('.sheet .column:first-child .yellow')).toEqual(['Tarjeta amarilla a Bea']);
+  });
+
+  it('mirrors the priority picker', async () => {
+    const h = harness({ weapon: 'foil', options: { periods: 1 }, left: 'Ana', right: 'Bea' });
+    await open(h);
+    await fireEvent.click(toggle());
+    await click('Iniciar reloj');
+    await h.elapse(181_000);
+    expect(names('.pair .btn')).toEqual(['Gana el sorteo: Bea', 'Gana el sorteo: Ana']);
+  });
+
+  it('remembers the choice on the device', async () => {
+    const h = harness();
+    await open(h);
+    await fireEvent.click(toggle());
+    cleanup();
+    await open(h);
+    expect(toggle().checked).toBe(true);
+    expect(halves()).toEqual(['right', 'left']);
+  });
+});

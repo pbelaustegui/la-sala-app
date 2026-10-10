@@ -14,6 +14,7 @@
     errorParams,
     onsubmit,
     onclose,
+    mirrored = false,
   }: {
     names: Readonly<Record<Side, string>>;
     score: Readonly<Record<Side, number>>;
@@ -25,9 +26,11 @@
     /** Returns whether the domain accepted the correction. */
     onsubmit: (patch: StateSetPatch) => boolean;
     onclose: () => void;
+    /** Show the right-hand fencer first (judge facing the audience). */
+    mirrored?: boolean;
   } = $props();
 
-  const SIDES: readonly Side[] = ['left', 'right'];
+  const SIDES = $derived<readonly Side[]>(mirrored ? ['right', 'left'] : ['left', 'right']);
 
   // The sheet is mounted when opened, so the form starts from the state at that moment.
   // svelte-ignore state_referenced_locally
