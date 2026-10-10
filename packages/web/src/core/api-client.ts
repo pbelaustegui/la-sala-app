@@ -8,6 +8,8 @@ export interface Snapshot {
   readonly serverTime: number;
   readonly bout: BoutState | null;
   readonly fencers: { readonly left: string; readonly right: string } | null;
+  /** Piste-level flag: spectators mirror the two sides. Absent from servers that predate it. */
+  readonly facingAudience?: boolean;
 }
 
 /** A piste as the organizer sees it: its id and the judge PIN. */
@@ -91,6 +93,11 @@ export class ApiClient {
   submitEvents(pisteId: string, pin: string, events: readonly ClientEvent[]): Promise<ApiResult<Snapshot>> {
     const body = { events: events.map(({ id, event }) => ({ id, ...event })) };
     return this.request<Snapshot>('POST', `/pistes/${encodeURIComponent(pisteId)}/events`, body, pin);
+  }
+
+  /** Sets the piste-level "judge faces the audience" flag, which mirrors the spectator views. */
+  setFacingAudience(pisteId: string, pin: string, facing: boolean): Promise<ApiResult<Snapshot>> {
+    return this.request<Snapshot>('PUT', `/pistes/${encodeURIComponent(pisteId)}/facing-audience`, { facing }, pin);
   }
 
   listAdminPistes(adminPin: string): Promise<ApiResult<readonly AdminPiste[]>> {

@@ -126,3 +126,53 @@ export function describeBoutRepositoryContract(
     });
   });
 }
+
+/** Piste-level facing-audience flag part of the contract. */
+export function describeFacingAudienceContract(
+  name: string,
+  create: () => PisteRepository | Promise<PisteRepository>,
+): void {
+  describe(`PisteRepository facing-audience contract: ${name}`, () => {
+    let repo: PisteRepository;
+
+    beforeEach(async () => {
+      repo = await create();
+      await repo.replacePistes([
+        { id: '1', pin: '1111' },
+        { id: '2', pin: '2222' },
+      ]);
+    });
+
+    it('is off by default and leaves the piste shape untouched', async () => {
+      expect(await repo.getFacingAudience('1')).toBe(false);
+      expect(await repo.findPiste('1')).toEqual({ id: '1', pin: '1111' });
+    });
+
+    it('stores the flag per piste and can turn it off again', async () => {
+      await repo.setFacingAudience('1', true);
+      expect(await repo.getFacingAudience('1')).toBe(true);
+      expect(await repo.getFacingAudience('2')).toBe(false);
+      await repo.setFacingAudience('1', false);
+      expect(await repo.getFacingAudience('1')).toBe(false);
+    });
+
+    it('survives new bouts: it belongs to the piste, not to the bout', async () => {
+      await repo.setFacingAudience('1', true);
+      await repo.startBout('1', { weapon: 'foil', left: 'Ana', right: 'Bea' });
+      await repo.startBout('1', { weapon: 'foil', left: 'Cris', right: 'Dani' });
+      expect(await repo.getFacingAudience('1')).toBe(true);
+    });
+
+    it('is reset when the pistes are replaced', async () => {
+      await repo.setFacingAudience('1', true);
+      await repo.replacePistes([{ id: '1', pin: '3333' }]);
+      expect(await repo.getFacingAudience('1')).toBe(false);
+    });
+
+    it('rejects setting the flag of an unknown piste and reads it as off', async () => {
+      await expect(repo.setFacingAudience('9', true)).rejects.toThrow();
+      expect(await repo.getFacingAudience('9')).toBe(false);
+    });
+  });
+}
+

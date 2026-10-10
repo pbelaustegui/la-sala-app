@@ -121,7 +121,7 @@ describe('judge endpoints', () => {
     it('returns a null bout for a piste without a bout', async () => {
       const res = await app.request('/pistes/1/state');
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual({ serverTime: T0, bout: null, fencers: null });
+      expect(await res.json()).toEqual({ serverTime: T0, bout: null, fencers: null, facingAudience: false });
     });
 
     it('404s on an unknown piste', async () => {
@@ -168,6 +168,55 @@ describe('judge endpoints', () => {
       const snapshot = (await (await app.request('/pistes/1/state')).json()) as any;
       expect(snapshot.fencers.left).toBe('Cris');
       expect(snapshot.bout.phase.kind).toBe('scheduled');
+    });
+  });
+
+  describe('PUT /pistes/:id/facing-audience', () => {
+    const put = (body: unknown, headers: Record<string, string> = judge(), id = '1') =>
+      send(app, 'PUT', `/pistes/${id}/facing-audience`, body, headers);
+
+    it('requires the piste pin', async () => {
+      expect((await put({ facing: true }, {})).status).toBe(401);
+      expect((await put({ facing: true }, judge('1001'))).status).toBe(401);
+      expect((await put({ facing: true }, { 'x-admin-pin': ADMIN })).status).toBe(401);
+    });
+
+    it('404s on an unknown piste', async () => {
+      expect((await put({ facing: true }, judge(), '99')).status).toBe(404);
+    });
+
+    it.each([[{}], [{ facing: 'yes' }], [{ facing: 1 }], [undefined]])('rejects invalid body %j with 400', async (body) => {
+      expect((await put(body)).status).toBe(400);
+    });
+
+    it('sets the flag and answers the snapshot, even before any bout', async () => {
+      const res = await put({ facing: true });
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({ serverTime: T0, bout: null, fencers: null, facingAudience: true });
+      expect(((await (await app.request('/pistes/1/state')).json()) as any).facingAudience).toBe(true);
+      expect(((await (await app.request('/pistes/2/state')).json()) as any).facingAudience).toBe(false);
+    });
+
+    it('is idempotent and can be turned off again', async () => {
+      await put({ facing: true });
+      expect(((await (await put({ facing: true })).json()) as any).facingAudience).toBe(true);
+      expect(((await (await put({ facing: false })).json()) as any).facingAudience).toBe(false);
+    });
+
+    it('stays on across bouts and shows in the bout snapshots', async () => {
+      await put({ facing: true });
+      const started = (await (await send(app, 'POST', '/pistes/1/bout', startBody, judge())).json()) as any;
+      expect(started.facingAudience).toBe(true);
+      const restarted = (await (await send(app, 'POST', '/pistes/1/bout', startBody, judge())).json()) as any;
+      expect(restarted.facingAudience).toBe(true);
+      const events = (await (await send(app, 'POST', '/pistes/1/events', { events: [ev('a', 'clock-started', T0)] }, judge())).json()) as any;
+      expect(events.facingAudience).toBe(true);
+    });
+
+    it('is reset when the organizer recreates the pistes', async () => {
+      await put({ facing: true });
+      await send(app, 'POST', '/admin/pistes', { count: 2 }, { 'x-admin-pin': ADMIN });
+      expect(((await (await app.request('/pistes/1/state')).json()) as any).facingAudience).toBe(false);
     });
   });
 

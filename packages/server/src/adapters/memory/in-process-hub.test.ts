@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Snapshot } from '../../application/ports';
 import { InProcessHub } from './in-process-hub';
 
-const snap = (serverTime: number): Snapshot => ({ serverTime, bout: null, fencers: null });
+const snap = (serverTime: number): Snapshot => ({ serverTime, bout: null, fencers: null, facingAudience: false });
 
 describe('InProcessHub', () => {
   it('delivers snapshots only to subscribers of that piste', () => {

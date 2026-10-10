@@ -5,7 +5,8 @@ const SCHEMA = `
   CREATE TABLE IF NOT EXISTS pistes (
     id       TEXT PRIMARY KEY,
     pin      TEXT NOT NULL,
-    position INTEGER NOT NULL
+    position INTEGER NOT NULL,
+    facing_audience INTEGER NOT NULL DEFAULT 0
   );
   CREATE TABLE IF NOT EXISTS bouts (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,6 +25,14 @@ const SCHEMA = `
   );
 `;
 
+/** Databases created before a column existed get it added; fresh ones already have it. */
+function migrate(db: DatabaseSync): void {
+  const columns = db.prepare('PRAGMA table_info(pistes)').all() as unknown as { name: string }[];
+  if (!columns.some((column) => column.name === 'facing_audience')) {
+    db.exec('ALTER TABLE pistes ADD COLUMN facing_audience INTEGER NOT NULL DEFAULT 0');
+  }
+}
+
 interface BoutRow {
   id: number;
   setup: string;
@@ -38,6 +47,7 @@ export class SqlitePisteRepository implements PisteRepository {
     const db = new DatabaseSync(path);
     db.exec('PRAGMA foreign_keys = ON');
     db.exec(SCHEMA);
+    migrate(db);
     return new SqlitePisteRepository(db);
   }
 
@@ -107,6 +117,16 @@ export class SqlitePisteRepository implements PisteRepository {
       setup: JSON.parse(row.setup) as BoutSetup,
       events: events.map((e) => ({ id: e.event_id, event: JSON.parse(e.payload) })),
     };
+  }
+
+  async getFacingAudience(pisteId: string): Promise<boolean> {
+    const row = this.db.prepare('SELECT facing_audience AS facing FROM pistes WHERE id = ?').get(pisteId);
+    return row !== undefined && Number(row.facing) === 1;
+  }
+
+  async setFacingAudience(pisteId: string, facing: boolean): Promise<void> {
+    const result = this.db.prepare('UPDATE pistes SET facing_audience = ? WHERE id = ?').run(facing ? 1 : 0, pisteId);
+    if (Number(result.changes) === 0) throw new Error(`Unknown piste ${pisteId}`);
   }
 
   /** Runs `work` atomically: commit on success, roll back and rethrow on any error. */

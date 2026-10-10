@@ -31,6 +31,20 @@ describe('ApiClient', () => {
     expect(post.body).toEqual({ events: [{ id: 'a', type: 'clock-started', at: 1_000 }] });
   });
 
+  it('sets the piste facing-audience flag with the PIN and returns the snapshot', async () => {
+    const { api, server } = make();
+    const result = await api.setFacingAudience('p1', '1234', true);
+
+    expect(result.ok && result.value.facingAudience).toBe(true);
+    const put = server.requests.at(-1)!;
+    expect(put.method).toBe('PUT');
+    expect(put.path).toBe('/pistes/p1/facing-audience');
+    expect(put.headers['x-piste-pin']).toBe('1234');
+    expect(put.body).toEqual({ facing: true });
+    expect(server.facingAudience).toBe(true);
+    expect(await api.setFacingAudience('p1', 'wrong', false)).toEqual({ ok: false, error: { kind: 'unauthorized' } });
+  });
+
   it('lists pistes and reads snapshots without a PIN', async () => {
     const { api, server } = make();
     await api.startBout('p1', '1234', setup);

@@ -86,6 +86,8 @@ Nothing links to it from the public screens, so type the URL by hand. Once the o
 
 `packages/web` is the judge's scoreboard: enter the piste PIN, set up the bout, score touches, run the clock, give cards, undo, and correct the bout by hand ("Corregir marcador y reloj": reset the clock, reset the scores to 0-0, or set scores, remaining time and period; a confirmation step comes first, it also reopens a finished bout, and "Deshacer" reverts it). It keeps working without a connection: every event is stored on the phone first and sent to the server in order when the network allows (see "Sync and clock" below). The UI is in Spanish.
 
+"Estoy de cara al público" (below the scoreboard) sets the piste's facing-audience flag on the server: spectator cards and the piste detail then show the two fencers mirrored (right first), because the judge and the audience look at the piste from opposite ends. The judge's own scoreboard is never mirrored and the setting is not stored on the device. The box shows the new value at once and locks while it is saved; it is NOT queued offline: if the server cannot be reached the previous value comes back with the note "No se pudo cambiar sin conexión con el servidor", and the judge taps again when back online. A change made while offline would otherwise reach the audience minutes later, unnoticed.
+
 ### Build and serve it from the server
 
 ```sh
@@ -162,12 +164,15 @@ Headers: `x-admin-pin` (organizer) and `x-piste-pin` (judge of that piste). Wron
 | `GET /admin/pistes`           | admin       | Lists `[{id, pin}]`.                                                |
 | `GET /pistes`                 | none        | `[{id, status}]`; `idle` or the current phase. No PINs.             |
 | `POST /pistes/:id/bout`       | piste       | `{weapon, options?, left, right}`. Starts a bout, archiving the previous one. |
+| `PUT /pistes/:id/facing-audience` | piste   | `{facing: boolean}`. Sets the piste-level "judge faces the audience" flag; answers the snapshot. |
 | `POST /pistes/:id/events`     | piste       | `{events: [{id, type, at, ...}]}`. Applied in order; see below.     |
-| `GET /pistes/:id/state`       | none        | `{serverTime, bout, fencers}`; `bout` is the domain state settled at `serverTime`. |
+| `GET /pistes/:id/state`       | none        | `{serverTime, bout, fencers, facingAudience}`; `bout` is the domain state settled at `serverTime`. |
 | `GET /pistes/:id/stream`      | none        | Server-sent events: `snapshot` on connect, then one per change, `: heartbeat` comment every 15 s. |
 | `GET /pistes/stream`          | none        | Public board feed for ALL pistes (see below).                       |
 
-Board feed (`GET /pistes/stream`, registered before `/pistes/:id/...`): `event: pistes` `{pisteIds}` is the authoritative piste set (first on connect and after `POST /admin/pistes`; drop any other id) and `event: snapshot` `{pisteId, snapshot: {serverTime, bout, fencers}}` is sent per piste on connect and then per change. `event: ping` `{serverTime}` is sent every 15 s (a real event, because browsers do not expose SSE comments) so the client can tell a quiet connection from a dead one. The per-piste stream keeps its `: heartbeat` comment.
+Board feed (`GET /pistes/stream`, registered before `/pistes/:id/...`): `event: pistes` `{pisteIds}` is the authoritative piste set (first on connect and after `POST /admin/pistes`; drop any other id) and `event: snapshot` `{pisteId, snapshot: {serverTime, bout, fencers, facingAudience}}` is sent per piste on connect and then per change. `event: ping` `{serverTime}` is sent every 15 s (a real event, because browsers do not expose SSE comments) so the client can tell a quiet connection from a dead one. The per-piste stream keeps its `: heartbeat` comment.
+
+**Facing the audience:** `facingAudience` (boolean, `false` by default) is a flag of the PISTE, not of the bout. The judge sets it with `PUT /pistes/:id/facing-audience` (judge PIN, same throttling as the other judge calls); it survives new bouts, is stored with the piste (SQLite column `pistes.facing_audience`, added automatically to databases created before it) and is reset only when `POST /admin/pistes` replaces the pistes. Every change publishes a snapshot, so open spectator screens mirror left and right at once. It is a display hint only: sides, events and per-side colours never change, and the judge's own scoreboard is not mirrored. A client that does not know the field must treat it as `false`.
 
 Events:
 

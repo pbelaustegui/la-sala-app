@@ -7,7 +7,7 @@ import { MemoryAttemptLimiter } from '../memory/attempt-limiter';
 import { InProcessHub } from '../memory/in-process-hub';
 import { requireAdmin, requirePistePin } from './auth';
 import { mountStaticWeb } from './static-web';
-import { createPistesBody, startBoutBody, submitEventsBody, toSetup, toStoredEvents } from './schemas';
+import { createPistesBody, facingAudienceBody, startBoutBody, submitEventsBody, toSetup, toStoredEvents } from './schemas';
 
 export interface AppDeps {
   /** Organizer secret, read from the environment at startup. Never logged or echoed. */
@@ -63,7 +63,7 @@ export function createApp(deps: AppDeps): Hono {
    * Messages (SSE `event:` / `data:`), each a small JSON object:
    *  - `pistes`   `{ pisteIds: string[] }`: the authoritative piste set. Sent first on connect and
    *               again whenever `POST /admin/pistes` replaces the pistes; drop any id not listed.
-   *  - `snapshot` `{ pisteId, snapshot }` with `snapshot = { serverTime, bout, fencers }`: one per
+   *  - `snapshot` `{ pisteId, snapshot }` with `snapshot = { serverTime, bout, fencers, facingAudience }`: one per
    *               piste on connect and one per change (so a replacement is `pistes` then a
    *               snapshot per new piste).
    *  - `ping`     `{ serverTime }` every `heartbeatMs` (15 s). A real event, not a `:` comment,
@@ -141,6 +141,14 @@ export function createApp(deps: AppDeps): Hono {
     if (!body.success) return c.json({ error: 'invalid-request', issues: body.error.issues }, 400);
     const result = await bouts.startBout(c.req.param('id'), toSetup(body.data));
     return result.ok ? c.json(result.snapshot, 201) : c.json({ error: result.reason }, 404);
+  });
+
+  /** Judge sets the piste-level "facing the audience" flag; spectators get it on the streams. */
+  app.put('/pistes/:id/facing-audience', requirePiste, async (c) => {
+    const body = facingAudienceBody.safeParse(await readJson(c.req.raw));
+    if (!body.success) return c.json({ error: 'invalid-request', issues: body.error.issues }, 400);
+    const result = await bouts.setFacingAudience(c.req.param('id'), body.data.facing);
+    return result.ok ? c.json(result.snapshot) : c.json({ error: result.reason }, 404);
   });
 
   app.post('/pistes/:id/events', requirePiste, async (c) => {

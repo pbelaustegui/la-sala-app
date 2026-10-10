@@ -374,11 +374,13 @@ describe('manual correction', () => {
   });
 });
 
-describe('facing the audience', () => {
+describe('facing the audience (piste flag)', () => {
   const halves = () => Array.from(document.querySelectorAll('.halves .half')).map((el) => el.classList[1]);
   const names = (selector: string) =>
     Array.from(document.querySelectorAll(selector)).map((el) => el.textContent?.trim());
   const toggle = () => screen.getByRole('checkbox', { name: 'Estoy de cara al público' }) as HTMLInputElement;
+  const hint = () => screen.queryByText(/No se pudo cambiar/);
+  const putCount = (h: ReturnType<typeof harness>) => h.server.requests.filter((r) => r.method === 'PUT').length;
 
   it('is off by default and keeps the domain order', async () => {
     await open(harness());
@@ -386,13 +388,34 @@ describe('facing the audience', () => {
     expect(halves()).toEqual(['left', 'right']);
   });
 
-  it('mirrors the halves but keeps sides, colours and events', async () => {
+  it('shows the flag stored on the piste', async () => {
+    const h = harness();
+    h.server.facingAudience = true;
+    await open(h);
+    await waitFor(() => expect(toggle().checked).toBe(true));
+  });
+
+  it('setting it changes the piste flag with the PIN and never mirrors the judge screen', async () => {
     const h = harness();
     await open(h);
     await fireEvent.click(toggle());
-    expect(halves()).toEqual(['right', 'left']);
-    expect(names('.halves .name')).toEqual(['Bea', 'Ana']);
+    await waitFor(() => expect(h.server.facingAudience).toBe(true));
+    expect(h.server.requests.filter((r) => r.method === 'PUT')).toMatchObject([
+      { path: '/pistes/p1/facing-audience', headers: { 'x-piste-pin': PIN }, body: { facing: true } },
+    ]);
+    expect(toggle().checked).toBe(true);
+    expect(halves()).toEqual(['left', 'right']);
+    expect(names('.halves .name')).toEqual(['Ana', 'Bea']);
 
+    await click('Tarjetas');
+    expect(names('.sheet .column:first-child .yellow')).toEqual(['Tarjeta amarilla a Ana']);
+  });
+
+  it('keeps sides, colours and events untouched', async () => {
+    const h = harness();
+    await open(h);
+    await fireEvent.click(toggle());
+    await waitFor(() => expect(h.server.facingAudience).toBe(true));
     await click('Iniciar reloj');
     await click('Tocado para Bea');
     expect(score('right')).toBe('1');
@@ -400,29 +423,41 @@ describe('facing the audience', () => {
     expect(h.server.events[1]?.event).toMatchObject({ side: 'right' });
   });
 
-  it('mirrors the cards sheet columns', async () => {
-    await open(harness());
-    await fireEvent.click(toggle());
-    await click('Tarjetas');
-    expect(names('.sheet .column:first-child .yellow')).toEqual(['Tarjeta amarilla a Bea']);
-  });
-
-  it('mirrors the priority picker', async () => {
-    const h = harness({ weapon: 'foil', options: { periods: 1 }, left: 'Ana', right: 'Bea' });
+  it('turns it off again', async () => {
+    const h = harness();
+    h.server.facingAudience = true;
     await open(h);
+    await waitFor(() => expect(toggle().checked).toBe(true));
     await fireEvent.click(toggle());
-    await click('Iniciar reloj');
-    await h.elapse(181_000);
-    expect(names('.pair .btn')).toEqual(['Gana el sorteo: Bea', 'Gana el sorteo: Ana']);
+    await waitFor(() => expect(h.server.facingAudience).toBe(false));
+    expect(toggle().checked).toBe(false);
   });
 
-  it('remembers the choice on the device', async () => {
+  it('offline: keeps the last known value and says the change was not saved', async () => {
+    const h = harness();
+    await open(h);
+    h.server.down = true;
+    await fireEvent.click(toggle());
+    await waitFor(() => expect(hint()).toBeTruthy());
+    expect(toggle().checked).toBe(false);
+    expect(toggle().disabled).toBe(false);
+    expect(h.server.facingAudience).toBe(false);
+
+    h.server.down = false;
+    await fireEvent.click(toggle());
+    await waitFor(() => expect(h.server.facingAudience).toBe(true));
+    expect(hint()).toBeNull();
+    expect(toggle().checked).toBe(true);
+    expect(putCount(h)).toBe(2);
+  });
+
+  it('survives across bouts and reloads: it is read back from the piste, not from the device', async () => {
     const h = harness();
     await open(h);
     await fireEvent.click(toggle());
+    await waitFor(() => expect(h.server.facingAudience).toBe(true));
     cleanup();
     await open(h);
-    expect(toggle().checked).toBe(true);
-    expect(halves()).toEqual(['right', 'left']);
+    await waitFor(() => expect(toggle().checked).toBe(true));
   });
 });

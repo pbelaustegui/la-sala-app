@@ -41,7 +41,7 @@ export class BoutService {
     const pistes = await this.deps.repository.listPistes();
     return Promise.all(
       pistes.map(async ({ id }) => {
-        const snapshot = this.snapshotOf(await this.deps.repository.findBout(id));
+        const snapshot = await this.snapshotFor(id);
         return { id, status: snapshot.bout?.phase.kind ?? 'idle' };
       }),
     );
@@ -49,15 +49,28 @@ export class BoutService {
 
   async getSnapshot(pisteId: string): Promise<SnapshotResult> {
     if (!(await this.deps.repository.findPiste(pisteId))) return { ok: false, reason: 'unknown-piste' };
-    const record = await this.deps.repository.findBout(pisteId);
-    return { ok: true, snapshot: this.snapshotOf(record) };
+    return { ok: true, snapshot: await this.snapshotFor(pisteId) };
   }
 
   startBout(pisteId: string, setup: BoutSetup): Promise<StartBoutResult> {
     return this.queue.run(pisteId, async () => {
       if (!(await this.deps.repository.findPiste(pisteId))) return { ok: false, reason: 'unknown-piste' };
       await this.deps.repository.startBout(pisteId, setup);
-      const snapshot = this.snapshotOf({ setup, events: [] });
+      const snapshot = this.snapshotOf({ setup, events: [] }, await this.deps.repository.getFacingAudience(pisteId));
+      this.deps.hub.publish(pisteId, snapshot);
+      return { ok: true, snapshot };
+    });
+  }
+
+  /**
+   * Sets the piste-level "judge faces the audience" flag and publishes the new snapshot, so open
+   * spectator screens mirror (or unmirror) at once. Idempotent; it never touches the bout.
+   */
+  setFacingAudience(pisteId: string, facing: boolean): Promise<SnapshotResult> {
+    return this.queue.run(pisteId, async () => {
+      if (!(await this.deps.repository.findPiste(pisteId))) return { ok: false, reason: 'unknown-piste' };
+      await this.deps.repository.setFacingAudience(pisteId, facing);
+      const snapshot = await this.snapshotFor(pisteId);
       this.deps.hub.publish(pisteId, snapshot);
       return { ok: true, snapshot };
     });
@@ -80,7 +93,8 @@ export class BoutService {
         known.add(stored.id);
         fresh.push({ stored, batchIndex });
       });
-      if (fresh.length === 0) return { ok: true, snapshot: this.snapshotOf(record) };
+      const facing = await this.deps.repository.getFacingAudience(pisteId);
+      if (fresh.length === 0) return { ok: true, snapshot: this.snapshotOf(record, facing) };
 
       const next: BoutRecord = { setup: record.setup, events: [...record.events, ...fresh.map((f) => f.stored)] };
       const replayed = replay(createBout(rulesOf(next.setup)), next.events.map((stored) => stored.event));
@@ -93,7 +107,7 @@ export class BoutService {
       }
 
       await this.deps.repository.appendEvents(pisteId, fresh.map((f) => f.stored));
-      const snapshot = this.snapshotOf(next);
+      const snapshot = this.snapshotOf(next, facing);
       this.deps.hub.publish(pisteId, snapshot);
       return { ok: true, snapshot };
     });
@@ -103,19 +117,27 @@ export class BoutService {
   async listSnapshots(): Promise<readonly { readonly pisteId: string; readonly snapshot: Snapshot }[]> {
     const pistes = await this.deps.repository.listPistes();
     return Promise.all(
-      pistes.map(async ({ id }) => ({ pisteId: id, snapshot: this.snapshotOf(await this.deps.repository.findBout(id)) })),
+      pistes.map(async ({ id }) => ({ pisteId: id, snapshot: await this.snapshotFor(id) })),
     );
   }
 
   /** Tells live subscribers that the given pistes were just (re)created and hold no bout. */
   announcePistesReset(pisteIds: readonly string[]): void {
     this.deps.hub.publishPistes(pisteIds);
-    for (const id of pisteIds) this.deps.hub.publish(id, this.snapshotOf(null));
+    for (const id of pisteIds) this.deps.hub.publish(id, this.snapshotOf(null, false));
   }
 
-  private snapshotOf(record: BoutRecord | null): Snapshot {
+  private async snapshotFor(pisteId: string): Promise<Snapshot> {
+    const [record, facing] = await Promise.all([
+      this.deps.repository.findBout(pisteId),
+      this.deps.repository.getFacingAudience(pisteId),
+    ]);
+    return this.snapshotOf(record, facing);
+  }
+
+  private snapshotOf(record: BoutRecord | null, facingAudience: boolean): Snapshot {
     const serverTime = this.deps.clock.now();
-    if (!record) return { serverTime, bout: null, fencers: null };
+    if (!record) return { serverTime, bout: null, fencers: null, facingAudience };
     const replayed = replay(
       createBout(rulesOf(record.setup)),
       record.events.map((stored) => stored.event),
@@ -125,6 +147,7 @@ export class BoutService {
       serverTime,
       bout: settle(replayed.state, serverTime),
       fencers: { left: record.setup.left, right: record.setup.right },
+      facingAudience,
     };
   }
 }

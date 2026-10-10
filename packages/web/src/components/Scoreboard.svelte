@@ -21,6 +21,8 @@
     oncorrect,
     onnewbout,
     facing = false,
+    facingBusy = false,
+    facingFailed = false,
     onfacing,
   }: {
     model: ScoreboardModel;
@@ -37,8 +39,12 @@
     /** Returns whether the correction was accepted. */
     oncorrect: (patch: StateSetPatch) => boolean;
     onnewbout: () => void;
-    /** The judge faces the audience: show the fencers mirrored. Display only. */
+    /** Piste flag "facing the audience": it mirrors the SPECTATOR views, never this screen. */
     facing?: boolean;
+    /** The flag is being saved. */
+    facingBusy?: boolean;
+    /** The last change could not be saved (offline); the previous value is shown. */
+    facingFailed?: boolean;
     onfacing?: (facing: boolean) => void;
   } = $props();
 
@@ -46,8 +52,7 @@
   let correctOpen = $state(false);
   const cardCounts = $derived(countCards(model.cards));
 
-  // Only the on-screen order changes; sides, events and colours stay with the domain side.
-  const SIDES = $derived<readonly Side[]>(facing ? ['right', 'left'] : ['left', 'right']);
+  const SIDES: readonly Side[] = ['left', 'right'];
 
   function give(side: Side, card: Card): void {
     oncard(side, card);
@@ -164,13 +169,12 @@
   </div>
 
   {#if cardsOpen}
-    <CardsSheet mirrored={facing} {names} disabled={!model.canScore} ongive={give} onclose={() => (cardsOpen = false)} />
+    <CardsSheet {names} disabled={!model.canScore} ongive={give} onclose={() => (cardsOpen = false)} />
   {/if}
 
   <!-- Apart from the scoring areas and always enabled: it is how a finished bout is reopened. -->
   {#if correctOpen}
     <CorrectionSheet
-      mirrored={facing}
       {names}
       score={model.score}
       basis={model.correction}
@@ -186,9 +190,17 @@
 
   {#if onfacing}
     <label class="facing">
-      <input type="checkbox" checked={facing} onchange={(e) => onfacing(e.currentTarget.checked)} />
+      <input
+        type="checkbox"
+        checked={facing}
+        disabled={facingBusy}
+        onchange={(e) => onfacing(e.currentTarget.checked)}
+      />
       <span>{t('board.facing')}</span>
     </label>
+    {#if facingFailed}
+      <p class="facing-hint" role="status">{t('board.facing.failed')}</p>
+    {/if}
   {/if}
 </section>
 
@@ -318,6 +330,11 @@
     gap: 0.75rem;
     min-height: 48px;
     cursor: pointer;
+  }
+  .facing-hint {
+    margin: 0;
+    color: var(--accent);
+    font-weight: 700;
   }
   .facing input {
     width: 1.5rem;

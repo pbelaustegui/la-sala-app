@@ -230,15 +230,4 @@ describe('CorrectionSheet', () => {
     await click('Sí, aplicar el cambio');
     expect(screen.getByRole('alert').textContent?.trim()).toBe(text);
   });
-
-  it('lists the score inputs in domain order by default and mirrored when asked', () => {
-    mount();
-    const order = () =>
-      Array.from(document.querySelectorAll('.scores input')).map((el) => (el as HTMLInputElement).value);
-    expect(order()).toEqual(['3', '2']);
-    cleanup();
-    mount({ mirrored: true });
-    expect(order()).toEqual(['2', '3']);
-    expect(value('Tocados de Ana')).toBe('3');
-  });
 });

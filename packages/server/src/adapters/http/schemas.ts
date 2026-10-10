@@ -21,6 +21,8 @@ export const startBoutBody = z.object({
   right: z.string().trim().min(1).max(100),
 });
 
+export const facingAudienceBody = z.object({ facing: z.boolean() });
+
 const side = z.enum(['left', 'right']);
 const count = z.number().int().nonnegative();
 const common = { id: z.string().min(1).max(100), at: z.number().finite() };

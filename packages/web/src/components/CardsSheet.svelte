@@ -7,17 +7,14 @@
     disabled,
     ongive,
     onclose,
-    mirrored = false,
   }: {
     names: Readonly<Record<Side, string>>;
     disabled: boolean;
     ongive: (side: Side, card: Card) => void;
     onclose: () => void;
-    /** Show the right-hand fencer first (judge facing the audience). */
-    mirrored?: boolean;
   } = $props();
 
-  const SIDES = $derived<readonly Side[]>(mirrored ? ['right', 'left'] : ['left', 'right']);
+  const SIDES: readonly Side[] = ['left', 'right'];
   const CARDS: readonly Card[] = ['yellow', 'red', 'black'];
 </script>
 

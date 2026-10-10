@@ -3,6 +3,7 @@
   import ConnectionBar from '../components/ConnectionBar.svelte';
   import Scoreboard from '../components/Scoreboard.svelte';
   import { createJudgeSession } from '../controllers/judge-session';
+  import { PisteFacing } from '../core/piste-facing';
   import type { LocalBout } from '../core/local-bout';
   import { getServices } from '../env';
   import { t } from '../i18n/t';
@@ -32,11 +33,9 @@
   const session = createJudgeSession({ services, pisteId, pin, bout, startedOffline });
   const controller = session.controller;
   const connection = session.queue.connection;
-  let facing = $state(services.facing.get());
-  function setFacing(value: boolean): void {
-    facing = value;
-    services.facing.set(value);
-  }
+  // svelte-ignore state_referenced_locally
+  const facing = new PisteFacing({ api: services.api, pisteId, pin });
+  void facing.load();
   const wakeLock = session.wakeLock;
   // svelte-ignore state_referenced_locally
   const names = {
@@ -73,8 +72,10 @@
   onpriority={(side) => controller.drawPriority(side)}
   oncorrect={(patch) => controller.setState(patch)}
   {onnewbout}
-  {facing}
-  onfacing={setFacing}
+  facing={$facing.facing}
+  facingBusy={$facing.busy}
+  facingFailed={$facing.failed}
+  onfacing={(value) => void facing.set(value)}
 />
 
 <div class="actions leave">

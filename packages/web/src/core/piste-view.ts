@@ -24,6 +24,8 @@ export interface PisteView {
   readonly winner: Side | null;
   readonly reason: FinishReason | null;
   readonly cards: Readonly<Record<Side, CardCounts>>;
+  /** The judge of the piste faces the audience: show the two sides mirrored. Display order only. */
+  readonly facingAudience: boolean;
   /** The connection dropped: this is the last known state, frozen at the moment it was received. */
   readonly stale: boolean;
 }
@@ -38,12 +40,13 @@ export interface PisteView {
  */
 export function toPisteView(entry: BoardEntry, clientNow: number): PisteView {
   const { snapshot, stale, pisteId } = entry;
+  const facingAudience = snapshot.facingAudience === true;
   const serverNow = stale ? snapshot.serverTime : clientNow + entry.offsetMs;
 
   if (!snapshot.bout) {
     return {
       pisteId, phase: 'idle', fencers: null, score: { left: 0, right: 0 }, remainingMs: null, running: false,
-      period: null, periods: 0, breakRemainingMs: null, priority: null, winner: null, reason: null, cards: countCards([]), stale,
+      period: null, periods: 0, breakRemainingMs: null, priority: null, winner: null, reason: null, cards: countCards([]), facingAudience, stale,
     };
   }
 
@@ -68,6 +71,7 @@ export function toPisteView(entry: BoardEntry, clientNow: number): PisteView {
     winner: phase.kind === 'finished' ? phase.winner : null,
     reason: phase.kind === 'finished' ? phase.reason : null,
     cards: countCards(state.cards),
+    facingAudience,
     stale,
   };
 }
