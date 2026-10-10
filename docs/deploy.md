@@ -13,23 +13,29 @@ Read this first:
 On DigitalOcean you can skip sections 1 to 6: one paste of [`deploy/cloud-init.yaml`](../deploy/cloud-init.yaml) installs Docker, clones this public repository into `/opt/la-sala`, writes `.env` and starts the stack.
 
 1. Create a Droplet with Ubuntu 24.04, at least 1 GB RAM (2 GB preferred, see troubleshooting) and your SSH key. Before you click create, open the advanced section above "Finalize Details" (called "Advanced Options" with an "Add Initialization scripts" box, or "Additional Options" with "Startup scripts", depending on the panel version) and paste the whole file, starting with the `#cloud-config` line, into the text box. User data can only be set while creating the Droplet: if you create it with the field empty you must destroy it and start again. To deploy a branch or tag other than `main`, change `REPO_REF` in the script first.
-2. Wait for the setup to finish (a few minutes, the image build is the slow part):
+2. Save the Droplet's IP in a variable so you only type it once (reuse the same terminal for the next steps):
 
    ```sh
-   ssh root@<droplet-ip> cloud-init status --wait
+   export DROPLET_IP=<droplet-ip>
+   ```
+
+   Wait for the setup to finish (a few minutes, the image build is the slow part):
+
+   ```sh
+   ssh root@$DROPLET_IP cloud-init status --wait
    ```
 
    If it ends in `error`, read `/var/log/la-sala-bootstrap.log` on the server.
 3. Read the admin PIN:
 
    ```sh
-   ssh root@<droplet-ip> "grep ADMIN_PIN /opt/la-sala/.env"
+   ssh root@$DROPLET_IP "grep ADMIN_PIN /opt/la-sala/.env"
    ```
 
 4. Verify (the host name is the IP with dashes plus `.sslip.io`; `/root/la-sala-ready` on the server holds the exact URL):
 
    ```sh
-   curl -i https://<ip-with-dashes>.sslip.io/health
+   curl -i https://${DROPLET_IP//./-}.sslip.io/health
    ```
 
 5. Continue at "8. Create the pistes". Sections 9 (backup) and 10 (destroy) apply to both paths. For the phone checks in section 7, use the same HTTPS address.
