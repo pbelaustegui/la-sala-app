@@ -107,6 +107,14 @@ describe('CorrectionSheet', () => {
     expect(onsubmit).toHaveBeenCalledWith({ score: { left: 0, right: 0 } });
   });
 
+  it('clear cards asks to confirm and sends only clearCards', async () => {
+    const { onsubmit } = mount();
+    await click('Quitar tarjetas');
+    expect(screen.getByText('Se va a cambiar quitar las tarjetas de los dos tiradores.')).toBeTruthy();
+    await click('Sí, aplicar el cambio');
+    expect(onsubmit).toHaveBeenCalledWith({ clearCards: true });
+  });
+
   it('says that applying reopens a finished bout, and only then', async () => {
     mount({ finished: true });
     await click('Marcador a 0-0');

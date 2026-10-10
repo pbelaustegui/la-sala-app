@@ -285,6 +285,15 @@ describe('manual correction', () => {
     expect(h.server.events.at(-1)?.event).toMatchObject({ type: 'state-set', score: { left: 0, right: 0 } });
   });
 
+  it('clears the cards from the correction sheet', async () => {
+    const h = harness();
+    await open(h);
+    await click('Corregir marcador y reloj');
+    await click('Quitar tarjetas');
+    await click('Sí, aplicar el cambio');
+    await waitFor(() => expect(h.server.events.at(-1)?.event).toMatchObject({ type: 'state-set', clearCards: true }));
+  });
+
   it('resets the clock and leaves it stopped', async () => {
     const h = harness();
     await open(h);

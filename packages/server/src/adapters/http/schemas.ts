@@ -42,6 +42,7 @@ const eventSchema = z.discriminatedUnion('type', [
     score: z.object({ left: count, right: count }).optional(),
     remainingMs: count.optional(),
     period: positiveInt.optional(),
+    clearCards: z.literal(true).optional(),
   }),
 ]);
 

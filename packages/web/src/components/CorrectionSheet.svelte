@@ -42,6 +42,7 @@
   };
 
   let fields = $state({ ...initial });
+  let clearCards = $state(false);
   let step = $state<'form' | 'confirm'>('form');
   let attempted = $state(false);
   let notice = $state<'none' | 'no-changes' | 'clock-current' | 'score-current'>('none');
@@ -59,6 +60,7 @@
       ...(scoreChanged && { score: { left: num(fields.left), right: num(fields.right) } }),
       ...(clockChanged && { remainingMs: (num(fields.minutes) * 60 + num(fields.seconds)) * 1000 }),
       ...(periodChanged && { period: num(fields.period) }),
+      ...(clearCards && { clearCards: true as const }),
     };
   }
 
@@ -74,6 +76,7 @@
         }),
       clockChanged && t('board.correct.change.clock', { time: timeText }),
       periodChanged && t('board.correct.change.period', { period: fields.period.trim() }),
+      clearCards && t('board.correct.change.cards'),
     ]
       .filter((part): part is string => part !== false)
       .join(', '),
@@ -146,12 +149,25 @@
     review();
   }
 
+  function clearAllCards(): void {
+    clearCards = true;
+    review();
+    // Only the confirmation step keeps it pending; a blocked form must not carry it silently.
+    if (step === 'form') clearCards = false;
+  }
+
+  function back(): void {
+    clearCards = false;
+    step = 'form';
+  }
+
   function confirm(): void {
     if (onsubmit(buildPatch())) {
       onclose();
       return;
     }
     attempted = true;
+    clearCards = false;
     step = 'form';
   }
 
@@ -174,6 +190,7 @@
     <div class="actions quick">
       <button class="btn" type="button" onclick={resetClock}>{t('board.correct.resetClock')}</button>
       <button class="btn" type="button" onclick={resetScores}>{t('board.correct.resetScores')}</button>
+      <button class="btn" type="button" onclick={clearAllCards}>{t('board.correct.clearCards')}</button>
     </div>
 
     <div class="scores">
@@ -232,7 +249,7 @@
     </div>
     <div class="actions">
       <button class="btn primary" type="button" onclick={confirm}>{t('board.correct.apply')}</button>
-      <button class="btn" type="button" onclick={() => (step = 'form')}>{t('board.correct.back')}</button>
+      <button class="btn" type="button" onclick={back}>{t('board.correct.back')}</button>
     </div>
   {/if}
 </div>

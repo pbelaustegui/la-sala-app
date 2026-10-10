@@ -10,6 +10,12 @@ export interface StateSetPatch {
   readonly remainingMs?: number;
   /** Regular period to fence in, 1..rules.periods. */
   readonly period?: number;
+  /**
+   * Removes the cards of both fencers. Only `true` is meaningful (there is no "keep"
+   * value: omit the field). Nothing derived from a card is reverted: a touch a red card
+   * awarded stays on the score, which the judge corrects with `score`.
+   */
+  readonly clearCards?: true;
 }
 
 export type StateSetError =
@@ -44,17 +50,19 @@ function currentPeriod(phase: Phase, periods: number): number {
 /**
  * Applies a judge's correction to a state already settled at `at`. Validation is the
  * domain's job: the result is always fencing (or the extra period, if the bout is in it
- * and no period is given) with a stopped clock. Cards, priority and the mid-bout break
- * flag are left alone. The corrected state then goes through the usual terminal checks:
- * a touch limit reached while ahead finishes the bout, and an empty clock expires through
- * the normal clock logic (period break, priority draw or finish on time).
+ * and no period is given) with a stopped clock. Priority and the mid-bout break flag are
+ * left alone, and so are cards unless `clearCards` is set (then both fencers' cards are
+ * removed; a red card's touch and a black card's exclusion are not special cases: the
+ * score is kept as is and the bout is reopened like with any other correction). The
+ * corrected state then goes through the usual terminal checks: a touch limit reached
+ * while ahead finishes the bout, and an empty clock expires through the normal clock logic (period break, priority draw or finish on time).
  */
 export function applyStateSet(state: BoutState, patch: StateSetPatch & { readonly at: number }): StateSetResult {
-  const { score, remainingMs, period, at } = patch;
+  const { score, remainingMs, period, clearCards, at } = patch;
   const { rules } = state;
   const fail = (error: StateSetError): StateSetResult => ({ ok: false, error });
 
-  if (score === undefined && remainingMs === undefined && period === undefined) {
+  if (score === undefined && remainingMs === undefined && period === undefined && clearCards === undefined) {
     return fail({ type: 'state-set-empty' });
   }
   if (score !== undefined && !(isCount(score.left) && isCount(score.right))) {
@@ -83,6 +91,7 @@ export function applyStateSet(state: BoutState, patch: StateSetPatch & { readonl
     ...state,
     phase: target,
     score: score ?? state.score,
+    cards: clearCards ? [] : state.cards,
     clock: { remainingMs: remainingMs ?? Math.min(current, maxMs), runningSince: null },
   };
   const finished = finishedByTouchLimit(corrected);
