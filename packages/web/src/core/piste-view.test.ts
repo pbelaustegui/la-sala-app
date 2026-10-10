@@ -23,6 +23,25 @@ function entry(state: BoutState | null, overrides: Partial<BoardEntry> = {}): Bo
   };
 }
 
+describe('toPisteView facing audience', () => {
+  const withFlag = (facingAudience?: boolean) =>
+    entry(bout([]), {
+      snapshot: { serverTime: T0 + 40_000, bout: bout([]), fencers: { left: 'Ana', right: 'Bea' }, facingAudience },
+    });
+
+  it('carries the piste flag, off when absent (older server) or false', () => {
+    expect(toPisteView(withFlag(true), T0).facingAudience).toBe(true);
+    expect(toPisteView(withFlag(false), T0).facingAudience).toBe(false);
+    expect(toPisteView(withFlag(undefined), T0).facingAudience).toBe(false);
+  });
+
+  it('carries it on an idle piste and keeps it on stale data', () => {
+    const idle = entry(null, { snapshot: { serverTime: T0, bout: null, fencers: null, facingAudience: true } });
+    expect(toPisteView(idle, T0).facingAudience).toBe(true);
+    expect(toPisteView({ ...withFlag(true), stale: true }, T0).facingAudience).toBe(true);
+  });
+});
+
 describe('toPisteView', () => {
   it('shows an idle piste without a bout', () => {
     expect(toPisteView(entry(null), T0)).toMatchObject({

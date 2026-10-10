@@ -8,6 +8,7 @@ interface PisteBouts {
 export class MemoryPisteRepository implements PisteRepository {
   private pistes: readonly Piste[] = [];
   private readonly bouts = new Map<string, PisteBouts>();
+  private readonly facing = new Set<string>();
 
   async listPistes(): Promise<readonly Piste[]> {
     return this.pistes.map((piste) => ({ ...piste }));
@@ -21,6 +22,7 @@ export class MemoryPisteRepository implements PisteRepository {
   async replacePistes(pistes: readonly Piste[]): Promise<void> {
     this.pistes = pistes.map((piste) => ({ ...piste }));
     this.bouts.clear();
+    this.facing.clear();
   }
 
   async findBout(pisteId: string): Promise<BoutRecord | null> {
@@ -50,5 +52,15 @@ export class MemoryPisteRepository implements PisteRepository {
 
   async listArchivedBouts(pisteId: string): Promise<readonly BoutRecord[]> {
     return structuredClone(this.bouts.get(pisteId)?.archived ?? []);
+  }
+
+  async getFacingAudience(pisteId: string): Promise<boolean> {
+    return this.facing.has(pisteId);
+  }
+
+  async setFacingAudience(pisteId: string, facing: boolean): Promise<void> {
+    if (!this.pistes.some((piste) => piste.id === pisteId)) throw new Error(`Unknown piste ${pisteId}`);
+    if (facing) this.facing.add(pisteId);
+    else this.facing.delete(pisteId);
   }
 }

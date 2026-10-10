@@ -10,7 +10,8 @@
    */
   let { view, titleTag = 'span' }: { view: PisteView; titleTag?: 'span' | 'h1' } = $props();
 
-  const sides: readonly Side[] = ['left', 'right'];
+  // Only the on-screen order changes; sides and their colours stay with the domain side.
+  const sides = $derived<readonly Side[]>(view.facingAudience ? ['right', 'left'] : ['left', 'right']);
   const clock = $derived(clockText(view));
   const period = $derived(periodText(view));
   const winnerLine = $derived(winnerText(view));

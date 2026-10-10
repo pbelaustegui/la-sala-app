@@ -1,8 +1,10 @@
 import {
   describeBoutRepositoryContract,
+  describeFacingAudienceContract,
   describePisteRepositoryContract,
 } from '../../application/piste-repository.contract';
 import { MemoryPisteRepository } from './memory-piste-repository';
 
 describePisteRepositoryContract('memory', () => new MemoryPisteRepository());
 describeBoutRepositoryContract('memory', () => new MemoryPisteRepository());
+describeFacingAudienceContract('memory', () => new MemoryPisteRepository());

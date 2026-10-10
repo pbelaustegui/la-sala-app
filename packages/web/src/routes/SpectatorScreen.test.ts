@@ -17,10 +17,17 @@ function bout(events: BoutEvent[]): BoutState {
   return result.state;
 }
 
-const snapshot = (serverTime: number, state: BoutState | null, left = 'Ana', right = 'Bea'): Snapshot => ({
+const snapshot = (
+  serverTime: number,
+  state: BoutState | null,
+  left = 'Ana',
+  right = 'Bea',
+  facingAudience = false,
+): Snapshot => ({
   serverTime,
   bout: state,
   fencers: state ? { left, right } : null,
+  facingAudience,
 });
 
 function harness() {
@@ -131,6 +138,46 @@ describe('public board', () => {
     const card = screen.getByRole('link', { name: /Pista 1/ });
     expect(within(card).getByText('Ana').closest('.fencer')?.classList.contains('left')).toBe(true);
     expect(within(card).getByText('Bea').closest('.fencer')?.classList.contains('right')).toBe(true);
+  });
+
+  describe('facing audience', () => {
+    const order = (root: HTMLElement) =>
+      Array.from(root.querySelectorAll('.fencer')).map((el) => `${el.classList[1]}:${el.querySelector('.name')?.textContent}`);
+
+    it('mirrors the two fencers of a card when the piste flag is on, keeping sides and colours', async () => {
+      const h = harness();
+      render(App, { env: h.env });
+      await h.live('1', '2');
+      await h.snapshotOf('1', snapshot(T0, running, 'Ana', 'Bea', true));
+      await h.snapshotOf('2', snapshot(T0, running, 'Cris', 'Dani', false));
+
+      expect(order(screen.getByRole('link', { name: /Pista 1/ }))).toEqual(['right:Bea', 'left:Ana']);
+      expect(order(screen.getByRole('link', { name: /Pista 2/ }))).toEqual(['left:Cris', 'right:Dani']);
+      const card = screen.getByRole('link', { name: /Pista 1/ });
+      expect(within(card).getByText('Ana').closest('.fencer')?.classList.contains('left')).toBe(true);
+    });
+
+    it('follows a change of the flag live, without a reload', async () => {
+      const h = harness();
+      render(App, { env: h.env });
+      await h.live('1');
+      await h.snapshotOf('1', snapshot(T0, running));
+      expect(order(screen.getByRole('link', { name: /Pista 1/ }))).toEqual(['left:Ana', 'right:Bea']);
+
+      await h.snapshotOf('1', snapshot(T0 + 1_000, running, 'Ana', 'Bea', true));
+      expect(order(screen.getByRole('link', { name: /Pista 1/ }))).toEqual(['right:Bea', 'left:Ana']);
+      await h.snapshotOf('1', snapshot(T0 + 2_000, running, 'Ana', 'Bea', false));
+      expect(order(screen.getByRole('link', { name: /Pista 1/ }))).toEqual(['left:Ana', 'right:Bea']);
+    });
+
+    it('mirrors the piste detail too', async () => {
+      const h = harness();
+      window.location.hash = '#/piste/1';
+      render(App, { env: h.env });
+      await h.live('1');
+      await h.snapshotOf('1', snapshot(T0, running, 'Ana', 'Bea', true));
+      expect(order(document.querySelector('.detail') as HTMLElement)).toEqual(['right:Bea', 'left:Ana']);
+    });
   });
 
   it('updates a card when a new snapshot arrives', async () => {

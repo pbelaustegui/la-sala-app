@@ -34,6 +34,8 @@ export class FakeServer {
   readonly requests: RecordedRequest[] = [];
   readonly events: StoredEvent[] = [];
   setup: FakeSetup | null = null;
+  /** Piste-level flag set by the judge and shown mirrored to spectators. */
+  facingAudience = false;
 
   constructor(
     private readonly options: { pisteId: string; pin: string; serverNow: () => number },
@@ -62,12 +64,16 @@ export class FakeServer {
     }
     if (method === 'GET' && url.pathname === `${base}/state`) return Response.json(this.snapshot());
 
-    if (method === 'POST' && url.pathname.startsWith(base)) {
+    if ((method === 'POST' || method === 'PUT') && url.pathname.startsWith(base)) {
       if (headers['x-piste-pin'] !== pin) return Response.json({ error: 'unauthorized' }, { status: 401 });
       if (url.pathname === `${base}/bout`) {
         this.setup = body as FakeSetup;
         this.events.length = 0;
         return Response.json(this.snapshot(), { status: 201 });
+      }
+      if (method === 'PUT' && url.pathname === `${base}/facing-audience`) {
+        this.facingAudience = (body as { facing: boolean }).facing;
+        return Response.json(this.snapshot());
       }
       if (url.pathname === `${base}/events`) return this.submit(body as { events: ({ id: string } & BoutEvent)[] });
     }
@@ -76,7 +82,8 @@ export class FakeServer {
 
   snapshot() {
     const serverTime = this.options.serverNow();
-    if (!this.setup) return { serverTime, bout: null, fencers: null };
+    const facingAudience = this.facingAudience;
+    if (!this.setup) return { serverTime, bout: null, fencers: null, facingAudience };
     const result = replay(
       createBout(createRules(this.setup.weapon, this.setup.options)),
       this.events.map((stored) => stored.event),
@@ -86,6 +93,7 @@ export class FakeServer {
       serverTime,
       bout: settle(result.state, serverTime),
       fencers: { left: this.setup.left, right: this.setup.right },
+      facingAudience,
     };
   }
 

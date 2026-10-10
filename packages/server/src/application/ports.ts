@@ -44,6 +44,15 @@ export interface PisteRepository {
   appendEvents(pisteId: string, events: readonly StoredEvent[]): Promise<void>;
   /** Archived bouts of a piste, oldest first. */
   listArchivedBouts(pisteId: string): Promise<readonly BoutRecord[]>;
+
+  /**
+   * Whether the judge of the piste stands facing the audience, so spectator views mirror the
+   * two sides. A property of the piste, not of a bout: it survives new bouts and is reset only
+   * when the pistes are replaced. Off for an unknown piste.
+   */
+  getFacingAudience(pisteId: string): Promise<boolean>;
+  /** Rejects when the piste does not exist. */
+  setFacingAudience(pisteId: string, facing: boolean): Promise<void>;
 }
 
 /** Produces a candidate PIN. Uniqueness within a piste set is the caller's concern. */
@@ -72,6 +81,8 @@ export interface Snapshot {
   /** `null` while no bout was started on the piste. */
   readonly bout: BoutState | null;
   readonly fencers: { readonly left: string; readonly right: string } | null;
+  /** Piste-level display hint: spectators show the two sides mirrored. Visual only. */
+  readonly facingAudience: boolean;
 }
 
 /** What an all-pistes subscriber receives: a piste changed, or the set of pistes was replaced. */

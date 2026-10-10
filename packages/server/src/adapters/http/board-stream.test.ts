@@ -99,6 +99,33 @@ describe('GET /pistes/stream', () => {
     await stream.cancel();
   });
 
+  it('carries the piste facing-audience flag and publishes a change of it live, also on an idle piste', async () => {
+    const { app } = setup();
+    await provision(app);
+    const stream = frames(await app.request('/pistes/stream'));
+    expect(dataOf(await stream.next())).toEqual({ pisteIds: ['1', '2'] });
+    expect(dataOf(await stream.next())).toMatchObject({ pisteId: '1', snapshot: { facingAudience: false } });
+    expect(dataOf(await stream.next())).toMatchObject({ pisteId: '2', snapshot: { facingAudience: false } });
+
+    const put = (id: string, pin: string, facing: boolean) =>
+      app.request(`/pistes/${id}/facing-audience`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json', 'x-piste-pin': pin },
+        body: JSON.stringify({ facing }),
+      });
+    expect((await put('1', '1000', true)).status).toBe(200);
+    expect(dataOf(await stream.next())).toMatchObject({ pisteId: '1', snapshot: { facingAudience: true, fencers: { left: 'Ana' } } });
+    expect((await put('2', '1001', true)).status).toBe(200);
+    expect(dataOf(await stream.next())).toMatchObject({ pisteId: '2', snapshot: { facingAudience: true, bout: null } });
+
+    // A new connection starts from the stored flag.
+    await stream.cancel();
+    const again = frames(await app.request('/pistes/stream'));
+    await again.next();
+    expect(dataOf(await again.next())).toMatchObject({ pisteId: '1', snapshot: { facingAudience: true } });
+    await again.cancel();
+  });
+
   it('resyncs when pistes are replaced: a new set, then fresh snapshots', async () => {
     const { app } = setup();
     await provision(app, 3);

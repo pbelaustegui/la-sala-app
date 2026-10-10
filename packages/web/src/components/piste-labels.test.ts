@@ -9,6 +9,7 @@ const base: PisteView = {
   score: { left: 0, right: 0 },
   remainingMs: 125_000,
   running: true,
+  facingAudience: false,
   period: 2,
   periods: 3,
   breakRemainingMs: null,
