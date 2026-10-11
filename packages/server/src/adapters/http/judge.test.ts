@@ -433,6 +433,26 @@ describe('judge endpoints', () => {
         expect(bout.score).toEqual({ left: 0, right: 1 });
       });
 
+      it('removes a card and reverts its effects', async () => {
+        const res = await send(
+          app,
+          'POST',
+          '/pistes/1/events',
+          {
+            events: [
+              ev('a', 'clock-started', T0),
+              ev('b', 'card-given', T0 + 1000, { side: 'left', card: 'red' }),
+              ev('c', 'card-removed', T0 + 2000, { side: 'left', card: 'red' }),
+            ],
+          },
+          judge(),
+        );
+        expect(res.status).toBe(200);
+        const bout = ((await res.json()) as any).bout;
+        expect(bout.cards).toEqual([]);
+        expect(bout.score).toEqual({ left: 0, right: 0 });
+      });
+
       it('rejects an invalid correction with 422 {index,error} and persists nothing', async () => {
         const res = await send(
           app,
@@ -529,6 +549,7 @@ describe('judge endpoints', () => {
       [{ events: [{ id: 'a', type: 'touch-scored', side: 'up', at: 1 }] }],
       [{ events: [{ id: 'a', type: 'clock-started', at: 'now' }] }],
       [{ events: [{ id: 'a', type: 'card-given', side: 'left', card: 'blue', at: 1 }] }],
+      [{ events: [{ id: 'a', type: 'card-removed', side: 'left', card: 'blue', at: 1 }] }],
     ])('rejects invalid body %j with 400', async (body) => {
       expect((await send(app, 'POST', '/pistes/1/events', body, judge())).status).toBe(400);
     });

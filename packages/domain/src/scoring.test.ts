@@ -201,3 +201,75 @@ describe('cards', () => {
     });
   });
 });
+
+describe('card removal', () => {
+  const give = (state: BoutState, side: 'left' | 'right', card: 'yellow' | 'red' | 'black', at: number) =>
+    ok(state, { type: 'card-given', side, card, at });
+  const remove = (state: BoutState, side: 'left' | 'right', card: 'yellow' | 'red' | 'black', at: number) =>
+    apply(state, { type: 'card-removed', side, card, at });
+
+  it('removes a yellow card and nothing else', () => {
+    const given = give(running(), 'left', 'yellow', 1_000);
+    const res = remove(given, 'left', 'yellow', 2_000);
+    expect(res).toMatchObject({ ok: true, state: { cards: [], score: { left: 0, right: 0 } } });
+  });
+
+  it('removes only the latest matching record', () => {
+    let state = give(running(), 'left', 'yellow', 1_000);
+    state = give(state, 'left', 'yellow', 2_000);
+    const res = remove(state, 'left', 'yellow', 3_000);
+    expect(res.ok && res.state.cards).toEqual([{ side: 'left', card: 'yellow', at: 1_000 }]);
+  });
+
+  it('removing a red card takes back the opponent touch', () => {
+    const given = give(running(), 'left', 'red', 1_000);
+    expect(given.score).toEqual({ left: 0, right: 1 });
+    const res = remove(given, 'left', 'red', 2_000);
+    expect(res).toMatchObject({ ok: true, state: { cards: [], score: { left: 0, right: 0 } } });
+  });
+
+  it('never takes the score below zero', () => {
+    const given = withScore(give(running(), 'left', 'red', 1_000), 0, 0);
+    const res = remove(given, 'left', 'red', 2_000);
+    expect(res.ok && res.state.score).toEqual({ left: 0, right: 0 });
+  });
+
+  it('reopens a bout the red-granted touch finished', () => {
+    const given = give(withScore(running(), 0, 14), 'left', 'red', 1_000);
+    expect(given.phase).toMatchObject({ kind: 'finished', reason: 'touch-limit' });
+    const res = remove(given, 'left', 'red', 2_000);
+    expect(res).toMatchObject({
+      ok: true,
+      state: { phase: { kind: 'fencing' }, score: { left: 0, right: 14 }, clock: { runningSince: null } },
+    });
+  });
+
+  it('removing a black card undoes the exclusion and keeps the clock stopped', () => {
+    const given = give(running(), 'right', 'black', 5_000);
+    expect(given.phase).toMatchObject({ kind: 'finished', reason: 'exclusion' });
+    const res = remove(given, 'right', 'black', 6_000);
+    expect(res).toMatchObject({
+      ok: true,
+      state: { phase: { kind: 'fencing' }, cards: [], clock: { remainingMs: 175_000, runningSince: null } },
+    });
+  });
+
+  it('fails when there is no matching card', () => {
+    const given = give(running(), 'left', 'yellow', 1_000);
+    expect(remove(given, 'right', 'yellow', 2_000)).toEqual({ ok: false, error: { type: 'card-not-found' } });
+    expect(remove(given, 'left', 'red', 2_000)).toEqual({ ok: false, error: { type: 'card-not-found' } });
+  });
+
+  it('is rejected outside fencing', () => {
+    expect(remove(createBout(createRules('foil')), 'left', 'yellow', 0)).toEqual({
+      ok: false,
+      error: { type: 'invalid-phase', phase: 'scheduled', event: 'card-removed' },
+    });
+  });
+
+  it('is rejected on a bout finished by something other than the card', () => {
+    let done = give(running(), 'left', 'yellow', 1_000);
+    done = ok(withScore(done, 14, 0), { type: 'touch-scored', side: 'left', at: 2_000 });
+    expect(remove(done, 'left', 'yellow', 3_000)).toEqual({ ok: false, error: { type: 'bout-finished' } });
+  });
+});
