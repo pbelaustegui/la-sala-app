@@ -34,6 +34,7 @@ export const es = {
   'board.card.red': 'Tarjeta roja a {name}',
   'board.card.black': 'Tarjeta negra a {name}',
   'board.facing': 'Estoy de cara al público',
+  'board.facing.short': 'Público',
   'board.facing.failed': 'No se pudo cambiar sin conexión con el servidor. Inténtalo de nuevo.',
   'board.correct': 'Corregir marcador y reloj',
   'board.correct.title': 'Corregir el combate',

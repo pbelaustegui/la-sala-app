@@ -82,6 +82,7 @@
           <rect x="3" y="4" width="18" height="12" rx="2" />
           <path d="M8 20h8M12 16v4" />
         </svg>
+        <span class="toggle-label" aria-hidden="true">{t('board.facing.short')}</span>
       </label>
     {/if}
     <div class="phase">{t(model.phaseLabel.key, model.phaseLabel.params)}</div>
@@ -294,8 +295,14 @@
   }
   .toggle {
     position: relative;
+    gap: 0.4rem;
+    padding-inline: 0.6rem;
     min-width: var(--tap);
     min-height: var(--tap);
+  }
+  .toggle-label {
+    font-size: 0.85rem;
+    font-weight: 700;
   }
   .toggle.on {
     background: var(--accent);
