@@ -15,7 +15,7 @@ Judge bout view fits one phone screen with no scroll, minimal text, one-tap cont
 ## Tasks
 - [x] T1 Domain: `card-removed` event (apply + scoring, reverts red touch / black exclusion) + server zod schema + tests
 - [x] T2 Web controller/event-factory: remove card, subtract point, reset bout, clock preset + tests
-- [ ] T3 Scoreboard layout: one-screen, no scroll, text removed, -1 per side, color-only toggle cards (highest severity only), reset and 3/2/1 clock controls + tests
+- [x] T3 Scoreboard layout: one-screen, no scroll, text removed, -1 per side, color-only toggle cards (highest severity only), reset and 3/2/1 clock controls + tests
 - [ ] T4 Cleanup: drop unused i18n strings/CardsSheet inline flow; svelte-check + full test run
 
 ## Acceptance
@@ -27,5 +27,7 @@ T1 done (commit `feat(domain): remove a card and revert its effects`): domain `c
 
 T2 done (commit `feat(web): compact judge actions in the scoreboard controller`): controller `subtractPoint`, `resetBout`, `setClockPreset`, `toggleCard` + pure `highestCard` helper. RED observed (5 controller failures), then GREEN: web controller+card-counts tests 29 pass. Subtract/cards need canScore; preset needs a timed phase; reset works in any phase.
 
+T3 done (commit `feat(web): compact one-screen judge scoreboard`): ScoreboardScreen is a fixed full-viewport flex column; Scoreboard has per-side tap area, minus button, colour-only highest-card dot, three card toggles (aria-pressed), 3/2/1 presets, icon reset (top bar, dashed, away from scoring), icon undo/double/facing/correct; CorrectionSheet is a fixed overlay; CardsSheet and hint/title strings removed. RED observed (8 web screen failures), then GREEN: web vitest 425 pass, svelte-check 0 errors. Not verified on a device or browser (no headless browser installed).
+
 ## Next step
-T3
+T4

@@ -255,10 +255,14 @@
 </div>
 
 <style>
+  /* A full-screen overlay: opening it never pushes the scoreboard around. */
   .sheet {
-    padding: 0.75rem;
-    border: 2px solid var(--muted);
-    border-radius: 0.75rem;
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    box-sizing: border-box;
+    overflow-y: auto;
+    padding: 0.75rem max(1rem, env(safe-area-inset-right)) 0.75rem max(1rem, env(safe-area-inset-left));
     background: #141b36;
   }
   h2 {

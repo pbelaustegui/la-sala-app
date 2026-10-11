@@ -25,8 +25,11 @@ export const es = {
   'board.clock.start': 'Iniciar reloj',
   'board.clock.stop': 'Parar reloj',
   'board.undo': 'Deshacer',
-  'board.cards': 'Tarjetas',
-  'board.cards.close': 'Cerrar tarjetas',
+  'board.subtract': 'Quitar un tocado a {name}',
+  'board.reset': 'Reiniciar combate',
+  'board.clock.preset.3': 'Reloj a 3 minutos',
+  'board.clock.preset.2': 'Reloj a 2 minutos',
+  'board.clock.preset.1': 'Reloj a 1 minuto',
   'board.card.yellow': 'Tarjeta amarilla a {name}',
   'board.card.red': 'Tarjeta roja a {name}',
   'board.card.black': 'Tarjeta negra a {name}',
@@ -64,7 +67,6 @@ export const es = {
   'board.skipBreak': 'Saltar descanso',
   // No symbol here: the play/pause characters render as a colour emoji on phones and ignore the
   // button's colour, so the hint names the button instead. It also doubles as a build marker.
-  'board.hint.start': 'Pulsa el botón verde para empezar.',
   'board.priority.title': 'Sorteo de prioridad',
   'board.priority.hint': 'Echad la moneda y elige quién gana el sorteo.',
   'board.priority.pick': 'Gana el sorteo: {name}',

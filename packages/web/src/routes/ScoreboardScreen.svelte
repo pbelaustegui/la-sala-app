@@ -48,47 +48,85 @@
   const retry = () => void session.queue.retryNow();
 </script>
 
-<h1 class="piste">{t('board.piste', { piste: pisteId })}</h1>
+<!-- Fills the viewport: the judge never scrolls during a bout. -->
+<div class="screen">
+  <div class="head">
+    <h1 class="piste">{t('board.piste', { piste: pisteId })}</h1>
+    <a class="btn icon-link" href={hrefTo({ name: 'board' })} aria-label={t('nav.board')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    </a>
+    <a class="btn icon-link" href={hrefTo({ name: 'judge-list' })} aria-label={t('board.leave')}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M15 5l-7 7 7 7" />
+      </svg>
+    </a>
+  </div>
 
-<ConnectionBar
-  connection={$connection}
-  persisted={$controller.persisted}
-  wakeLock={$wakeLock}
-  keepAwake={$controller.active}
-  onretry={retry}
-  {onreauth}
-/>
+  <ConnectionBar
+    connection={$connection}
+    persisted={$controller.persisted}
+    wakeLock={$wakeLock}
+    keepAwake={$controller.active}
+    onretry={retry}
+    {onreauth}
+  />
 
-<Scoreboard
-  model={$controller}
-  {names}
-  pending={$connection.pending}
-  ontouch={(side) => controller.touch(side)}
-  ondouble={() => controller.doubleTouch()}
-  onclock={() => controller.toggleClock()}
-  onundo={() => controller.undo()}
-  oncard={(side, card) => controller.giveCard(side, card)}
-  onskipbreak={() => controller.skipBreak()}
-  onpriority={(side) => controller.drawPriority(side)}
-  oncorrect={(patch) => controller.setState(patch)}
-  {onnewbout}
-  facing={$facing.facing}
-  facingBusy={$facing.busy}
-  facingFailed={$facing.failed}
-  onfacing={(value) => void facing.set(value)}
-/>
-
-<div class="actions leave">
-  <a class="btn" href={hrefTo({ name: 'judge-list' })}>{t('board.leave')}</a>
-  <a class="btn" href={hrefTo({ name: 'board' })}>{t('nav.board')}</a>
+  <Scoreboard
+    model={$controller}
+    {names}
+    pending={$connection.pending}
+    ontouch={(side) => controller.touch(side)}
+    onsubtract={(side) => controller.subtractPoint(side)}
+    ondouble={() => controller.doubleTouch()}
+    onclock={() => controller.toggleClock()}
+    onpreset={(minutes) => controller.setClockPreset(minutes)}
+    onreset={() => controller.resetBout()}
+    onundo={() => controller.undo()}
+    ontogglecard={(side, card) => controller.toggleCard(side, card)}
+    onskipbreak={() => controller.skipBreak()}
+    onpriority={(side) => controller.drawPriority(side)}
+    oncorrect={(patch) => controller.setState(patch)}
+    {onnewbout}
+    facing={$facing.facing}
+    facingBusy={$facing.busy}
+    facingFailed={$facing.failed}
+    onfacing={(value) => void facing.set(value)}
+  />
 </div>
 
 <style>
-  .piste {
-    font-size: 1.1rem;
-    margin: 0.25rem 0;
+  /* Covers the app shell: the board owns the whole screen, so the page itself cannot scroll. */
+  .screen {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    box-sizing: border-box;
+    padding: max(0.4rem, env(safe-area-inset-top)) max(0.6rem, env(safe-area-inset-right))
+      max(0.4rem, env(safe-area-inset-bottom)) max(0.6rem, env(safe-area-inset-left));
+    background: var(--bg);
+    overflow: hidden;
   }
-  .leave {
-    margin-top: 1.5rem;
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .piste {
+    flex: 1;
+    margin: 0;
+    font-size: 1rem;
+  }
+  .icon-link {
+    padding: 0;
+  }
+  .icon-link svg {
+    width: 22px;
+    height: 22px;
   }
 </style>
