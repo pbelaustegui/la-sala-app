@@ -10,7 +10,7 @@ Spectator shows cards like the judge view (color-only dot, highest card only); a
 
 ## Tasks
 - [x] S1 Shared CardDot + spectator uses it (update spectator/piste-labels tests) - commit aeceb02; web vitest 39 files/423 tests pass; chips and cardChips/cardLabels removed
-- [ ] S2 Admin screen compact (per-piste row, icon-ish buttons keeping aria-labels)
+- [x] S2 Admin screen compact (per-piste row, short-label buttons keeping aria-labels) - commit HASH_S2; web vitest 39 files/423 tests pass
 - [ ] S3 Judge setup flow compact (SetupStep, ConfirmNew, Choose, Pin spacing)
 
 ## Acceptance
