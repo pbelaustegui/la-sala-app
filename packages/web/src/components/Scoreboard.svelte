@@ -173,7 +173,7 @@
     </div>
   {/if}
 
-  <div class="controls">
+  <div class="controls clock-row">
     {#if model.clockAction}
       <button
         class="btn clock-button {model.clockAction}"
@@ -204,6 +204,9 @@
     {#if model.canSkipBreak}
       <button class="btn skip" type="button" onclick={onskipbreak}>{t('board.skipBreak')}</button>
     {/if}
+  </div>
+
+  <div class="controls">
     {#each PRESETS as minutes (minutes)}
       <button
         class="btn preset"
@@ -469,6 +472,10 @@
     background: #5dd68a;
     border-color: #5dd68a;
     color: #0b1020;
+  }
+  /* Presets, undo and double share the second row evenly. */
+  .controls:not(.clock-row) .btn {
+    flex: 1 1 0;
   }
   /* Scales with the button's font-size and inherits its colour, like the character did. */
   .clock-icon svg {
