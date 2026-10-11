@@ -60,8 +60,8 @@
           />
         </div>
         <div class="row">
-          <button class="icon" type="button" aria-label={t('admin.copy.pin', { piste: piste.id })} title={t('admin.short.copyPin')} onclick={() => oncopypin(piste.pin)}>
-            <Icon name="copy" />
+          <button class="icon labeled" type="button" aria-label={t('admin.copy.pin', { piste: piste.id })} title={t('admin.short.copyPin')} onclick={() => oncopypin(piste.pin)}>
+            <Icon name="copy" /><span>{t('admin.short.copyPin')}</span>
           </button>
           <a class="icon" href={hrefTo({ name: 'judge', pisteId: piste.id })} aria-label={t('admin.pistes.judge', { piste: piste.id })} title={t('admin.short.judge')}>
             <Icon name="flag" />
@@ -79,7 +79,7 @@
   <a class="icon" href={hrefTo({ name: 'board' })} aria-label={t('nav.board')} title={t('nav.board')}><Icon name="monitor" /></a>
   <button class="icon" type="button" aria-label={t('admin.copy.link')} title={t('admin.copy.link')} onclick={oncopylink}><Icon name="link" /></button>
   {#if pistes.length > 0}
-    <button class="icon" type="button" aria-label={t('admin.copy.judges')} title={t('admin.copy.judges')} onclick={oncopyjudges}><Icon name="users" /></button>
+    <button class="icon labeled" type="button" aria-label={t('admin.copy.judges')} title={t('admin.copy.judges')} onclick={oncopyjudges}><Icon name="users" /><span>{t('admin.short.copyJudges')}</span></button>
   {/if}
   <button class="icon danger" type="button" aria-label={t('admin.lock')} title={t('admin.lock')} onclick={onlock}><Icon name="lock" /></button>
 </div>

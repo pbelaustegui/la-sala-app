@@ -164,6 +164,13 @@ textarea {
   height: 22px;
 }
 
+.icon.labeled {
+  gap: 0.4rem;
+  padding-inline: 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 .icon.sm {
   min-height: 2rem;
   min-width: 2rem;
