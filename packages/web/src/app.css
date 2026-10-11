@@ -127,6 +127,15 @@ textarea {
   margin: 0;
 }
 
+/* Bordered list item shared by the admin and piste lists. */
+.card {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  border: 2px solid var(--muted);
+  border-radius: 0.75rem;
+}
+
 /* Compact icon button shared by every screen; the label lives in aria-label + title. */
 .icon {
   display: inline-flex;
