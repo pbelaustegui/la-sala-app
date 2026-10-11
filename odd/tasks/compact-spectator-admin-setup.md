@@ -9,7 +9,7 @@ Spectator shows cards like the judge view (color-only dot, highest card only); a
 - Admin/setup: tighter spacing and smaller controls scoped to those screens; global `--tap` untouched (Scoreboard uses it); accessible names preserved.
 
 ## Tasks
-- [x] S1 Shared CardDot + spectator uses it (update spectator/piste-labels tests) - commit HASH_S1; web vitest 39 files/423 tests pass; chips and cardChips/cardLabels removed
+- [x] S1 Shared CardDot + spectator uses it (update spectator/piste-labels tests) - commit aeceb02; web vitest 39 files/423 tests pass; chips and cardChips/cardLabels removed
 - [ ] S2 Admin screen compact (per-piste row, icon-ish buttons keeping aria-labels)
 - [ ] S3 Judge setup flow compact (SetupStep, ConfirmNew, Choose, Pin spacing)
 
