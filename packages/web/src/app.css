@@ -136,6 +136,13 @@ textarea {
   border-radius: 0.75rem;
 }
 
+/* Row of icon buttons under a list or form. */
+.tools {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.6rem 0;
+}
+
 /* Compact icon button shared by every screen; the label lives in aria-label + title. */
 .icon {
   display: inline-flex;

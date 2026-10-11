@@ -20,7 +20,7 @@
 </script>
 
 {#if $flow.step === 'checking'}
-  <p>{t('pin.checking')}</p>
+  <div class="page"><p>{t('pin.checking')}</p></div>
 {:else if $flow.step === 'pin'}
   <PinStep {pisteId} error={$flow.error} onsubmit={(pin) => void flow.submitPin(pin)} />
 {:else if $flow.step === 'choose'}
@@ -35,10 +35,12 @@
     onsubmit={(form) => void flow.startBout(form)}
   />
 {:else if $flow.step === 'offline'}
-  <h1>{t('entry.offline.title')}</h1>
-  <p>{t('entry.offline.body')}</p>
-  <div class="actions">
-    <button class="btn primary" type="button" onclick={() => void flow.start()}>{t('entry.offline.retry')}</button>
+  <div class="page">
+    <h1>{t('entry.offline.title')}</h1>
+    <p>{t('entry.offline.body')}</p>
+    <div class="actions">
+      <button class="btn primary" type="button" onclick={() => void flow.start()}>{t('entry.offline.retry')}</button>
+    </div>
   </div>
 {:else}
   {#key $flow.boutId}

@@ -5,6 +5,7 @@
   import { es } from '../i18n/es';
   import { t, type CopyKey } from '../i18n/t';
   import { hrefTo } from '../router';
+  import Icon from '../components/Icon.svelte';
 
   const { api } = getServices();
   const list = new PisteListController(api);
@@ -17,6 +18,7 @@
   }
 </script>
 
+<div class="page">
 <h1>{t('pistes.title')}</h1>
 <p>{t('home.intro')}</p>
 
@@ -41,9 +43,14 @@
   </ul>
 {/if}
 
-<div class="actions">
-  <button class="btn" type="button" onclick={() => void list.refresh()}>{t('pistes.refresh')}</button>
-  <a class="btn" href={hrefTo({ name: 'board' })}>{t('nav.board')}</a>
+<div class="tools">
+  <button class="icon" type="button" aria-label={t('pistes.refresh')} title={t('pistes.refresh')} onclick={() => void list.refresh()}>
+    <Icon name="retry" />
+  </button>
+  <a class="icon" href={hrefTo({ name: 'board' })} aria-label={t('nav.board')} title={t('nav.board')}>
+    <Icon name="monitor" />
+  </a>
+</div>
 </div>
 
 <style>

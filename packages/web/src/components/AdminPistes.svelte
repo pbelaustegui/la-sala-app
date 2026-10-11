@@ -128,13 +128,9 @@
     align-items: center;
     gap: 0.6rem;
   }
-  .row,
-  .tools {
+  .row {
     display: flex;
     gap: 0.4rem;
-  }
-  .tools {
-    margin: 0.6rem 0;
   }
   .pin {
     width: 5rem;
