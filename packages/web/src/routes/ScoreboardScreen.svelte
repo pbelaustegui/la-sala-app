@@ -8,6 +8,7 @@
   import { getServices } from '../env';
   import { t } from '../i18n/t';
   import { hrefTo } from '../router';
+  import Icon from '../components/Icon.svelte';
 
   let {
     pisteId,
@@ -52,16 +53,11 @@
 <div class="screen">
   <div class="head">
     <h1 class="piste">{t('board.piste', { piste: pisteId })}</h1>
-    <a class="btn icon-link" href={hrefTo({ name: 'board' })} aria-label={t('nav.board')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" />
-        <circle cx="12" cy="12" r="3" />
-      </svg>
+    <a class="icon icon-link" href={hrefTo({ name: 'board' })} aria-label={t('nav.board')}>
+      <Icon name="eye" />
     </a>
-    <a class="btn icon-link" href={hrefTo({ name: 'judge-list' })} aria-label={t('board.leave')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M15 5l-7 7 7 7" />
-      </svg>
+    <a class="icon icon-link" href={hrefTo({ name: 'judge-list' })} aria-label={t('board.leave')}>
+      <Icon name="arrow-left" />
     </a>
   </div>
 
@@ -123,10 +119,6 @@
     font-size: 1rem;
   }
   .icon-link {
-    padding: 0;
-  }
-  .icon-link svg {
-    width: 22px;
-    height: 22px;
+    border-radius: 0.75rem;
   }
 </style>
