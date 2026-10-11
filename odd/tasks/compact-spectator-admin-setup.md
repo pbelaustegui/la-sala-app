@@ -1,0 +1,24 @@
+# Compact spectator cards, admin and setup
+
+## Objective
+Spectator shows cards like the judge view (color-only dot, highest card only); admin and judge setup screens are more compact. Scrolling is acceptable on admin/setup.
+
+## Defaults assumed (not yet confirmed)
+- Spectator: one dot per fencer next to the name/score, reusing `highestCard`; accessible name via existing `spectator.card.*` i18n; no text chips, no reserved empty row.
+- Shared `CardDot` component used by judge and spectator (keep `.card-dot` class + `data-card`).
+- Admin/setup: tighter spacing and smaller controls scoped to those screens; global `--tap` untouched (Scoreboard uses it); accessible names preserved.
+
+## Tasks
+- [ ] S1 Shared CardDot + spectator uses it (update spectator/piste-labels tests)
+- [ ] S2 Admin screen compact (per-piste row, icon-ish buttons keeping aria-labels)
+- [ ] S3 Judge setup flow compact (SetupStep, ConfirmNew, Choose, Pin spacing)
+
+## Acceptance
+- vitest (domain/server/web) + svelte-check pass; aria names and `.card-dot` selectors stable.
+- Manual device check of spectator, admin, setup.
+
+## Progress / evidence
+(none yet)
+
+## Next step
+S1
