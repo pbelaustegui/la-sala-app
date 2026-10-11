@@ -2,7 +2,7 @@ import type { BoutState, Card, PhaseKind } from './bout';
 import { settle, startClock, stopClock } from './clock';
 import { applyStateSet, type StateSetPatch, type StateSetError } from './state-set';
 import type { Side, Weapon } from './rules';
-import { giveCard, scoreDoubleTouch, scoreTouch } from './scoring';
+import { giveCard, removeCard, scoreDoubleTouch, scoreTouch } from './scoring';
 
 export type BoutEvent =
   | { readonly type: 'clock-started'; readonly at: number }
@@ -12,6 +12,11 @@ export type BoutEvent =
   | { readonly type: 'double-touch-scored'; readonly at: number }
   | { readonly type: 'priority-drawn'; readonly side: Side; readonly at: number }
   | { readonly type: 'card-given'; readonly side: Side; readonly card: Card; readonly at: number }
+  /**
+   * Takes back the latest `card` given to `side` and reverts its effects (a red card's touch,
+   * a black card's exclusion). Valid while fencing, and on a bout that card itself finished.
+   */
+  | { readonly type: 'card-removed'; readonly side: Side; readonly card: Card; readonly at: number }
   /** Reverts the previously applied event. Needs history, so only `replay` can handle it. */
   | { readonly type: 'undo'; readonly at: number }
   /**
@@ -27,6 +32,7 @@ export type DomainError =
   | { readonly type: 'clock-not-running' }
   | { readonly type: 'time-went-backwards'; readonly lastAt: number; readonly at: number }
   | { readonly type: 'bout-finished' }
+  | { readonly type: 'card-not-found' }
   | { readonly type: 'nothing-to-undo' }
   | { readonly type: 'undo-requires-replay' }
   | StateSetError;
@@ -92,7 +98,10 @@ export function apply(state: BoutState, event: BoutEvent): Result<BoutState, Dom
   }
   const settled = settle(state, event.at);
   // The only event allowed after the bout finished: it is how a judge reopens it.
-  if (settled.phase.kind === 'finished' && event.type !== 'state-set') return fail({ type: 'bout-finished' });
+  // Also card-removed, which may revert the card that ended the bout (it checks that itself).
+  if (settled.phase.kind === 'finished' && event.type !== 'state-set' && event.type !== 'card-removed') {
+    return fail({ type: 'bout-finished' });
+  }
 
   const result = reduce(settled, event);
   return result.ok ? succeed({ ...result.state, lastAt: event.at }) : result;
@@ -120,6 +129,8 @@ function reduce(state: BoutState, event: BoutEvent): Result<BoutState, DomainErr
       return isFencing(state)
         ? succeed(giveCard(state, event.side, event.card, event.at))
         : invalidPhase(state, event);
+    case 'card-removed':
+      return removeCard(state, event.side, event.card, event);
     case 'state-set':
       return applyStateSet(state, event);
     case 'undo':

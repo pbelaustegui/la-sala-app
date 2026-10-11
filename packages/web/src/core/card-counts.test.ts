@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { countCards } from './card-counts';
+import { countCards, highestCard } from './card-counts';
 
 describe('countCards', () => {
   it('starts every side at zero', () => {
@@ -18,5 +18,17 @@ describe('countCards', () => {
     ]);
     expect(counts.left).toEqual({ yellow: 2, red: 0, black: 1 });
     expect(counts.right).toEqual({ yellow: 0, red: 1, black: 0 });
+  });
+});
+
+describe('highestCard', () => {
+  it('is null without cards', () => {
+    expect(highestCard({ yellow: 0, red: 0, black: 0 })).toBeNull();
+  });
+
+  it('shows one card only, black over red over yellow', () => {
+    expect(highestCard({ yellow: 2, red: 0, black: 0 })).toBe('yellow');
+    expect(highestCard({ yellow: 1, red: 1, black: 0 })).toBe('red');
+    expect(highestCard({ yellow: 1, red: 3, black: 1 })).toBe('black');
   });
 });

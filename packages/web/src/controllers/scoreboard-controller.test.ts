@@ -290,4 +290,75 @@ describe('ScoreboardController', () => {
     stop();
     expect(timers.scheduled.size).toBe(0);
   });
+
+  describe('compact judge actions', () => {
+    function fencing() {
+      const h = harness();
+      h.controller.toggleClock();
+      h.advance(1_000);
+      return h;
+    }
+
+    it('subtracts a point from one side, never below zero', () => {
+      const h = fencing();
+      h.controller.touch('left');
+      h.controller.touch('left');
+      h.advance(1_000);
+      h.controller.subtractPoint('left');
+      expect(h.controller.get().score).toEqual({ left: 1, right: 0 });
+      expect(h.bout.events().at(-1)?.event).toMatchObject({ type: 'state-set', score: { left: 1, right: 0 } });
+
+      h.controller.subtractPoint('right');
+      expect(h.controller.get().score).toEqual({ left: 1, right: 0 });
+      expect(h.bout.events().at(-1)?.event).toMatchObject({ type: 'state-set', score: { left: 1, right: 0 } });
+    });
+
+    it('does not subtract outside fencing', () => {
+      const h = harness();
+      const events = h.bout.events().length;
+      h.controller.subtractPoint('left');
+      expect(h.bout.events()).toHaveLength(events);
+    });
+
+    it('resets the bout: 0-0, full clock, period 1, no cards, clock stopped', () => {
+      const h = fencing();
+      h.controller.touch('left');
+      h.controller.giveCard('right', 'yellow');
+      h.advance(1_000);
+      h.controller.resetBout();
+      const view = h.controller.get();
+      expect(view.score).toEqual({ left: 0, right: 0 });
+      expect(view.cards).toEqual([]);
+      expect(view.clockText).toBe('3:00');
+      expect(view.clockRunning).toBe(false);
+      expect(h.bout.events().at(-1)?.event).toMatchObject({
+        type: 'state-set',
+        score: { left: 0, right: 0 },
+        remainingMs: 180_000,
+        period: 1,
+        clearCards: true,
+      });
+    });
+
+    it('sets the clock to a preset, capped by the period length', () => {
+      const h = fencing();
+      h.controller.setClockPreset(2);
+      expect(h.controller.get().clockText).toBe('2:00');
+      expect(h.controller.get().clockRunning).toBe(false);
+      h.controller.setClockPreset(5);
+      expect(h.controller.get().clockText).toBe('3:00');
+    });
+
+    it('toggles a card: gives it when absent, removes it when present', () => {
+      const h = fencing();
+      h.controller.toggleCard('left', 'yellow');
+      expect(h.controller.get().cards.map((c) => `${c.side}:${c.card}`)).toEqual(['left:yellow']);
+      h.controller.toggleCard('right', 'yellow');
+      expect(h.controller.get().cards).toHaveLength(2);
+      h.advance(1_000);
+      h.controller.toggleCard('left', 'yellow');
+      expect(h.controller.get().cards.map((c) => `${c.side}:${c.card}`)).toEqual(['right:yellow']);
+      expect(h.bout.events().at(-1)?.event).toMatchObject({ type: 'card-removed', side: 'left', card: 'yellow' });
+    });
+  });
 });

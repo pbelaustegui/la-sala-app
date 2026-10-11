@@ -1,4 +1,5 @@
 import type { Card, DomainError, Side, StateSetPatch } from '@la-sala/domain';
+import { countCards } from '../core/card-counts';
 import { EventFactory, type EventDraft } from '../core/event-factory';
 import type { LocalBout } from '../core/local-bout';
 import { Observable } from '../core/observable';
@@ -77,6 +78,41 @@ export class ScoreboardController extends Observable<ScoreboardModel> {
 
   giveCard(side: Side, card: Card): void {
     this.perform({ type: 'card-given', side, card });
+  }
+
+  /** Removes one point from a side (never below zero). Only while fencing. */
+  subtractPoint(side: Side): void {
+    const { canScore, score } = this.get();
+    if (!canScore) return;
+    this.perform({ type: 'state-set', score: { ...score, [side]: Math.max(0, score[side] - 1) } });
+  }
+
+  /** Back to the start of the bout: 0-0, full clock, period 1, no cards. Priority is kept. */
+  resetBout(): void {
+    const { correction } = this.get();
+    this.perform({
+      type: 'state-set',
+      score: { left: 0, right: 0 },
+      remainingMs: correction.periodDurationMs,
+      period: 1,
+      clearCards: true,
+    });
+  }
+
+  /** Sets the stopped clock to `minutes`, capped by the period length. */
+  setClockPreset(minutes: number): void {
+    const { clockAction, correction } = this.get();
+    if (clockAction === null) return;
+    const limit = correction.inExtraPeriod ? correction.extraPeriodDurationMs : correction.periodDurationMs;
+    this.perform({ type: 'state-set', remainingMs: Math.min(minutes * 60_000, limit) });
+  }
+
+  /** Gives the card when the side has none of that type, otherwise removes one. Only while fencing. */
+  toggleCard(side: Side, card: Card): void {
+    const { canScore, cards } = this.get();
+    if (!canScore) return;
+    const present = countCards(cards)[side][card] > 0;
+    this.perform({ type: present ? 'card-removed' : 'card-given', side, card });
   }
 
   /**

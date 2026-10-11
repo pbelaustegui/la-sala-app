@@ -132,40 +132,93 @@ describe('scoreboard', () => {
     expect(screen.queryByRole('button', { name: 'Doble toque' })).toBeNull();
   });
 
-  it('gives a card from the cards sheet', async () => {
+  it('gives a card with one tap and removes it with a second tap, reverting its effects', async () => {
     const h = harness();
     await open(h);
     await click('Iniciar reloj');
-    await click('Tarjetas');
+    const red = () => screen.getByRole('button', { name: 'Tarjeta roja a Ana' });
+    expect(red().getAttribute('aria-pressed')).toBe('false');
     await click('Tarjeta roja a Ana');
     // A red card is a touch for the opponent.
     expect(score('right')).toBe('1');
-    expect(screen.queryByRole('group', { name: 'Tarjetas' })).toBeNull();
+    expect(red().getAttribute('aria-pressed')).toBe('true');
+    await click('Tarjeta roja a Ana');
+    expect(score('right')).toBe('0');
+    expect(red().getAttribute('aria-pressed')).toBe('false');
+    expect(document.querySelector('.half.left .card-dot')).toBeNull();
   });
 
-  it('shows the given card as a chip on the right side of the judge scoreboard', async () => {
+  it('shows only a colour dot for the highest card a side holds', async () => {
     const h = harness();
     await open(h);
     await click('Iniciar reloj');
-    expect(document.querySelector('.half.left .chip')).toBeNull();
-    await click('Tarjetas');
+    expect(document.querySelector('.half.left .card-dot')).toBeNull();
     await click('Tarjeta amarilla a Bea');
-
-    expect(document.querySelector('.half.right .chip')?.textContent).toBe('Amarilla ×1');
-    expect(document.querySelector('.half.left .chip')).toBeNull();
+    expect(document.querySelector('.half.right .card-dot')?.getAttribute('data-card')).toBe('yellow');
+    await click('Tarjeta roja a Bea');
+    expect(document.querySelectorAll('.half.right .card-dot')).toHaveLength(1);
+    expect(document.querySelector('.half.right .card-dot')?.getAttribute('data-card')).toBe('red');
+    expect(document.querySelector('.half.right .card-dot')?.textContent).toBe('');
+    expect(document.querySelector('.half.left .card-dot')).toBeNull();
   });
 
   it('still shows the cards of a resumed bout', async () => {
     const h = harness();
     await open(h);
     await click('Iniciar reloj');
-    await click('Tarjetas');
     await click('Tarjeta roja a Ana');
     await waitFor(() => expect(screen.getByText('Todo sincronizado')).toBeTruthy());
     cleanup();
 
     await open(h);
-    expect(document.querySelector('.half.left .chip')?.textContent).toBe('Roja ×1');
+    expect(document.querySelector('.half.left .card-dot')?.getAttribute('data-card')).toBe('red');
+    expect(screen.getByRole('button', { name: 'Tarjeta roja a Ana' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('cards are locked until the bout is being fenced', async () => {
+    await open(harness());
+    expect((screen.getByRole('button', { name: 'Tarjeta roja a Ana' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('the minus button takes one point off a side, never below zero', async () => {
+    const h = harness();
+    await open(h);
+    await click('Iniciar reloj');
+    await click('Tocado para Ana');
+    await click('Tocado para Ana');
+    await click('Quitar un tocado a Ana');
+    expect(score('left')).toBe('1');
+    await click('Quitar un tocado a Bea');
+    expect(score('right')).toBe('0');
+    await click('Quitar un tocado a Ana');
+    await click('Quitar un tocado a Ana');
+    expect(score('left')).toBe('0');
+  });
+
+  it('the clock presets set the remaining time to 3, 2 or 1 minute', async () => {
+    const h = harness();
+    await open(h);
+    await click('Reloj a 2 minutos');
+    expect(screen.getByText('2:00', { selector: '.clock' })).toBeTruthy();
+    await click('Reloj a 1 minuto');
+    expect(screen.getByText('1:00', { selector: '.clock' })).toBeTruthy();
+    await click('Reloj a 3 minutos');
+    expect(screen.getByText('3:00', { selector: '.clock' })).toBeTruthy();
+  });
+
+  it('reset bout brings back 0-0, the full clock and no cards in one tap', async () => {
+    const h = harness();
+    await open(h);
+    await click('Iniciar reloj');
+    await click('Tocado para Ana');
+    await click('Tarjeta amarilla a Bea');
+    await h.elapse(30_000);
+    await click('Reiniciar combate');
+    expect(score('left')).toBe('0');
+    expect(score('right')).toBe('0');
+    expect(screen.getByText('3:00', { selector: '.clock' })).toBeTruthy();
+    expect(document.querySelector('.card-dot')).toBeNull();
+    await waitFor(() => expect(h.server.events.at(-1)?.event).toMatchObject({ type: 'state-set', clearCards: true }));
   });
 
   it('links to the public board in the same tab, next to the leave link', async () => {
@@ -407,8 +460,8 @@ describe('facing the audience (piste flag)', () => {
     expect(halves()).toEqual(['left', 'right']);
     expect(names('.halves .name')).toEqual(['Ana', 'Bea']);
 
-    await click('Tarjetas');
-    expect(names('.sheet .column:first-child .yellow')).toEqual(['Tarjeta amarilla a Ana']);
+    expect(names('.half.left .card-toggle.yellow')).toEqual(['']);
+    expect(document.querySelector('.half.left .card-toggle.yellow')?.getAttribute('aria-label')).toBe('Tarjeta amarilla a Ana');
   });
 
   it('keeps sides, colours and events untouched', async () => {

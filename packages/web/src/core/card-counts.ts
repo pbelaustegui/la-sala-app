@@ -11,3 +11,10 @@ export function countCards(records: readonly CardRecord[]): Readonly<Record<Side
   for (const record of records) counts[record.side][record.card]++;
   return counts;
 }
+
+const SEVERITY: readonly Card[] = ['black', 'red', 'yellow'];
+
+/** The single most severe card a side holds (black > red > yellow), or null when it has none. */
+export function highestCard(counts: CardCounts): Card | null {
+  return SEVERITY.find((card) => counts[card] > 0) ?? null;
+}
