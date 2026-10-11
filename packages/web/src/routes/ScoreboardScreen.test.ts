@@ -148,6 +148,20 @@ describe('scoreboard', () => {
     expect(document.querySelector('.half.left .card-dot')).toBeNull();
   });
 
+  it('covers the screen with the card colour when a card is given and closes with one tap', async () => {
+    const h = harness();
+    await open(h);
+    await click('Iniciar reloj');
+    expect(document.querySelector('.card-screen')).toBeNull();
+    await click('Tarjeta amarilla a Ana');
+    expect(document.querySelector('.card-screen')?.getAttribute('data-card')).toBe('yellow');
+    await click('Cerrar tarjeta');
+    expect(document.querySelector('.card-screen')).toBeNull();
+    // Taking a card away is not something to show.
+    await click('Tarjeta amarilla a Ana');
+    expect(document.querySelector('.card-screen')).toBeNull();
+  });
+
   it('shows only a colour dot for the highest card a side holds', async () => {
     const h = harness();
     await open(h);

@@ -33,6 +33,7 @@ export const es = {
   'board.card.yellow': 'Tarjeta amarilla a {name}',
   'board.card.red': 'Tarjeta roja a {name}',
   'board.card.black': 'Tarjeta negra a {name}',
+  'board.card.dismiss': 'Cerrar tarjeta',
   'board.facing': 'Estoy de cara al público',
   'board.facing.short': 'Público',
   'board.facing.failed': 'No se pudo cambiar sin conexión con el servidor. Inténtalo de nuevo.',

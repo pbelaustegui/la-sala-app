@@ -58,6 +58,15 @@
   let correctOpen = $state(false);
   const cardCounts = $derived(countCards(model.cards));
 
+  /** The card just given, shown full screen so the judge can hold the phone up as the card. */
+  let shownCard = $state<Card | null>(null);
+
+  function toggleCard(side: Side, card: Card): void {
+    const adding = cardCounts[side][card] === 0;
+    ontogglecard(side, card);
+    if (adding) shownCard = card;
+  }
+
   const SIDES: readonly Side[] = ['left', 'right'];
   const CARDS: readonly Card[] = ['yellow', 'red', 'black'];
   const PRESETS: readonly number[] = [3, 2, 1];
@@ -138,7 +147,7 @@
               disabled={!model.canScore}
               aria-pressed={cardCounts[side][card] > 0}
               aria-label={t(`board.card.${card}`, { name: names[side] })}
-              onclick={() => ontogglecard(side, card)}
+              onclick={() => toggleCard(side, card)}
             ></button>
           {/each}
         </div>
@@ -251,6 +260,16 @@
       onsubmit={oncorrect}
       onclose={() => (correctOpen = false)}
     />
+  {/if}
+
+  {#if shownCard}
+    <button
+      class="card-screen"
+      type="button"
+      data-card={shownCard}
+      aria-label={t('board.card.dismiss')}
+      onclick={() => (shownCard = null)}
+    ></button>
   {/if}
 </section>
 
@@ -422,6 +441,27 @@
     display: flex;
     justify-content: center;
     gap: 0.3rem;
+  }
+  .card-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    cursor: pointer;
+  }
+  .card-screen[data-card='yellow'] {
+    background: #ffd23f;
+  }
+  .card-screen[data-card='red'] {
+    background: #e53935;
+  }
+  .card-screen[data-card='black'] {
+    background: #000;
   }
   .card-toggle {
     flex: 1;
