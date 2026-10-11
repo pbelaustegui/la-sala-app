@@ -77,7 +77,7 @@
 
 <div class="tools">
   <a class="icon" href={hrefTo({ name: 'board' })} aria-label={t('nav.board')} title={t('nav.board')}><Icon name="monitor" /></a>
-  <button class="icon" type="button" aria-label={t('admin.copy.link')} title={t('admin.copy.link')} onclick={oncopylink}><Icon name="link" /></button>
+  <button class="icon labeled" type="button" aria-label={t('admin.copy.link')} title={t('admin.copy.link')} onclick={oncopylink}><Icon name="link" /><span>{t('admin.short.copyLink')}</span></button>
   {#if pistes.length > 0}
     <button class="icon labeled" type="button" aria-label={t('admin.copy.judges')} title={t('admin.copy.judges')} onclick={oncopyjudges}><Icon name="users" /><span>{t('admin.short.copyJudges')}</span></button>
   {/if}
