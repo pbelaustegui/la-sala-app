@@ -66,6 +66,7 @@
     {#if errors.touchLimit}<span class="error" role="alert">{t(errors.touchLimit)}</span>{/if}
   </label>
 
+  <div class="names">
   <label class="field">
     <span>{t('setup.left')}</span>
     <input type="text" autocomplete="off" maxlength="200" bind:value={left} aria-invalid={errors.left ? 'true' : undefined} />
@@ -77,6 +78,7 @@
     <input type="text" autocomplete="off" maxlength="200" bind:value={right} aria-invalid={errors.right ? 'true' : undefined} />
     {#if errors.right}<span class="error" role="alert">{t(errors.right)}</span>{/if}
   </label>
+  </div>
 
   {#if failure}
     <p class="error" role="alert">{setupFailureMessage(failure)}</p>
@@ -94,27 +96,58 @@
   form {
     padding-bottom: 1.5rem;
   }
+  h1 {
+    margin: 0.25rem 0 0.5rem;
+  }
   fieldset {
     border: 0;
     padding: 0;
-    margin: 0 0 1rem;
+    margin: 0 0 0.6rem;
+  }
+  legend {
+    padding: 0;
+    margin-bottom: 0.2rem;
   }
   .choices {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.4rem;
     flex-wrap: wrap;
   }
   .choice {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    min-height: var(--tap);
-    padding: 0 0.75rem;
+    gap: 0.3rem;
+    min-height: 40px;
+    padding: 0 0.6rem;
     border: 2px solid var(--muted);
     border-radius: 0.5rem;
   }
   .choice input {
-    width: 1.5rem;
-    height: 1.5rem;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .field {
+    margin-bottom: 0.6rem;
+  }
+  small {
+    font-size: 0.8rem;
+  }
+  .names {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  /* A text input's intrinsic width (~20ch) would otherwise stretch each column past half the screen. */
+  .names .field {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .names input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .actions {
+    margin: 0.5rem 0;
   }
 </style>

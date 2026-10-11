@@ -41,12 +41,21 @@
 </form>
 
 <style>
+  h1 {
+    margin: 0.25rem 0 0.5rem;
+  }
+  p {
+    margin: 0 0 0.5rem;
+  }
+  .actions {
+    margin: 0.5rem 0;
+  }
   .pin-input {
-    font-size: 2rem;
+    font-size: 1.75rem;
     letter-spacing: 0.5em;
     text-align: center;
     width: 100%;
     box-sizing: border-box;
-    min-height: 64px;
+    min-height: 56px;
   }
 </style>

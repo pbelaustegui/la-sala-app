@@ -59,11 +59,15 @@
           />
         </div>
         <div class="row">
-          <button class="btn" type="button" onclick={() => oncopypin(piste.pin)}>
-            {t('admin.copy.pin', { piste: piste.id })}
+          <button class="btn" type="button" aria-label={t('admin.copy.pin', { piste: piste.id })} onclick={() => oncopypin(piste.pin)}>
+            {t('admin.short.copyPin')}
           </button>
-          <a class="btn" href={hrefTo({ name: 'judge', pisteId: piste.id })}>{t('admin.pistes.judge', { piste: piste.id })}</a>
-          <a class="btn" href={hrefTo({ name: 'piste', pisteId: piste.id })}>{t('admin.pistes.watch', { piste: piste.id })}</a>
+          <a class="btn" href={hrefTo({ name: 'judge', pisteId: piste.id })} aria-label={t('admin.pistes.judge', { piste: piste.id })}>
+            {t('admin.short.judge')}
+          </a>
+          <a class="btn" href={hrefTo({ name: 'piste', pisteId: piste.id })} aria-label={t('admin.pistes.watch', { piste: piste.id })}>
+            {t('admin.short.watch')}
+          </a>
         </div>
       </li>
     {/each}
@@ -110,42 +114,72 @@
 </div>
 
 <style>
+  h1 {
+    margin: 0.25rem 0;
+  }
+  h2 {
+    margin: 0.75rem 0 0.4rem;
+    font-size: 1.15rem;
+  }
   .pistes {
     list-style: none;
     padding: 0;
+    margin: 0;
     display: grid;
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
   .card {
     display: grid;
-    gap: 0.75rem;
-    padding: 0.75rem;
+    gap: 0.4rem;
+    padding: 0.5rem 0.6rem;
     border: 2px solid var(--muted);
     border-radius: 0.75rem;
   }
   .head {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    gap: 0.6rem;
   }
   .row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
-    gap: 0.5rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+  }
+  .row .btn {
+    min-height: 40px;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.9rem;
   }
   .pin {
-    font-size: 1.5rem;
+    font-size: 1rem;
     font-variant-numeric: tabular-nums;
-    width: 7rem;
+    width: 5rem;
     text-align: center;
-    min-height: var(--tap);
+    min-height: 36px;
+    padding: 0.1rem 0.25rem;
     color: var(--fg);
     background: #141b36;
     border: 2px solid var(--muted);
     border-radius: 0.5rem;
   }
+  .actions {
+    gap: 0.4rem;
+    margin: 0.6rem 0;
+  }
+  .actions .btn {
+    min-height: 44px;
+    padding-block: 0.25rem;
+  }
+  form .btn {
+    min-height: 44px;
+  }
+  .field {
+    margin-bottom: 0.5rem;
+  }
   .confirm {
-    margin: 1rem 0;
+    margin: 0.6rem 0;
+  }
+  .confirm p {
+    margin: 0 0 0.4rem;
   }
 </style>
