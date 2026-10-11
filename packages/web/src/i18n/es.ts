@@ -111,7 +111,6 @@ export const es = {
   'conn.attention': 'Requiere atención',
   'conn.pending': '{count} sin sincronizar',
   'conn.synced': 'Todo sincronizado',
-  'conn.offlineHelp': 'Los tocados se guardan en este dispositivo y se enviarán al volver la conexión.',
   'conn.retry': 'Reintentar ahora',
   'conn.attention.unauthorized': 'El servidor no acepta el PIN de esta pista.',
   'conn.attention.unauthorized.action': 'Introducir PIN de nuevo',

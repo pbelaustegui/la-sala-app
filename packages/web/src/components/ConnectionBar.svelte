@@ -73,19 +73,19 @@
 <div class="bar" data-status={shownStatus}>
   <span class="dot" aria-hidden="true"></span>
   <span class="status" role="status">{t(statusKey)}</span>
+  {#if connection.status === 'offline'}
+    <!-- Offline is expected on a piste and scoring keeps working, so no notice: just a small retry. -->
+    <button class="retry" type="button" aria-label={t('conn.retry')} title={t('conn.retry')} onclick={onretry}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+        <path d="M21 12a9 9 0 1 1-3-6.7" />
+        <path d="M21 4v5h-5" />
+      </svg>
+    </button>
+  {/if}
   <span class="pending">
     {connection.pending > 0 && pendingIsLasting ?t('conn.pending', { count: connection.pending }) : t('conn.synced')}
   </span>
 </div>
-
-{#if connection.status === 'offline'}
-  <div class="notice">
-    <p>{t('conn.offlineHelp')}</p>
-    <div class="actions">
-      <button class="btn" type="button" onclick={onretry}>{t('conn.retry')}</button>
-    </div>
-  </div>
-{/if}
 
 {#if connection.status === 'needs-attention' && connection.reason}
   <div class="notice" role="alert">
@@ -143,6 +143,19 @@
   }
   [data-status='needs-attention'] .dot {
     background: #ff5d5d;
+  }
+  .retry {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2rem;
+    min-width: 2rem;
+    padding: 0;
+    color: var(--fg);
+    background: transparent;
+    border: 1px solid var(--muted);
+    border-radius: 0.5rem;
+    cursor: pointer;
   }
   .pending {
     margin-left: auto;

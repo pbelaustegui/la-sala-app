@@ -57,6 +57,14 @@ describe('ConnectionBar', () => {
     expect(screen.getByText('3 sin sincronizar')).toBeTruthy();
   });
 
+  it('offline: keeps a compact retry in the bar instead of a help notice', async () => {
+    const onretry = vi.fn();
+    render(ConnectionBar, { ...props, onretry, connection: state('offline', 2) });
+    expect(screen.queryByText(/se guardan en este dispositivo/)).toBeNull();
+    screen.getByRole('button', { name: 'Reintentar ahora' }).click();
+    expect(onretry).toHaveBeenCalledTimes(1);
+  });
+
   it('shows the other states immediately', () => {
     render(ConnectionBar, { ...props, connection: state('offline') });
     expect(screen.getByRole('status').textContent).toBe('Sin conexión');
