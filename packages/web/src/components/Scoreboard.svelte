@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Card, Side, StateSetPatch } from '@la-sala/domain';
   import type { ScoreboardModel } from '../controllers/scoreboard-controller';
+  import CardDot from './CardDot.svelte';
   import { countCards, highestCard } from '../core/card-counts';
   import { t } from '../i18n/t';
   import CorrectionSheet from './CorrectionSheet.svelte';
@@ -127,7 +128,7 @@
           <span aria-hidden="true">−</span>
         </button>
         {#if shown}
-          <span class="card-dot {shown}" data-card={shown} aria-hidden="true"></span>
+          <CardDot card={shown} />
         {/if}
         <div class="cards">
           {#each CARDS as card (card)}
@@ -408,15 +409,10 @@
   .minus:disabled {
     opacity: 0.35;
   }
-  .card-dot {
+  .half > :global(.card-dot) {
     position: absolute;
     top: 0.75rem;
     right: 0.75rem;
-    width: 1.6rem;
-    height: 1.6rem;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    pointer-events: none;
   }
   .cards {
     position: absolute;

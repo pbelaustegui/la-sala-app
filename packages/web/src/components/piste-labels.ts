@@ -1,10 +1,6 @@
-import type { Card, Side } from '@la-sala/domain';
-import { type CardCounts } from '../core/card-counts';
 import { formatClock } from '../core/scoreboard-view';
 import type { PisteView } from '../core/piste-view';
 import { t } from '../i18n/t';
-
-const CARDS: readonly Card[] = ['yellow', 'red', 'black'];
 
 /** Status of the piste in words. A fencing clock that is not ticking reads "Detenido". */
 export function phaseLabel(view: PisteView): string {
@@ -26,14 +22,4 @@ export function periodText(view: PisteView): string | null {
 export function winnerText(view: PisteView): string | null {
   if (view.winner === null || view.reason === null || view.fencers === null) return null;
   return `${t('board.result', { name: view.fencers[view.winner] })} ${t(`board.reason.${view.reason}`)}`;
-}
-
-/** One label per card type with a count ("Amarilla ×2"); empty when there are none. */
-export function cardChips(counts: CardCounts): string[] {
-  return CARDS.filter((card) => counts[card] > 0).map((card) => t(`spectator.card.${card}`, { count: counts[card] }));
-}
-
-/** One label per card type the fencer has received ("Amarilla ×2"); empty when none. */
-export function cardLabels(view: PisteView, side: Side): string[] {
-  return cardChips(view.cards[side]);
 }

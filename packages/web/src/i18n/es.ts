@@ -101,9 +101,9 @@ export const es = {
   'spectator.period': 'Período {period} de {periods}',
   'spectator.score': 'Puntos de {name}',
   'spectator.clock': 'Reloj',
-  'spectator.card.yellow': 'Amarilla ×{count}',
-  'spectator.card.red': 'Roja ×{count}',
-  'spectator.card.black': 'Negra ×{count}',
+  'spectator.card.yellow': 'Tarjeta amarilla de {name}',
+  'spectator.card.red': 'Tarjeta roja de {name}',
+  'spectator.card.black': 'Tarjeta negra de {name}',
 
   'conn.online': 'En línea',
   'conn.offline': 'Sin conexión',

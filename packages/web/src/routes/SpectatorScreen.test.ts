@@ -223,7 +223,7 @@ describe('public board', () => {
     expect(screen.getByText('2:49')).toBeTruthy();
   });
 
-  it('shows card counts per side', async () => {
+  it('shows the highest card per side as a dot', async () => {
     const h = harness();
     render(App, { env: h.env });
     await h.live('1');
@@ -234,9 +234,9 @@ describe('public board', () => {
     ]);
     await h.snapshotOf('1', snapshot(T0, carded));
     const card = screen.getByRole('link', { name: /Pista 1/ });
-    expect(within(card).getByText('Amarilla ×1')).toBeTruthy();
-    expect(within(card).getByText('Roja ×1')).toBeTruthy();
-    expect(within(card).queryByText(/Negra/)).toBeNull();
+    expect(within(card).getByRole('img', { name: 'Tarjeta amarilla de Ana' }).getAttribute('data-card')).toBe('yellow');
+    expect(within(card).getByRole('img', { name: 'Tarjeta roja de Bea' }).getAttribute('data-card')).toBe('red');
+    expect(within(card).queryByRole('img', { name: /negra/i })).toBeNull();
   });
 
   it('highlights the winner with the reason in words', async () => {
@@ -372,13 +372,13 @@ describe('piste detail', () => {
     expect(h.stream.opens).toBe(1);
   });
 
-  it('lists every card given, with its side', async () => {
+  it('shows the card given as a dot named after its fencer', async () => {
     const h = harness();
     window.location.hash = '#/piste/1';
     render(App, { env: h.env });
     await h.live('1');
     await h.snapshotOf('1', snapshot(T0, bout([{ type: 'clock-started', at: T0 }, { type: 'card-given', side: 'left', card: 'yellow', at: T0 }])));
-    expect(screen.getByText('Amarilla ×1')).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Tarjeta amarilla de Ana' })).toBeTruthy();
   });
 
   it('says so when the piste does not exist', async () => {

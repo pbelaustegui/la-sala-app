@@ -1,8 +1,10 @@
 <script lang="ts">
   import type { Side } from '@la-sala/domain';
   import type { PisteView } from '../core/piste-view';
+  import { highestCard } from '../core/card-counts';
   import { t } from '../i18n/t';
-  import { cardLabels, clockText, periodText, phaseLabel, winnerText } from './piste-labels';
+  import CardDot from './CardDot.svelte';
+  import { clockText, periodText, phaseLabel, winnerText } from './piste-labels';
 
   /**
    * What a piste shows, shared by the board card and the detail screen. Size comes from the
@@ -26,14 +28,13 @@
   <span class="fencers">
     {#each sides as side (side)}
       {@const name = view.fencers[side]}
+      {@const shown = highestCard(view.cards[side])}
       <span class="fencer {side}" class:winner={view.winner === side}>
         <span class="name">{name}</span>
         <span class="score" aria-label={t('spectator.score', { name })}>{view.score[side]}</span>
-        <span class="cards">
-          {#each cardLabels(view, side) as label (label)}
-            <span class="chip">{label}</span>
-          {/each}
-        </span>
+        {#if shown}
+          <CardDot card={shown} label={t(`spectator.card.${shown}`, { name })} />
+        {/if}
       </span>
     {/each}
   </span>
@@ -100,19 +101,8 @@
     line-height: 1;
     font-variant-numeric: tabular-nums;
   }
-  .cards {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.25rem;
-    min-height: 1.5rem;
-  }
-  .chip {
-    padding: 0.1rem 0.5rem;
-    border: 2px solid var(--muted);
-    border-radius: 999px;
-    font-weight: 700;
-    font-size: calc(var(--numeral) * 0.25);
+  .fencer :global(.card-dot) {
+    --dot-size: calc(var(--numeral) * 0.4);
   }
   .clock {
     text-align: center;
