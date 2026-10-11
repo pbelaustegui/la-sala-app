@@ -137,6 +137,16 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
   }
+  /* A text input's intrinsic width (~20ch) would otherwise stretch each column past half the screen. */
+  .names .field {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .names input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
   .actions {
     margin: 0.5rem 0;
   }
