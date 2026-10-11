@@ -20,13 +20,9 @@
     box-sizing: border-box;
     color: var(--fg);
     text-decoration: none;
-    background: #141b36;
+    background: var(--surface-2);
     border: 2px solid var(--muted);
     border-radius: 1rem;
-  }
-  .card:focus-visible {
-    outline: 3px solid var(--accent);
-    outline-offset: 2px;
   }
   .card.stale {
     opacity: 0.65;

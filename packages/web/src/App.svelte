@@ -1,5 +1,6 @@
 <script lang="ts">
   import { setContext } from 'svelte';
+  import Icon from './components/Icon.svelte';
   import UpdateBanner from './components/UpdateBanner.svelte';
   import { hasAdminPin } from './core/admin-pin-store';
   import { UpdateNotice } from './core/update-notice';
@@ -42,7 +43,7 @@
       <span class="tagline">{t('app.tagline')}</span>
     {/if}
     {#if showAdminLink}
-      <a class="admin" href={hrefTo({ name: 'admin' })} aria-label={t('nav.admin')} title={t('nav.admin')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></svg></a>
+      <a class="icon admin" href={hrefTo({ name: 'admin' })} aria-label={t('nav.admin')} title={t('nav.admin')}><Icon name="admin" /></a>
     {/if}
   </header>
 
@@ -56,9 +57,11 @@
         <JudgeScreen pisteId={route.pisteId} />
       {/key}
     {:else}
-      <h1>{t('notFound.title')}</h1>
-      <p>{t('notFound.body')}</p>
-      <a href={hrefTo({ name: 'board' })}>{t('nav.back')}</a>
+      <div class="page">
+        <h1>{t('notFound.title')}</h1>
+        <p>{t('notFound.body')}</p>
+        <a href={hrefTo({ name: 'board' })}>{t('nav.back')}</a>
+      </div>
     {/if}
   </main>
 {/if}
@@ -77,16 +80,13 @@
   }
   .brand {
     font-weight: 700;
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
   }
   .admin {
     margin-left: auto;
-    display: inline-flex;
-    align-items: center;
-    font-size: 0.9rem;
   }
   .tagline {
     color: var(--muted);

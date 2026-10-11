@@ -6,7 +6,7 @@
 </script>
 
 {#if $notice.updateAvailable}
-  <div class="banner" role="status">
+  <div class="notice" role="status">
     <p>{t('pwa.update.available')}</p>
     <div class="actions">
       <button class="btn primary" type="button" onclick={() => notice.apply()}>{t('pwa.update.apply')}</button>
@@ -14,7 +14,7 @@
     </div>
   </div>
 {:else if $notice.offlineReady}
-  <div class="banner" role="status">
+  <div class="notice" role="status">
     <p>{t('pwa.offlineReady')}</p>
     <div class="actions">
       <button class="btn" type="button" onclick={() => notice.dismiss()}>{t('pwa.dismiss')}</button>
@@ -23,17 +23,11 @@
 {/if}
 
 <style>
-  .banner {
+  .notice {
     width: calc(100% - 2rem);
     max-width: 40rem;
     margin: 0.5rem auto;
-    padding: 0.75rem 1rem;
-    border: 2px solid var(--accent);
-    border-radius: 0.75rem;
     box-sizing: border-box;
-  }
-  p {
-    margin: 0;
   }
   .actions {
     margin: 0.5rem 0 0;

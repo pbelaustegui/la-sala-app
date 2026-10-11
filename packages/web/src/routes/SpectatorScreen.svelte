@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import Icon from '../components/Icon.svelte';
   import PisteCard from '../components/PisteCard.svelte';
   import PisteDetail from '../components/PisteDetail.svelte';
   import { createIdleReveal } from '../core/idle-reveal';
@@ -93,12 +94,12 @@
   <header class="bar">
     <a class="brand" href={hrefTo({ name: 'board' })}>{t('app.title')}</a>
     {#if pisteId !== null}
-      <a class="back" data-idle-chrome inert={idle} href={hrefTo({ name: 'board' })} aria-label={t('spectator.back')} title={t('spectator.back')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true"><path d="M19 12H5" /><path d="m12 19-7-7 7-7" /></svg></a>
+      <a class="icon back" data-idle-chrome inert={idle} href={hrefTo({ name: 'board' })} aria-label={t('spectator.back')} title={t('spectator.back')}><Icon name="arrow-left" /></a>
     {/if}
   </header>
 
   {#if $store.connection === 'stale'}
-    <p class="banner" role="status">{t('spectator.stale')}</p>
+    <p class="notice" role="status">{t('spectator.stale')}</p>
   {/if}
 
   {#if pisteId === null}
@@ -122,9 +123,9 @@
   {/if}
 
   <footer class="foot" data-idle-chrome inert={idle}>
-    <a class="btn judge" href={hrefTo({ name: 'judge-list' })} aria-label={t('spectator.judgeLink')} title={t('spectator.judgeLink')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true"><path d="M5 21V4" /><path d="M5 4h13l-3 4.5 3 4.5H5" /></svg></a>
+    <a class="icon" href={hrefTo({ name: 'judge-list' })} aria-label={t('spectator.judgeLink')} title={t('spectator.judgeLink')}><Icon name="flag" /></a>
     {#if showAdminLink}
-      <a class="btn judge" href={hrefTo({ name: 'admin' })} aria-label={t('nav.admin')} title={t('nav.admin')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="10" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></svg></a>
+      <a class="icon" href={hrefTo({ name: 'admin' })} aria-label={t('nav.admin')} title={t('nav.admin')}><Icon name="admin" /></a>
     {/if}
   </footer>
 </div>
@@ -151,24 +152,6 @@
     display: inline-flex;
     align-items: center;
   }
-  .back {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem 0.75rem;
-    font-weight: 700;
-    border: 2px solid var(--muted);
-    border-radius: 0.75rem;
-    text-decoration: none;
-  }
-  .banner {
-    margin: 0;
-    padding: 0.75rem 1rem;
-    font-weight: 700;
-    color: #0b1020;
-    background: var(--accent);
-    border-radius: 0.75rem;
-  }
   .grid {
     list-style: none;
     margin: 0;
@@ -189,10 +172,6 @@
     justify-content: center;
     flex-wrap: wrap;
     gap: 0.5rem 0.75rem;
-  }
-  .judge {
-    color: var(--muted);
-    font-size: 0.9rem;
   }
   .back,
   .foot {
