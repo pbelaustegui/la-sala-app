@@ -2,6 +2,7 @@
   import type { AdminPiste } from '../core/api-client';
   import { t } from '../i18n/t';
   import { hrefTo } from '../router';
+  import Icon from './Icon.svelte';
 
   let {
     pistes,
@@ -59,14 +60,14 @@
           />
         </div>
         <div class="row">
-          <button class="btn" type="button" aria-label={t('admin.copy.pin', { piste: piste.id })} onclick={() => oncopypin(piste.pin)}>
-            {t('admin.short.copyPin')}
+          <button class="icon labeled" type="button" aria-label={t('admin.copy.pin', { piste: piste.id })} title={t('admin.short.copyPin')} onclick={() => oncopypin(piste.pin)}>
+            <Icon name="copy" /><span>{t('admin.short.copyPin')}</span>
           </button>
-          <a class="btn" href={hrefTo({ name: 'judge', pisteId: piste.id })} aria-label={t('admin.pistes.judge', { piste: piste.id })}>
-            {t('admin.short.judge')}
+          <a class="icon" href={hrefTo({ name: 'judge', pisteId: piste.id })} aria-label={t('admin.pistes.judge', { piste: piste.id })} title={t('admin.short.judge')}>
+            <Icon name="flag" />
           </a>
-          <a class="btn" href={hrefTo({ name: 'piste', pisteId: piste.id })} aria-label={t('admin.pistes.watch', { piste: piste.id })}>
-            {t('admin.short.watch')}
+          <a class="icon" href={hrefTo({ name: 'piste', pisteId: piste.id })} aria-label={t('admin.pistes.watch', { piste: piste.id })} title={t('admin.short.watch')}>
+            <Icon name="eye" />
           </a>
         </div>
       </li>
@@ -74,12 +75,13 @@
   </ul>
 {/if}
 
-<div class="actions">
-  <a class="btn" href={hrefTo({ name: 'board' })}>{t('nav.board')}</a>
-  <button class="btn" type="button" onclick={oncopylink}>{t('admin.copy.link')}</button>
+<div class="tools">
+  <a class="icon" href={hrefTo({ name: 'board' })} aria-label={t('nav.board')} title={t('nav.board')}><Icon name="monitor" /></a>
+  <button class="icon" type="button" aria-label={t('admin.copy.link')} title={t('admin.copy.link')} onclick={oncopylink}><Icon name="link" /></button>
   {#if pistes.length > 0}
-    <button class="btn" type="button" onclick={oncopyjudges}>{t('admin.copy.judges')}</button>
+    <button class="icon labeled" type="button" aria-label={t('admin.copy.judges')} title={t('admin.copy.judges')} onclick={oncopyjudges}><Icon name="users" /><span>{t('admin.short.copyJudges')}</span></button>
   {/if}
+  <button class="icon danger" type="button" aria-label={t('admin.lock')} title={t('admin.lock')} onclick={onlock}><Icon name="lock" /></button>
 </div>
 <p role="status" class:error={copyResult === 'failed'}>
   {#if copyResult === 'done'}{t('admin.copy.done')}{:else if copyResult === 'failed'}{t('admin.copy.failed')}{/if}
@@ -109,14 +111,7 @@
   </div>
 {/if}
 
-<div class="actions">
-  <button class="btn" type="button" onclick={onlock}>{t('admin.lock')}</button>
-</div>
-
 <style>
-  h1 {
-    margin: 0.25rem 0;
-  }
   h2 {
     margin: 0.75rem 0 0.4rem;
     font-size: 1.15rem;
@@ -128,58 +123,21 @@
     display: grid;
     gap: 0.5rem;
   }
-  .card {
-    display: grid;
-    gap: 0.4rem;
-    padding: 0.5rem 0.6rem;
-    border: 2px solid var(--muted);
-    border-radius: 0.75rem;
-  }
   .head {
     display: flex;
     align-items: center;
     gap: 0.6rem;
   }
   .row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
     gap: 0.4rem;
-  }
-  .row .btn {
-    min-height: 40px;
-    padding: 0.25rem 0.4rem;
-    font-size: 0.9rem;
   }
   .pin {
-    font-size: 1rem;
-    font-variant-numeric: tabular-nums;
     width: 5rem;
+    font-variant-numeric: tabular-nums;
     text-align: center;
-    min-height: 36px;
-    padding: 0.1rem 0.25rem;
-    color: var(--fg);
-    background: #141b36;
-    border: 2px solid var(--muted);
-    border-radius: 0.5rem;
-  }
-  .actions {
-    gap: 0.4rem;
-    margin: 0.6rem 0;
-  }
-  .actions .btn {
-    min-height: 44px;
-    padding-block: 0.25rem;
-  }
-  form .btn {
-    min-height: 44px;
-  }
-  .field {
-    margin-bottom: 0.5rem;
   }
   .confirm {
     margin: 0.6rem 0;
-  }
-  .confirm p {
-    margin: 0 0 0.4rem;
   }
 </style>

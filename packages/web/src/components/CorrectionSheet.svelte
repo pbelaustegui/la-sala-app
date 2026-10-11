@@ -4,6 +4,7 @@
   import type { CorrectionBasis } from '../core/scoreboard-view';
   import { formatClock } from '../core/scoreboard-view';
   import { t, type CopyKey } from '../i18n/t';
+  import Icon from './Icon.svelte';
 
   let {
     names,
@@ -182,15 +183,32 @@
 </script>
 
 <div class="sheet" role="group" aria-label={t('board.correct.title')}>
-  <h2>{t('board.correct.title')}</h2>
+  <div class="top">
+    <h2>{t('board.correct.title')}</h2>
+    {#if step === 'form'}
+      <button class="icon" type="button" aria-label={t('board.correct.close')} title={t('board.correct.close')} onclick={onclose}>
+        <Icon name="x" />
+      </button>
+    {:else}
+      <button class="icon" type="button" aria-label={t('board.correct.back')} title={t('board.correct.back')} onclick={back}>
+        <Icon name="arrow-left" />
+      </button>
+    {/if}
+  </div>
 
   {#if step === 'form'}
     <p class="hint">{t('board.correct.hint')}</p>
 
-    <div class="actions quick">
-      <button class="btn" type="button" onclick={resetClock}>{t('board.correct.resetClock')}</button>
-      <button class="btn" type="button" onclick={resetScores}>{t('board.correct.resetScores')}</button>
-      <button class="btn" type="button" onclick={clearAllCards}>{t('board.correct.clearCards')}</button>
+    <div class="tools quick">
+      <button class="icon" type="button" aria-label={t('board.correct.resetClock')} title={t('board.correct.resetClock')} onclick={resetClock}>
+        <Icon name="clock" />
+      </button>
+      <button class="icon" type="button" aria-label={t('board.correct.resetScores')} title={t('board.correct.resetScores')} onclick={resetScores}>
+        <Icon name="scores" />
+      </button>
+      <button class="icon" type="button" aria-label={t('board.correct.clearCards')} title={t('board.correct.clearCards')} onclick={clearAllCards}>
+        <Icon name="cards" />
+      </button>
     </div>
 
     <div class="scores">
@@ -237,7 +255,6 @@
 
     <div class="actions">
       <button class="btn primary" type="button" onclick={review}>{t('board.correct.review')}</button>
-      <button class="btn" type="button" onclick={onclose}>{t('board.correct.close')}</button>
     </div>
   {:else}
     <div class="notice" role="status">
@@ -249,7 +266,6 @@
     </div>
     <div class="actions">
       <button class="btn primary" type="button" onclick={confirm}>{t('board.correct.apply')}</button>
-      <button class="btn" type="button" onclick={back}>{t('board.correct.back')}</button>
     </div>
   {/if}
 </div>
@@ -263,11 +279,17 @@
     box-sizing: border-box;
     overflow-y: auto;
     padding: 0.75rem max(1rem, env(safe-area-inset-right)) 0.75rem max(1rem, env(safe-area-inset-left));
-    background: #141b36;
+    background: var(--surface-2);
+  }
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
   }
   h2 {
-    margin: 0 0 0.25rem;
-    font-size: 1.25rem;
+    margin: 0;
+    font-size: 1.15rem;
   }
   .hint {
     margin: 0 0 0.5rem;
@@ -285,6 +307,6 @@
     box-sizing: border-box;
   }
   .quick {
-    margin-top: 0;
+    margin-top: 0.25rem;
   }
 </style>

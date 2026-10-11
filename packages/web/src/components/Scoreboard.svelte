@@ -5,6 +5,7 @@
   import { countCards, highestCard } from '../core/card-counts';
   import { t } from '../i18n/t';
   import CorrectionSheet from './CorrectionSheet.svelte';
+  import Icon from './Icon.svelte';
 
   let {
     model,
@@ -75,9 +76,7 @@
 <section class="board" data-phase={model.phase}>
   <div class="toolbar">
     <button class="icon" type="button" aria-label={t('board.correct')} onclick={() => (correctOpen = true)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M4 20h4L19 9l-4-4L4 16z" />
-      </svg>
+      <Icon name="edit" />
     </button>
     {#if onfacing}
       <label class="icon toggle" class:on={facing}>
@@ -88,10 +87,7 @@
           disabled={facingBusy}
           onchange={(e) => onfacing(e.currentTarget.checked)}
         />
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="3" y="4" width="18" height="12" rx="2" />
-          <path d="M8 20h8M12 16v4" />
-        </svg>
+        <Icon name="monitor" />
         <span class="toggle-label" aria-hidden="true">{t('board.facing.short')}</span>
       </label>
     {/if}
@@ -100,11 +96,8 @@
       <div class="priority">{t('board.priority.holder', { name: names[model.priority] })}</div>
     {/if}
     <!-- Far from the scoring controls on purpose: one tap wipes the bout (undo brings it back). -->
-    <button class="icon reset" type="button" aria-label={t('board.reset')} onclick={onreset}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M3 12a9 9 0 1 0 3-6.7" />
-        <path d="M3 4v5h5" />
-      </svg>
+    <button class="icon danger reset" type="button" aria-label={t('board.reset')} onclick={onreset}>
+      <Icon name="reset" />
     </button>
   </div>
   {#if facingFailed}
@@ -230,10 +223,7 @@
       </button>
     {/each}
     <button class="btn" type="button" aria-label={t('board.undo')} disabled={!model.canUndo} onclick={onundo}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true">
-        <path d="M9 14 4 9l5-5" />
-        <path d="M4 9h10a6 6 0 0 1 0 12h-3" />
-      </svg>
+      <Icon name="undo" />
     </button>
     {#if model.doubleTouch !== 'hidden'}
       <button
@@ -298,21 +288,6 @@
     font-weight: 700;
     font-size: 0.85rem;
   }
-  .icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    color: var(--fg);
-    background: #1c2547;
-    border: 2px solid var(--muted);
-    border-radius: 0.6rem;
-    cursor: pointer;
-  }
-  .icon svg {
-    width: 22px;
-    height: 22px;
-  }
   .toggle {
     position: relative;
     gap: 0.4rem;
@@ -324,11 +299,6 @@
     font-size: 0.85rem;
     font-weight: 700;
   }
-  .toggle.on {
-    background: var(--accent);
-    color: #0b1020;
-    border-color: var(--accent);
-  }
   .toggle input {
     position: absolute;
     inset: 0;
@@ -338,8 +308,6 @@
   }
   .reset {
     border-style: dashed;
-    color: #ff9a9a;
-    border-color: #ff9a9a;
   }
   .note {
     margin: 0;
@@ -507,14 +475,14 @@
     padding-inline: 0.75rem !important;
   }
   .clock-button.stop {
-    background: #ff5d5d;
-    border-color: #ff5d5d;
-    color: #0b1020;
+    background: var(--danger);
+    border-color: var(--danger);
+    color: var(--ink);
   }
   .clock-button.start {
-    background: #5dd68a;
-    border-color: #5dd68a;
-    color: #0b1020;
+    background: var(--ok);
+    border-color: var(--ok);
+    color: var(--ink);
   }
   /* Presets, undo and double share the second row evenly. */
   .controls:not(.clock-row) .btn {

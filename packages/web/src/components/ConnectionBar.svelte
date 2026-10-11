@@ -2,6 +2,7 @@
   import type { ConnectionState } from '../core/connection-store';
   import type { WakeLockStatus } from '../core/wake-lock';
   import { t } from '../i18n/t';
+  import Icon from './Icon.svelte';
 
   let {
     connection,
@@ -75,11 +76,8 @@
   <span class="status" role="status">{t(statusKey)}</span>
   {#if connection.status === 'offline'}
     <!-- Offline is expected on a piste and scoring keeps working, so no notice: just a small retry. -->
-    <button class="retry" type="button" aria-label={t('conn.retry')} title={t('conn.retry')} onclick={onretry}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
-        <path d="M21 12a9 9 0 1 1-3-6.7" />
-        <path d="M21 4v5h-5" />
-      </svg>
+    <button class="icon sm" type="button" aria-label={t('conn.retry')} title={t('conn.retry')} onclick={onretry}>
+      <Icon name="retry" />
     </button>
   {/if}
   <span class="pending">
@@ -133,38 +131,19 @@
     width: 0.8rem;
     height: 0.8rem;
     border-radius: 50%;
-    background: #5dd68a;
+    background: var(--ok);
   }
   [data-status='offline'] .dot {
-    background: #ff9a3d;
+    background: var(--warn);
   }
   [data-status='syncing'] .dot {
     background: var(--accent);
   }
   [data-status='needs-attention'] .dot {
-    background: #ff5d5d;
-  }
-  .retry {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 2rem;
-    min-width: 2rem;
-    padding: 0;
-    color: var(--fg);
-    background: transparent;
-    border: 1px solid var(--muted);
-    border-radius: 0.5rem;
-    cursor: pointer;
+    background: var(--danger);
   }
   .pending {
     margin-left: auto;
     color: var(--muted);
-  }
-  .notice {
-    margin: 0.25rem 0;
-  }
-  .notice p {
-    margin: 0;
   }
 </style>

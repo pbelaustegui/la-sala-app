@@ -15,41 +15,34 @@
   }
 </script>
 
-<h1>{t('pin.title', { piste: pisteId })}</h1>
-<p>{t('pin.hint')}</p>
+<div class="page">
+  <h1>{t('pin.title', { piste: pisteId })}</h1>
+  <p>{t('pin.hint')}</p>
 
-<form onsubmit={submit}>
-  <label class="field">
-    <span>{t('pin.label')}</span>
-    <!-- type=password keeps the digits hidden; inputmode opens the numeric keypad. -->
-    <input
-      class="pin-input"
-      type="password"
-      inputmode="numeric"
-      pattern="[0-9]*"
-      autocomplete="off"
-      maxlength="8"
-      bind:value={pin}
-    />
-  </label>
-  {#if error}
-    <p class="error" role="alert">{pinErrorMessage(error)}</p>
-  {/if}
-  <div class="actions">
-    <button class="btn primary" type="submit">{t('pin.submit')}</button>
-  </div>
-</form>
+  <form onsubmit={submit}>
+    <label class="field">
+      <span>{t('pin.label')}</span>
+      <!-- type=password keeps the digits hidden; inputmode opens the numeric keypad. -->
+      <input
+        class="pin-input"
+        type="password"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        autocomplete="off"
+        maxlength="8"
+        bind:value={pin}
+      />
+    </label>
+    {#if error}
+      <p class="error" role="alert">{pinErrorMessage(error)}</p>
+    {/if}
+    <div class="actions">
+      <button class="btn primary" type="submit">{t('pin.submit')}</button>
+    </div>
+  </form>
+</div>
 
 <style>
-  h1 {
-    margin: 0.25rem 0 0.5rem;
-  }
-  p {
-    margin: 0 0 0.5rem;
-  }
-  .actions {
-    margin: 0.5rem 0;
-  }
   .pin-input {
     font-size: 1.75rem;
     letter-spacing: 0.5em;

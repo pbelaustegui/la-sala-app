@@ -212,6 +212,7 @@ export const es = {
   'admin.pistes.pin': 'PIN de la pista {piste}',
   'admin.copy.pin': 'Copiar PIN de la pista {piste}',
   'admin.short.copyPin': 'Copiar PIN',
+  'admin.short.copyJudges': 'Copiar enlace y PINs',
   'admin.short.judge': 'Arbitrar',
   'admin.short.watch': 'Ver',
   'admin.copy.link': 'Copiar enlace de espectador',
