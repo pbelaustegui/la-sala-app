@@ -68,7 +68,6 @@ export const es = {
   // No symbol here: the play/pause characters render as a colour emoji on phones and ignore the
   // button's colour, so the hint names the button instead. It also doubles as a build marker.
   'board.priority.title': 'Sorteo de prioridad',
-  'board.priority.hint': 'Echad la moneda y elige quién gana el sorteo.',
   'board.priority.pick': 'Gana el sorteo: {name}',
   'board.priority.holder': 'Prioridad: {name}',
   'board.result': 'Ganador: {name}',
