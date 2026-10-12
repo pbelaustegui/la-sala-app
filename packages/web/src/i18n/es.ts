@@ -16,7 +16,7 @@ export const es = {
   'board.phase.break': 'Descanso',
   'board.phase.breakMid': 'Descanso a mitad de combate',
   'board.phase.priorityDraw': 'Sorteo de prioridad',
-  'board.phase.extra': 'Minuto de prioridad',
+  'board.phase.extra': 'Prioridad',
   'board.phase.finished': 'Combate terminado',
   'board.side.left': 'Izquierda',
   'board.side.right': 'Derecha',

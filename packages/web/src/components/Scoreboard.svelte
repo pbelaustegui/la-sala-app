@@ -95,9 +95,6 @@
       </label>
     {/if}
     <div class="phase">{t(model.phaseLabel.key, model.phaseLabel.params)}</div>
-    {#if model.priority !== null && model.phase === 'extra-period'}
-      <div class="priority">{t('board.priority.holder', { name: names[model.priority] })}</div>
-    {/if}
     <!-- Far from the scoring controls on purpose: one tap wipes the bout (undo brings it back). -->
     <button class="icon danger reset" type="button" aria-label={t('board.reset')} onclick={onreset}>
       <Icon name="reset" />
@@ -112,17 +109,27 @@
   <div class="halves">
     {#each SIDES as side (side)}
       {@const shown = highestCard(cardCounts[side])}
-      <div class="half {side}">
+      {@const holder = model.phase === 'extra-period' && model.priority === side}
+      <div class="half {side}" class:has-priority={holder} class:draw={model.awaitingPriority}>
         <button
           class="tap"
           type="button"
-          disabled={!model.canScore}
-          aria-label={t('board.touch', { name: names[side] })}
-          onclick={() => ontouch(side)}
+          disabled={!model.canScore && !model.awaitingPriority}
+          aria-label={model.awaitingPriority
+            ? t('board.priority.pick', { name: names[side] })
+            : t('board.touch', { name: names[side] })}
+          onclick={() => (model.awaitingPriority ? onpriority(side) : ontouch(side))}
         >
           <span class="name">{names[side]}</span>
           <span class="score">{model.score[side]}</span>
         </button>
+        {#if model.awaitingPriority}
+          <span class="priority-badge draw-badge" aria-hidden="true"><Icon name="coin" /></span>
+        {:else if holder}
+          <span class="priority-badge" role="img" aria-label={t('board.priority.holder', { name: names[side] })}>
+            <Icon name="flag" />
+          </span>
+        {/if}
         <button
           class="minus"
           type="button"
@@ -153,18 +160,6 @@
 
   {#if model.error && !model.error.startsWith('state-set-')}
     <p class="error" role="alert">{t('board.error')}</p>
-  {/if}
-
-  {#if model.awaitingPriority}
-    <div class="panel" role="group" aria-label={t('board.priority.title')}>
-      <div class="pair">
-        {#each SIDES as side (side)}
-          <button class="btn primary" type="button" onclick={() => onpriority(side)}>
-            {t('board.priority.pick', { name: names[side] })}
-          </button>
-        {/each}
-      </div>
-    </div>
   {/if}
 
   {#if model.result}
@@ -288,10 +283,6 @@
     font-weight: 700;
     color: var(--accent);
   }
-  .priority {
-    font-weight: 700;
-    font-size: 0.85rem;
-  }
   .toggle {
     position: relative;
     gap: 0.4rem;
@@ -350,6 +341,52 @@
   }
   .half.right {
     background: var(--side-right);
+  }
+  .half.has-priority,
+  .half.draw {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent), 0 0 1.2rem var(--accent);
+  }
+  .half.draw .tap:not(:disabled) {
+    animation: draw-pulse 1.2s ease-in-out infinite alternate;
+  }
+  @keyframes draw-pulse {
+    to {
+      background: rgb(255 255 255 / 0.18);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .half.draw .tap:not(:disabled) {
+      animation: none;
+    }
+  }
+  .priority-badge {
+    position: absolute;
+    top: 0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    color: var(--ink);
+    background: var(--accent);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .priority-badge :global(svg) {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+  .draw-badge {
+    top: 50%;
+    width: 3.4rem;
+    height: 3.4rem;
+    transform: translate(-50%, -50%);
+  }
+  .draw-badge :global(svg) {
+    width: 2.2rem;
+    height: 2.2rem;
   }
   .tap {
     flex: 1;
@@ -509,14 +546,6 @@
     border: 2px solid var(--accent);
     border-radius: 0.75rem;
     text-align: center;
-  }
-  .pair {
-    display: flex;
-    gap: 0.5rem;
-    width: 100%;
-  }
-  .pair .btn {
-    flex: 1;
   }
   .hint {
     color: var(--muted);
