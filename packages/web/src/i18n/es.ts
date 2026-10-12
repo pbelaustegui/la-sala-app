@@ -78,6 +78,7 @@ export const es = {
   'board.result': 'Ganador: {name}',
   'board.reason.touch-limit': 'por límite de tocados',
   'board.reason.time': 'por tiempo',
+  'board.reason.sudden-death': 'por tocado de prioridad',
   'board.reason.priority': 'por prioridad',
   'board.reason.exclusion': 'por exclusión (tarjeta negra)',
   'board.newBout': 'Nuevo combate',

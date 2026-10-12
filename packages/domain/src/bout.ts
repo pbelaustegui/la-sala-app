@@ -1,6 +1,6 @@
 import type { Rules, Side } from './rules';
 
-export type FinishReason = 'touch-limit' | 'time' | 'priority' | 'exclusion';
+export type FinishReason = 'touch-limit' | 'time' | 'sudden-death' | 'priority' | 'exclusion';
 
 export type Phase =
   | { readonly kind: 'scheduled' }

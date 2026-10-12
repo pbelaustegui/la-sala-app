@@ -41,5 +41,6 @@ describe('piste labels', () => {
     expect(periodText({ ...base, period: null })).toBeNull();
     expect(winnerText(base)).toBeNull();
     expect(winnerText({ ...base, phase: 'finished', winner: 'right', reason: 'time' })).toBe('Ganador: Bea por tiempo');
+    expect(winnerText({ ...base, phase: 'finished', winner: 'right', reason: 'sudden-death' })).toBe('Ganador: Bea por tocado de prioridad');
   });
 });
