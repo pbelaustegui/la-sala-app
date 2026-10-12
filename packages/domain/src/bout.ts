@@ -47,9 +47,11 @@ export interface BoutState {
   readonly midBoutBreakTaken: boolean;
   /** Timestamp of the last applied event; used to reject time going backwards. */
   readonly lastAt: number | null;
+  /** Fencer names per side, or null when the bout was created without them. */
+  readonly names: Readonly<Record<Side, string>> | null;
 }
 
-export function createBout(rules: Rules): BoutState {
+export function createBout(rules: Rules, names: Readonly<Record<Side, string>> | null = null): BoutState {
   return {
     rules,
     phase: { kind: 'scheduled' },
@@ -59,5 +61,6 @@ export function createBout(rules: Rules): BoutState {
     cards: [],
     midBoutBreakTaken: false,
     lastAt: null,
+    names,
   };
 }

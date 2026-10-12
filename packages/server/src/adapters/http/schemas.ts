@@ -37,6 +37,8 @@ const eventSchema = z.discriminatedUnion('type', [
   z.object({ ...common, type: z.literal('card-given'), side, card: z.enum(['yellow', 'red', 'black']) }),
   z.object({ ...common, type: z.literal('card-removed'), side, card: z.enum(['yellow', 'red', 'black']) }),
   z.object({ ...common, type: z.literal('undo') }),
+  // Emptiness and length are checked by the domain after trimming, which answers 422.
+  z.object({ ...common, type: z.literal('names-set'), left: z.string().max(1000), right: z.string().max(1000) }),
   // Ranges that depend on the rules (period count, period duration) and the empty patch are
   // left to the domain, which answers 422.
   z.object({
