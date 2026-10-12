@@ -72,7 +72,7 @@ describe('sudden-death extra period', () => {
     let state = ok(suddenDeath('left'), { type: 'clock-started', at: 710_000 });
     state = ok(state, { type: 'touch-scored', side: 'right', at: 720_000 });
     expect(state.score).toEqual({ left: 1, right: 2 });
-    expect(state.phase).toEqual({ kind: 'finished', winner: 'right', reason: 'time' });
+    expect(state.phase).toEqual({ kind: 'finished', winner: 'right', reason: 'sudden-death' });
   });
 
   it('awards the priority side when the minute runs out with no touch', () => {
@@ -112,7 +112,7 @@ describe('sudden-death extra period', () => {
 
   it('a red card in sudden death gives the opponent the winning touch', () => {
     const state = ok(suddenDeath('left'), { type: 'card-given', side: 'left', card: 'red', at: 710_000 });
-    expect(state.phase).toEqual({ kind: 'finished', winner: 'right', reason: 'time' });
+    expect(state.phase).toEqual({ kind: 'finished', winner: 'right', reason: 'sudden-death' });
   });
 
   it('a yellow card in sudden death is only recorded', () => {

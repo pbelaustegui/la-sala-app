@@ -304,9 +304,15 @@ describe('scoreboard', () => {
     await click('Iniciar reloj');
     await h.elapse(181_000);
     expect(screen.getByText('Sorteo de prioridad', { selector: '.phase' })).toBeTruthy();
+    // Draw mode: the halves are the picks, scoring taps are gone.
+    expect(screen.queryByRole('button', { name: 'Tocado para Ana' })).toBeNull();
+    expect(screen.queryByRole('img', { name: /^Prioridad:/ })).toBeNull();
     await click('Gana el sorteo: Bea');
-    expect(screen.getByText('Prioridad: Bea')).toBeTruthy();
-    expect(screen.getByText('Minuto de prioridad')).toBeTruthy();
+    const badge = screen.getByRole('img', { name: 'Prioridad: Bea' });
+    expect(badge.closest('.half')?.classList.contains('has-priority')).toBe(true);
+    expect(badge.closest('.half')?.classList.contains('right')).toBe(true);
+    expect(screen.getByText('Prioridad', { selector: '.phase' })).toBeTruthy();
+    expect(screen.queryByText('Prioridad: Bea')).toBeNull();
   });
 
   it('shows the winner and reason when the bout finishes, then offers a new bout once synced', async () => {

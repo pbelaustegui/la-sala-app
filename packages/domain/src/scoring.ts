@@ -59,8 +59,8 @@ export function scoreTouch(state: BoutState, side: Side, at: number): BoutState 
   const stopped = withStoppedClock(state, at);
   const score = { ...stopped.score, [side]: stopped.score[side] + 1 };
   if (stopped.phase.kind === 'extra-period') {
-    // Sudden death: the first touch decides. Reason is 'time' (decided in overtime).
-    return { ...stopped, score, phase: { kind: 'finished', winner: side, reason: 'time' } };
+    // Sudden death: the first touch decides. Reason is 'sudden-death', distinct from 'priority' (minute expired).
+    return { ...stopped, score, phase: { kind: 'finished', winner: side, reason: 'sudden-death' } };
   }
   return afterScoreChange({ ...stopped, score }, at);
 }
