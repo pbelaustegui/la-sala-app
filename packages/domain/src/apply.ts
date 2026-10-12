@@ -23,6 +23,11 @@ export type BoutEvent =
    * Manual correction by the judge. Works in any phase, including `finished`, which it
    * reopens; the result is fencing with a stopped clock. Needs at least one patch field.
    */
+  /**
+   * Renames the fencers. Works in any phase, including `finished`, and never touches the
+   * clock, score or phase. Names are trimmed and must be 1..100 characters.
+   */
+  | { readonly type: 'names-set'; readonly left: string; readonly right: string; readonly at: number }
   | ({ readonly type: 'state-set'; readonly at: number } & StateSetPatch);
 
 export type DomainError =
@@ -35,6 +40,7 @@ export type DomainError =
   | { readonly type: 'card-not-found' }
   | { readonly type: 'nothing-to-undo' }
   | { readonly type: 'undo-requires-replay' }
+  | { readonly type: 'names-invalid' }
   | StateSetError;
 
 export type Result<T, E> =
@@ -90,6 +96,15 @@ function drawPriorityEvent(state: BoutState, side: Side, event: BoutEvent) {
   });
 }
 
+const MAX_NAME_LENGTH = 100;
+
+function setNames(state: BoutState, left: string, right: string): Result<BoutState, DomainError> {
+  const names = { left: left.trim(), right: right.trim() };
+  const valid = (name: string) => name.length >= 1 && name.length <= MAX_NAME_LENGTH;
+  if (!valid(names.left) || !valid(names.right)) return fail({ type: 'names-invalid' });
+  return succeed({ ...state, names });
+}
+
 /** Pure reducer. Time-driven transitions are derived first via `settle`; errors are values. */
 export function apply(state: BoutState, event: BoutEvent): Result<BoutState, DomainError> {
   if (event.type === 'undo') return fail({ type: 'undo-requires-replay' });
@@ -99,7 +114,9 @@ export function apply(state: BoutState, event: BoutEvent): Result<BoutState, Dom
   const settled = settle(state, event.at);
   // The only event allowed after the bout finished: it is how a judge reopens it.
   // Also card-removed, which may revert the card that ended the bout (it checks that itself).
-  if (settled.phase.kind === 'finished' && event.type !== 'state-set' && event.type !== 'card-removed') {
+  if (settled.phase.kind === 'finished' && event.type !== 'state-set' &&
+    event.type !== 'names-set' &&
+    event.type !== 'card-removed') {
     return fail({ type: 'bout-finished' });
   }
 
@@ -131,6 +148,8 @@ function reduce(state: BoutState, event: BoutEvent): Result<BoutState, DomainErr
         : invalidPhase(state, event);
     case 'card-removed':
       return removeCard(state, event.side, event.card, event);
+    case 'names-set':
+      return setNames(state, event.left, event.right);
     case 'state-set':
       return applyStateSet(state, event);
     case 'undo':

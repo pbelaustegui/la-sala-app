@@ -38,11 +38,10 @@
   const facing = new PisteFacing({ api: services.api, pisteId, pin });
   void facing.load();
   const wakeLock = session.wakeLock;
-  // svelte-ignore state_referenced_locally
-  const names = {
-    left: bout.setup.left || t('board.side.left'),
-    right: bout.setup.right || t('board.side.right'),
-  };
+  const names = $derived({
+    left: $controller.names.left || t('board.side.left'),
+    right: $controller.names.right || t('board.side.right'),
+  });
 
   onDestroy(() => session.dispose());
 
@@ -85,6 +84,7 @@
     onskipbreak={() => controller.skipBreak()}
     onpriority={(side) => controller.drawPriority(side)}
     oncorrect={(patch) => controller.setState(patch)}
+    onrename={(left, right) => controller.setNames(left, right)}
     {onnewbout}
     facing={$facing.facing}
     facingBusy={$facing.busy}

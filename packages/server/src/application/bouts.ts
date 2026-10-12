@@ -97,7 +97,7 @@ export class BoutService {
       if (fresh.length === 0) return { ok: true, snapshot: this.snapshotOf(record, facing) };
 
       const next: BoutRecord = { setup: record.setup, events: [...record.events, ...fresh.map((f) => f.stored)] };
-      const replayed = replay(createBout(rulesOf(next.setup)), next.events.map((stored) => stored.event));
+      const replayed = replay(createBout(rulesOf(next.setup), namesOf(next.setup)), next.events.map((stored) => stored.event));
       if (!replayed.ok) {
         const freshIndex = replayed.error.index - record.events.length;
         const failing = fresh[freshIndex];
@@ -139,17 +139,21 @@ export class BoutService {
     const serverTime = this.deps.clock.now();
     if (!record) return { serverTime, bout: null, fencers: null, facingAudience };
     const replayed = replay(
-      createBout(rulesOf(record.setup)),
+      createBout(rulesOf(record.setup), namesOf(record.setup)),
       record.events.map((stored) => stored.event),
     );
     if (!replayed.ok) throw new Error('Stored bout no longer replays cleanly');
     return {
       serverTime,
       bout: settle(replayed.state, serverTime),
-      fencers: { left: record.setup.left, right: record.setup.right },
+      fencers: replayed.state.names ?? namesOf(record.setup),
       facingAudience,
     };
   }
+}
+
+function namesOf(setup: BoutSetup) {
+  return { left: setup.left, right: setup.right };
 }
 
 function rulesOf(setup: BoutSetup) {

@@ -23,7 +23,7 @@ export type SetupValidation =
   | { readonly ok: true; readonly setup: BoutSetup }
   | { readonly ok: false; readonly errors: SetupErrors };
 
-function nameError(raw: string): CopyKey | null {
+export function nameError(raw: string): CopyKey | null {
   const name = raw.trim();
   if (name.length === 0) return 'setup.error.nameRequired';
   if (name.length > MAX_NAME_LENGTH) return 'setup.error.nameTooLong';

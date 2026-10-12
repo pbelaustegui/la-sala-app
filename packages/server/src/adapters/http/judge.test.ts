@@ -378,6 +378,35 @@ describe('judge endpoints', () => {
       expect(await res.json()).toEqual({ index: 0, error: { type: 'bout-finished' } });
     });
 
+    describe('names-set', () => {
+      it('renames the fencers in the snapshot without stopping the clock', async () => {
+        await send(app, 'POST', '/pistes/1/events', { events: [ev('a', 'clock-started', T0)] }, judge());
+        const res = await send(
+          app,
+          'POST',
+          '/pistes/1/events',
+          { events: [ev('b', 'names-set', T0 + 1000, { left: ' Cris ', right: 'Dora' })] },
+          judge(),
+        );
+        expect(res.status).toBe(200);
+        const snapshot = (await (await app.request('/pistes/1/state')).json()) as any;
+        expect(snapshot.fencers).toEqual({ left: 'Cris', right: 'Dora' });
+        expect(snapshot.bout.clock.runningSince).toBe(T0);
+      });
+
+      it('undo restores the setup names', async () => {
+        await send(app, 'POST', '/pistes/1/events', { events: [ev('b', 'names-set', T0 + 1, { left: 'C', right: 'D' }), ev('u', 'undo', T0 + 2)] }, judge());
+        const snapshot = (await (await app.request('/pistes/1/state')).json()) as any;
+        expect(snapshot.fencers).toEqual({ left: 'Ana', right: 'Bea' });
+      });
+
+      it('rejects blank names with 422', async () => {
+        const res = await send(app, 'POST', '/pistes/1/events', { events: [ev('b', 'names-set', T0, { left: ' ', right: 'D' })] }, judge());
+        expect(res.status).toBe(422);
+        expect(await res.json()).toEqual({ index: 0, error: { type: 'names-invalid' } });
+      });
+    });
+
     describe('state-set corrections', () => {
       const finishBout = async () => {
         await send(app, 'POST', '/pistes/1/bout', { ...startBody, options: { touchLimit: 1 } }, judge());

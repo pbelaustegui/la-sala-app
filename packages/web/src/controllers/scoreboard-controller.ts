@@ -8,6 +8,8 @@ import type { Timers } from '../core/sync-queue';
 
 export interface ScoreboardModel extends ScoreboardView {
   readonly canUndo: boolean;
+  /** Fencer names as last set by the judge (event log first, then the setup). Never empty strings. */
+  readonly names: Readonly<Record<Side, string>>;
   /** False once a local write failed: the bout would be lost on reload. */
   readonly persisted: boolean;
   /** Domain error type of the last refused action, until the next success. */
@@ -123,6 +125,11 @@ export class ScoreboardController extends Observable<ScoreboardModel> {
     return this.perform({ type: 'state-set', ...patch });
   }
 
+  /** Renames the fencers without touching the clock or score. Returns whether the domain accepted it. */
+  setNames(left: string, right: string): boolean {
+    return this.perform({ type: 'names-set', left, right });
+  }
+
   undo(): void {
     if (!canUndo(this.deps.bout.events().map((stored) => stored.event))) return;
     this.perform({ type: 'undo' });
@@ -172,8 +179,12 @@ function limits(error: object): Record<string, number> {
 function compute(deps: ScoreboardDeps, error: Pick<ScoreboardModel, 'error' | 'errorParams'>): ScoreboardModel {
   const now = deps.now();
   const events = deps.bout.events().map((stored) => stored.event);
+  const state = deps.bout.state(now);
+  const { setup } = deps.bout;
   return {
-    ...scoreboardView(deps.bout.state(now), now),
+    ...scoreboardView(state, now),
+    // `names` is absent on states persisted before renaming existed: fall back to the setup.
+    names: state.names ?? { left: setup.left, right: setup.right },
     canUndo: canUndo(events),
     persisted: deps.bout.persisted,
     ...error,

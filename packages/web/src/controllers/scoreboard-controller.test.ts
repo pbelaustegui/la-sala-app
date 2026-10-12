@@ -36,6 +36,29 @@ describe('ScoreboardController', () => {
     expect(view.error).toBeNull();
   });
 
+  describe('setNames', () => {
+    it('exposes the setup names, renames without stopping the clock and stores a names-set event', () => {
+      const h = harness();
+      expect(h.controller.get().names).toEqual({ left: 'Ana', right: 'Bea' });
+      h.controller.toggleClock();
+      h.advance(1_000);
+      expect(h.controller.setNames('Cris', ' Dora ')).toBe(true);
+      expect(h.controller.get().names).toEqual({ left: 'Cris', right: 'Dora' });
+      expect(h.controller.get().clockRunning).toBe(true);
+      expect(h.bout.events().at(-1)?.event).toEqual({ type: 'names-set', left: 'Cris', right: ' Dora ', at: T0 + 1_000 });
+      expect(h.kicks()).toBe(2);
+      h.controller.undo();
+      expect(h.controller.get().names).toEqual({ left: 'Ana', right: 'Bea' });
+    });
+
+    it('refuses invalid names and keeps the log clean', () => {
+      const h = harness();
+      expect(h.controller.setNames('  ', 'Dora')).toBe(false);
+      expect(h.controller.get().error).toBe('names-invalid');
+      expect(h.bout.events()).toEqual([]);
+    });
+  });
+
   it('scores a touch with the corrected time, stores it locally and kicks the sync', () => {
     const h = harness();
     h.controller.toggleClock();

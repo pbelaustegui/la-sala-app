@@ -19,8 +19,16 @@ function create(storage: KeyValueStorage = new MemoryStorage()) {
 describe('LocalBout', () => {
   it('starts as a scheduled bout with the rules of the setup', () => {
     const { bout } = create();
-    expect(bout.state(0)).toEqual(createBout(createRules('foil')));
+    expect(bout.state(0)).toEqual(createBout(createRules('foil'), { left: 'Ana', right: 'Bea' }));
     expect(bout.events()).toEqual([]);
+  });
+
+  it('keeps renamed fencers after a reload, from the event log', () => {
+    const { bout, storage } = create();
+    expect(bout.append(ev({ type: 'names-set', left: 'Cris', right: 'Dora', at: 1_000 })).ok).toBe(true);
+    expect(LocalBout.load(storage, key)?.state(2_000).names).toEqual({ left: 'Cris', right: 'Dora' });
+    expect(bout.append(ev({ type: 'undo', at: 1_500 })).ok).toBe(true);
+    expect(bout.state(2_000).names).toEqual({ left: 'Ana', right: 'Bea' });
   });
 
   it('applies events optimistically through the domain replay', () => {
