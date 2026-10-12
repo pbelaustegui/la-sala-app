@@ -476,6 +476,7 @@
   }
   .skip {
     flex: 1 1 auto !important;
+    min-height: 72px;
     padding-inline: 0.75rem !important;
   }
   .clock-button.stop {
