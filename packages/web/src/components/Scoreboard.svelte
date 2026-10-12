@@ -467,8 +467,8 @@
   }
   .clock-button {
     flex: 1 1 auto !important;
-    min-height: 56px;
-    font-size: 1.4rem;
+    min-height: 72px;
+    font-size: 1.6rem;
   }
   .skip {
     flex: 1 1 auto !important;
