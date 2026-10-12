@@ -22,6 +22,7 @@
     onskipbreak,
     onpriority,
     oncorrect,
+    onrename,
     onnewbout,
     facing = false,
     facingBusy = false,
@@ -46,6 +47,8 @@
     onpriority: (side: Side) => void;
     /** Returns whether the correction was accepted. */
     oncorrect: (patch: StateSetPatch) => boolean;
+    /** Renames the fencers (no clock change). Returns whether it was accepted. */
+    onrename: (left: string, right: string) => boolean;
     onnewbout: () => void;
     /** Piste flag "facing the audience": it mirrors the SPECTATOR views, never this screen. */
     facing?: boolean;
@@ -248,6 +251,7 @@
       error={model.error}
       errorParams={model.errorParams}
       onsubmit={oncorrect}
+      {onrename}
       onclose={() => (correctOpen = false)}
     />
   {/if}

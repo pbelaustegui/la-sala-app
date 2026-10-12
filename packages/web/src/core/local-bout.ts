@@ -141,7 +141,10 @@ export class LocalBout {
   }
 
   private baseState(): BoutState {
-    return this.data.base ?? createBout(createRules(this.data.setup.weapon, this.data.setup.options));
+    return this.data.base ?? createBout(createRules(this.data.setup.weapon, this.data.setup.options), {
+        left: this.data.setup.left,
+        right: this.data.setup.right,
+      });
   }
 
   private replayed() {

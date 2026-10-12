@@ -3,6 +3,7 @@
   import type { ScoreboardModel } from '../controllers/scoreboard-controller';
   import type { CorrectionBasis } from '../core/scoreboard-view';
   import { formatClock } from '../core/scoreboard-view';
+  import { nameError } from '../core/setup-form';
   import { t, type CopyKey } from '../i18n/t';
   import Icon from './Icon.svelte';
 
@@ -14,6 +15,7 @@
     error,
     errorParams,
     onsubmit,
+    onrename,
     onclose,
   }: {
     names: Readonly<Record<Side, string>>;
@@ -25,6 +27,8 @@
     errorParams: ScoreboardModel['errorParams'];
     /** Returns whether the domain accepted the correction. */
     onsubmit: (patch: StateSetPatch) => boolean;
+    /** Renames the fencers without touching the clock. Returns whether the domain accepted it. */
+    onrename: (left: string, right: string) => boolean;
     onclose: () => void;
   } = $props();
 
@@ -172,6 +176,33 @@
     step = 'form';
   }
 
+  // Names are saved on their own: they never stop the clock nor reopen a finished bout.
+  // svelte-ignore state_referenced_locally
+  let nameFields = $state({ left: names.left, right: names.right });
+  let nameState = $state<'idle' | 'unchanged' | 'refused'>('idle');
+  const nameErrors = $derived({
+    left: nameError(nameFields.left),
+    right: nameError(nameFields.right),
+  });
+  let nameAttempted = $state(false);
+
+  function saveNames(): void {
+    nameAttempted = true;
+    nameState = 'idle';
+    if (nameErrors.left !== null || nameErrors.right !== null) return;
+    const left = nameFields.left.trim();
+    const right = nameFields.right.trim();
+    if (left === names.left && right === names.right) {
+      nameState = 'unchanged';
+      return;
+    }
+    if (onrename(left, right)) {
+      onclose();
+      return;
+    }
+    nameState = 'refused';
+  }
+
   const ERROR_KEYS: Partial<Record<NonNullable<ScoreboardModel['error']>, CopyKey>> = {
     'state-set-empty': 'board.correct.error.empty',
     'state-set-invalid-score': 'board.correct.error.score',
@@ -237,6 +268,25 @@
         <input type="text" inputmode="numeric" autocomplete="off" bind:value={fields.period} />
       </label>
     {/if}
+
+    <fieldset class="names">
+      <legend>{t('board.correct.names.heading')}</legend>
+      {#each SIDES as side (side)}
+        <label class="field">
+          <span>{t(side === 'left' ? 'setup.left' : 'setup.right')}</span>
+          <input type="text" autocomplete="off" bind:value={nameFields[side]} />
+          {#if nameAttempted && nameErrors[side]}
+            <small class="error" role="alert">{t(nameErrors[side])}</small>
+          {/if}
+        </label>
+      {/each}
+      {#if nameState === 'unchanged'}
+        <p class="hint">{t('board.correct.noChanges')}</p>
+      {:else if nameState === 'refused'}
+        <p class="error" role="alert">{t('board.correct.error.names')}</p>
+      {/if}
+      <button class="btn" type="button" onclick={saveNames}>{t('board.correct.names.save')}</button>
+    </fieldset>
 
     {#if blocked !== null}
       <p class="error" role="alert">{t(blocked.key, blocked.params)}</p>
@@ -305,6 +355,19 @@
     min-width: 0;
     width: 100%;
     box-sizing: border-box;
+  }
+  .names {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    border: 0;
+  }
+  .names legend,
+  .names p,
+  .names button {
+    grid-column: 1 / -1;
   }
   .quick {
     margin-top: 0.25rem;

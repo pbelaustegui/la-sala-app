@@ -71,6 +71,20 @@ describe('scoreboard', () => {
     expect((screen.getByRole('button', { name: 'Tocado para Ana' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it('renames the fencers from the correction sheet without stopping the clock, and syncs it', async () => {
+    const h = harness();
+    await open(h);
+    await click('Iniciar reloj');
+    await h.elapse(2_000);
+    await click('Corregir marcador y reloj');
+    await fireEvent.input(screen.getByLabelText('Tirador izquierda'), { target: { value: 'Cris' } });
+    await click('Guardar nombres');
+    await screen.findByRole('button', { name: 'Tocado para Cris' });
+    expect(screen.getByRole('button', { name: 'Parar reloj' })).toBeTruthy();
+    await waitFor(() => expect(h.server.events.map((e) => e.event.type)).toContain('names-set'));
+    expect(h.server.snapshot().fencers).toEqual({ left: 'Cris', right: 'Bea' });
+  });
+
   it('tapping a half scores a touch for that side and syncs it', async () => {
     const h = harness();
     await open(h);

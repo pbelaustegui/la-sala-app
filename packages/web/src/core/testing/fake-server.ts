@@ -85,14 +85,14 @@ export class FakeServer {
     const facingAudience = this.facingAudience;
     if (!this.setup) return { serverTime, bout: null, fencers: null, facingAudience };
     const result = replay(
-      createBout(createRules(this.setup.weapon, this.setup.options)),
+      createBout(createRules(this.setup.weapon, this.setup.options), { left: this.setup.left, right: this.setup.right }),
       this.events.map((stored) => stored.event),
     );
     if (!result.ok) throw new Error('fake server holds an invalid log');
     return {
       serverTime,
       bout: settle(result.state, serverTime),
-      fencers: { left: this.setup.left, right: this.setup.right },
+      fencers: result.state.names ?? { left: this.setup.left, right: this.setup.right },
       facingAudience,
     };
   }
@@ -108,7 +108,7 @@ export class FakeServer {
     });
     const next = [...this.events, ...fresh.map((f) => f.stored)];
     const result = replay(
-      createBout(createRules(this.setup.weapon, this.setup.options)),
+      createBout(createRules(this.setup.weapon, this.setup.options), { left: this.setup.left, right: this.setup.right }),
       next.map((stored) => stored.event),
     );
     if (!result.ok) {

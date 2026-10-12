@@ -17,6 +17,7 @@ const basis: CorrectionBasis = {
 function mount(overrides: Record<string, unknown> = {}) {
   const onsubmit = vi.fn<(patch: StateSetPatch) => boolean>(() => true);
   const onclose = vi.fn();
+  const onrename = vi.fn<(left: string, right: string) => boolean>(() => true);
   render(CorrectionSheet, {
     names: { left: 'Ana', right: 'Bea' },
     score: { left: 3, right: 2 },
@@ -25,10 +26,11 @@ function mount(overrides: Record<string, unknown> = {}) {
     error: null,
     errorParams: {},
     onsubmit,
+    onrename,
     onclose,
     ...overrides,
   });
-  return { onsubmit, onclose };
+  return { onsubmit, onrename, onclose };
 }
 
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole('button', { name }));
@@ -37,6 +39,44 @@ const type = (label: string | RegExp, value: string) =>
 const value = (label: string | RegExp) => (screen.getByLabelText(label) as HTMLInputElement).value;
 
 afterEach(cleanup);
+
+describe('CorrectionSheet: fencer names', () => {
+  it('starts from the current names and saves them through their own path', async () => {
+    const { onrename, onsubmit, onclose } = mount();
+    expect(value('Tirador izquierda')).toBe('Ana');
+    expect(value('Tirador derecha')).toBe('Bea');
+    await type('Tirador izquierda', '  Cris ');
+    await click('Guardar nombres');
+    expect(onrename).toHaveBeenCalledWith('Cris', 'Bea');
+    expect(onsubmit).not.toHaveBeenCalled();
+    expect(onclose).toHaveBeenCalled();
+  });
+
+  it('validates like the setup form without calling the controller', async () => {
+    const { onrename } = mount();
+    await type('Tirador izquierda', '   ');
+    await type('Tirador derecha', 'x'.repeat(101));
+    await click('Guardar nombres');
+    expect(onrename).not.toHaveBeenCalled();
+    expect(screen.getByText('Escribe el nombre.')).toBeTruthy();
+    expect(screen.getByText('El nombre admite como máximo 100 caracteres.')).toBeTruthy();
+  });
+
+  it('says nothing changed when the names are the same', async () => {
+    const { onrename } = mount();
+    await click('Guardar nombres');
+    expect(onrename).not.toHaveBeenCalled();
+    expect(screen.getByText('No has cambiado nada.')).toBeTruthy();
+  });
+
+  it('keeps the sheet open and shows an error when the domain refuses', async () => {
+    const { onclose } = mount({ onrename: () => false, error: 'names-invalid' });
+    await type('Tirador izquierda', 'Cris');
+    await click('Guardar nombres');
+    expect(onclose).not.toHaveBeenCalled();
+    expect(screen.getAllByRole('alert').length).toBeGreaterThan(0);
+  });
+});
 
 describe('CorrectionSheet', () => {
   it('starts from the current state, with numeric inputs', () => {
