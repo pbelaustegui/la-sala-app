@@ -4,6 +4,7 @@
   import { highestCard } from '../core/card-counts';
   import { t } from '../i18n/t';
   import CardDot from './CardDot.svelte';
+  import Icon from './Icon.svelte';
   import { clockText, periodText, phaseLabel, winnerText } from './piste-labels';
 
   /**
@@ -29,7 +30,11 @@
     {#each sides as side (side)}
       {@const name = view.fencers[side]}
       {@const shown = highestCard(view.cards[side])}
-      <span class="fencer {side}" class:winner={view.winner === side}>
+      {@const holder = view.phase === 'extra-period' && view.priority === side}
+      <span class="fencer {side}" class:winner={view.winner === side} class:has-priority={holder}>
+        {#if holder}
+          <span class="priority-flag" role="img" aria-label={t('spectator.priority', { name })}><Icon name="flag" /></span>
+        {/if}
         <span class="name">{name}</span>
         <span class="score" aria-label={t('spectator.score', { name })}>{view.score[side]}</span>
         {#if shown}
@@ -79,6 +84,7 @@
     border: 3px solid transparent;
     border-radius: 0.75rem;
     min-width: 0;
+    position: relative;
   }
   .fencer.left {
     background: var(--side-left);
@@ -88,6 +94,26 @@
   }
   .fencer.winner {
     border-color: var(--accent);
+  }
+  .fencer.has-priority {
+    border-color: var(--accent);
+    box-shadow: 0 0 calc(var(--numeral) * 0.3) var(--accent);
+  }
+  .priority-flag {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    display: grid;
+    place-items: center;
+    width: calc(var(--numeral) * 0.5);
+    height: calc(var(--numeral) * 0.5);
+    color: var(--ink);
+    background: var(--accent);
+    border-radius: 50%;
+  }
+  .priority-flag :global(svg) {
+    width: 65%;
+    height: 65%;
   }
   .name {
     font-weight: 700;

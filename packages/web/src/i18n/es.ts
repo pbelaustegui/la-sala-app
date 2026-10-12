@@ -105,6 +105,7 @@ export const es = {
   'spectator.phase.finished': 'Finalizado',
   'spectator.period': 'Período {period} de {periods}',
   'spectator.score': 'Puntos de {name}',
+  'spectator.priority': 'Prioridad: {name}',
   'spectator.clock': 'Reloj',
   'spectator.card.yellow': 'Tarjeta amarilla de {name}',
   'spectator.card.red': 'Tarjeta roja de {name}',

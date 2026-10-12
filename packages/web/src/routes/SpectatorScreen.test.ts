@@ -92,6 +92,18 @@ function harness() {
 
 const running = bout([{ type: 'clock-started', at: T0 }]);
 
+/** Tied at the end of the only period, priority drawn for `side`: sudden-death minute. */
+function extraPeriod(side: 'left' | 'right'): BoutState {
+  const result = replay(createBout(createRules('foil', { periods: 1 })), [
+    { type: 'clock-started', at: T0 },
+    { type: 'state-set', score: { left: 4, right: 4 }, remainingMs: 1_000, at: T0 + 100 },
+    { type: 'clock-started', at: T0 + 200 },
+    { type: 'priority-drawn', side, at: T0 + 5_000 },
+  ]);
+  if (!result.ok) throw new Error('bad fixture');
+  return result.state;
+}
+
 afterEach(() => {
   window.location.hash = '';
 });
@@ -127,6 +139,31 @@ describe('public board', () => {
     expect(within(card).getByText('Período 1 de 3')).toBeTruthy();
     expect(within(card).getByText('En juego')).toBeTruthy();
     expect(within(screen.getByRole('link', { name: /Pista 2/ })).getByText('Sin combate')).toBeTruthy();
+  });
+
+  it('flags the fencer holding priority in the extra period, on the card and the detail', async () => {
+    const h = harness();
+    render(App, { env: h.env });
+    await h.live('1');
+    await h.snapshotOf('1', snapshot(T0 + 5_000, extraPeriod('right')));
+
+    const card = screen.getByRole('link', { name: /Pista 1/ });
+    expect(within(card).getByRole('img', { name: 'Prioridad: Bea' })).toBeTruthy();
+    expect(within(card).getAllByRole('img', { name: /Prioridad/ })).toHaveLength(1);
+    expect(within(card).getByText('Bea').closest('.fencer')?.classList.contains('has-priority')).toBe(true);
+    expect(within(card).getByText('Ana').closest('.fencer')?.classList.contains('has-priority')).toBe(false);
+
+    await fireEvent.click(card);
+    await waitFor(() => expect(screen.getByRole('heading', { name: /Pista 1/ })).toBeTruthy());
+    expect(screen.getByRole('img', { name: 'Prioridad: Bea' })).toBeTruthy();
+  });
+
+  it('shows no priority flag outside the extra period', async () => {
+    const h = harness();
+    render(App, { env: h.env });
+    await h.live('1');
+    await h.snapshotOf('1', snapshot(T0, running));
+    expect(screen.queryByRole('img', { name: /Prioridad/ })).toBeNull();
   });
 
   it('tags each fencer with the side the judge sees: left first, right second', async () => {
