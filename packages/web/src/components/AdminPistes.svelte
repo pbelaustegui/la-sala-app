@@ -3,6 +3,7 @@
   import { t } from '../i18n/t';
   import { hrefTo } from '../router';
   import Icon from './Icon.svelte';
+  import NumberField from './NumberField.svelte';
 
   let {
     pistes,
@@ -32,12 +33,11 @@
     onlock: () => void;
   } = $props();
 
-  // A number input binds to a number, or null while empty or unparsable.
-  let count = $state<number | null>(null);
+  let count = $state('');
 
   function submit(event: SubmitEvent): void {
     event.preventDefault();
-    onrequest(count ?? Number.NaN);
+    onrequest(count.trim() === '' ? Number.NaN : Number(count));
   }
 </script>
 
@@ -89,10 +89,7 @@
 
 <h2>{t('admin.create.title')}</h2>
 <form onsubmit={submit}>
-  <label class="field">
-    <span>{t('admin.create.count')}</span>
-    <input type="number" inputmode="numeric" min="1" max="100" step="1" bind:value={count} />
-  </label>
+  <NumberField label={t('admin.create.count')} bind:value={count} min={1} max={100} />
   {#if error === 'invalid-count'}
     <p class="error" role="alert">{t('admin.create.invalid')}</p>
   {:else if error === 'failed'}

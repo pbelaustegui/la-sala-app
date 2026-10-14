@@ -4,6 +4,7 @@
   import { EMPTY_SETUP_FORM, type SetupErrors, type SetupForm } from '../core/setup-form';
   import { t } from '../i18n/t';
   import { setupFailureMessage } from './entry-error';
+  import NumberField from './NumberField.svelte';
 
   let {
     errors,
@@ -59,12 +60,13 @@
     </div>
   </fieldset>
 
-  <label class="field">
-    <span>{t('setup.touchLimit')}</span>
-    <input type="text" inputmode="numeric" autocomplete="off" bind:value={touchLimit} aria-invalid={errors.touchLimit ? 'true' : undefined} />
-    <small>{t('setup.touchLimit.hint')}</small>
-    {#if errors.touchLimit}<span class="error" role="alert">{t(errors.touchLimit)}</span>{/if}
-  </label>
+  <NumberField
+    label={t('setup.touchLimit')}
+    bind:value={touchLimit}
+    min={1}
+    hint={t('setup.touchLimit.hint')}
+    error={errors.touchLimit ? t(errors.touchLimit) : undefined}
+  />
 
   <div class="names">
   <label class="field">
@@ -128,9 +130,6 @@
   }
   .field {
     margin-bottom: 0.6rem;
-  }
-  small {
-    font-size: 0.8rem;
   }
   .names {
     display: grid;

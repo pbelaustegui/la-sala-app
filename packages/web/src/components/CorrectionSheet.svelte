@@ -6,6 +6,7 @@
   import { nameError } from '../core/setup-form';
   import { t, type CopyKey } from '../i18n/t';
   import Icon from './Icon.svelte';
+  import NumberField from './NumberField.svelte';
 
   let {
     names,
@@ -244,29 +245,17 @@
 
     <div class="scores">
       {#each SIDES as side (side)}
-        <label class="field">
-          <span>{t('board.correct.score', { name: names[side] })}</span>
-          <input type="text" inputmode="numeric" autocomplete="off" bind:value={fields[side]} />
-        </label>
+        <NumberField label={t('board.correct.score', { name: names[side] })} bind:value={fields[side]} />
       {/each}
     </div>
 
     <div class="time">
-      <label class="field">
-        <span>{t('board.correct.minutes')}</span>
-        <input type="text" inputmode="numeric" autocomplete="off" bind:value={fields.minutes} />
-      </label>
-      <label class="field">
-        <span>{t('board.correct.seconds')}</span>
-        <input type="text" inputmode="numeric" autocomplete="off" bind:value={fields.seconds} />
-      </label>
+      <NumberField label={t('board.correct.minutes')} bind:value={fields.minutes} />
+      <NumberField label={t('board.correct.seconds')} bind:value={fields.seconds} max={59} />
     </div>
 
     {#if basis.periods > 1}
-      <label class="field">
-        <span>{t('board.correct.period', { periods: basis.periods })}</span>
-        <input type="text" inputmode="numeric" autocomplete="off" bind:value={fields.period} />
-      </label>
+      <NumberField label={t('board.correct.period', { periods: basis.periods })} bind:value={fields.period} min={1} max={basis.periods} />
     {/if}
 
     <fieldset class="names">
@@ -351,7 +340,7 @@
     grid-template-columns: 1fr 1fr;
     gap: 0.5rem;
   }
-  .field input {
+  .names .field input {
     min-width: 0;
     width: 100%;
     box-sizing: border-box;
