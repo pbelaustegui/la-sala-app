@@ -49,10 +49,9 @@
 
   let fields = $state({ ...initial });
   let clearCards = $state(false);
-  let step = $state<'form' | 'confirm'>('form');
   let attempted = $state(false);
-  let notice = $state<'none' | 'no-changes' | 'clock-current' | 'score-current'>('none');
-  /** A changed group has a field the form cannot even express: block before confirming. */
+  let notice = $state<'none' | 'no-changes'>('none');
+  /** A changed group has a field the form cannot even express: block before applying. */
   let blocked = $state<{ key: CopyKey; params: Record<string, string | number> } | null>(null);
 
   const scoreChanged = $derived(fields.left !== initial.left || fields.right !== initial.right);
@@ -69,24 +68,6 @@
       ...(clearCards && { clearCards: true as const }),
     };
   }
-
-  const timeText = $derived(`${fields.minutes.trim()}:${fields.seconds.trim().padStart(2, '0')}`);
-  const changes = $derived(
-    [
-      scoreChanged &&
-        t('board.correct.change.score', {
-          left: names.left,
-          leftScore: fields.left.trim(),
-          rightScore: fields.right.trim(),
-          right: names.right,
-        }),
-      clockChanged && t('board.correct.change.clock', { time: timeText }),
-      periodChanged && t('board.correct.change.period', { period: fields.period.trim() }),
-      clearCards && t('board.correct.change.cards'),
-    ]
-      .filter((part): part is string => part !== false)
-      .join(', '),
-  );
 
   /** Full duration of the period the clock would be reset in. */
   const fullDurationMs = $derived(
@@ -112,96 +93,64 @@
     return null;
   }
 
-  function review(): void {
-    attempted = false;
-    if (Object.keys(buildPatch()).length === 0) {
-      blocked = null;
-      notice = 'no-changes';
-      return;
-    }
-    const problem = blockedField();
-    if (problem !== null) {
-      blocked = problem;
-      notice = 'none';
-      return;
-    }
-    blocked = null;
-    notice = 'none';
-    step = 'confirm';
-  }
-
-  function resetClock(): void {
-    const total = Math.ceil(fullDurationMs / 1000);
-    fields.minutes = String(Math.floor(total / 60));
-    fields.seconds = String(total % 60);
-    if (Object.keys(buildPatch()).length === 0) {
-      attempted = false;
-      blocked = null;
-      notice = 'clock-current';
-      return;
-    }
-    review();
-  }
-
-  function resetScores(): void {
-    fields.left = '0';
-    fields.right = '0';
-    if (Object.keys(buildPatch()).length === 0) {
-      attempted = false;
-      blocked = null;
-      notice = 'score-current';
-      return;
-    }
-    review();
-  }
-
-  function clearAllCards(): void {
-    clearCards = true;
-    review();
-    // Only the confirmation step keeps it pending; a blocked form must not carry it silently.
-    if (step === 'form') clearCards = false;
-  }
-
-  function back(): void {
-    clearCards = false;
-    step = 'form';
-  }
-
-  function confirm(): void {
-    if (onsubmit(buildPatch())) {
-      onclose();
-      return;
-    }
-    attempted = true;
-    clearCards = false;
-    step = 'form';
-  }
-
-  // Names are saved on their own: they never stop the clock nor reopen a finished bout.
+  // Names are saved through their own path: they never stop the clock nor reopen a finished bout.
   // svelte-ignore state_referenced_locally
   let nameFields = $state({ left: names.left, right: names.right });
-  let nameState = $state<'idle' | 'unchanged' | 'refused'>('idle');
+  let nameRefused = $state(false);
   const nameErrors = $derived({
     left: nameError(nameFields.left),
     right: nameError(nameFields.right),
   });
   let nameAttempted = $state(false);
 
-  function saveNames(): void {
+  const hasStateChanges = $derived(Object.keys(buildPatch()).length > 0);
+
+  function resetClock(): void {
+    const total = Math.ceil(fullDurationMs / 1000);
+    fields.minutes = String(Math.floor(total / 60));
+    fields.seconds = String(total % 60);
+  }
+
+  function resetScores(): void {
+    fields.left = '0';
+    fields.right = '0';
+  }
+
+  function toggleClearCards(): void {
+    clearCards = !clearCards;
+  }
+
+  /** Applies the state patch and the rename together; the sheet closes only when both were accepted. */
+  function apply(): void {
+    attempted = false;
+    blocked = null;
+    notice = 'none';
+    nameRefused = false;
     nameAttempted = true;
-    nameState = 'idle';
     if (nameErrors.left !== null || nameErrors.right !== null) return;
     const left = nameFields.left.trim();
     const right = nameFields.right.trim();
-    if (left === names.left && right === names.right) {
-      nameState = 'unchanged';
+    const renamed = left !== names.left || right !== names.right;
+    if (!hasStateChanges && !renamed) {
+      notice = 'no-changes';
       return;
     }
-    if (onrename(left, right)) {
-      onclose();
+    if (hasStateChanges) {
+      const problem = blockedField();
+      if (problem !== null) {
+        blocked = problem;
+        return;
+      }
+      if (!onsubmit(buildPatch())) {
+        attempted = true;
+        return;
+      }
+    }
+    if (renamed && !onrename(left, right)) {
+      nameRefused = true;
       return;
     }
-    nameState = 'refused';
+    onclose();
   }
 
   const ERROR_KEYS: Partial<Record<NonNullable<ScoreboardModel['error']>, CopyKey>> = {
@@ -217,96 +166,80 @@
 <div class="sheet" role="group" aria-label={t('board.correct.title')}>
   <div class="top">
     <h2>{t('board.correct.title')}</h2>
-    {#if step === 'form'}
-      <button class="icon" type="button" aria-label={t('board.correct.close')} title={t('board.correct.close')} onclick={onclose}>
-        <Icon name="x" />
-      </button>
-    {:else}
-      <button class="icon" type="button" aria-label={t('board.correct.back')} title={t('board.correct.back')} onclick={back}>
-        <Icon name="arrow-left" />
-      </button>
-    {/if}
+    <button class="icon" type="button" aria-label={t('board.correct.close')} title={t('board.correct.close')} onclick={onclose}>
+      <Icon name="x" />
+    </button>
   </div>
 
-  {#if step === 'form'}
-    <p class="hint">{t('board.correct.hint')}</p>
+  <p class="hint">{t('board.correct.hint')}</p>
 
-    <div class="tools quick">
-      <button class="icon" type="button" aria-label={t('board.correct.resetClock')} title={t('board.correct.resetClock')} onclick={resetClock}>
-        <Icon name="clock" />
-      </button>
-      <button class="icon" type="button" aria-label={t('board.correct.resetScores')} title={t('board.correct.resetScores')} onclick={resetScores}>
-        <Icon name="scores" />
-      </button>
-      <button class="icon" type="button" aria-label={t('board.correct.clearCards')} title={t('board.correct.clearCards')} onclick={clearAllCards}>
-        <Icon name="cards" />
-      </button>
-    </div>
+  <div class="tools quick">
+    <button class="icon" type="button" aria-label={t('board.correct.resetClock')} title={t('board.correct.resetClock')} onclick={resetClock}>
+      <Icon name="clock" />
+    </button>
+    <button class="icon" type="button" aria-label={t('board.correct.resetScores')} title={t('board.correct.resetScores')} onclick={resetScores}>
+      <Icon name="scores" />
+    </button>
+    <button
+      class="icon"
+      class:on={clearCards}
+      type="button"
+      aria-pressed={clearCards}
+      aria-label={t('board.correct.clearCards')}
+      title={t('board.correct.clearCards')}
+      onclick={toggleClearCards}
+    >
+      <Icon name="cards" />
+    </button>
+  </div>
 
-    <div class="scores">
-      {#each SIDES as side (side)}
-        <NumberField label={t('board.correct.score', { name: names[side] })} bind:value={fields[side]} />
-      {/each}
-    </div>
+  <div class="scores">
+    {#each SIDES as side (side)}
+      <NumberField label={t('board.correct.score', { name: names[side] })} bind:value={fields[side]} />
+    {/each}
+  </div>
 
-    <div class="time">
-      <NumberField label={t('board.correct.minutes')} bind:value={fields.minutes} />
-      <NumberField label={t('board.correct.seconds')} bind:value={fields.seconds} max={59} />
-    </div>
+  <div class="time">
+    <NumberField label={t('board.correct.minutes')} bind:value={fields.minutes} />
+    <NumberField label={t('board.correct.seconds')} bind:value={fields.seconds} max={59} />
+  </div>
 
-    {#if basis.periods > 1}
-      <NumberField label={t('board.correct.period', { periods: basis.periods })} bind:value={fields.period} min={1} max={basis.periods} />
-    {/if}
-
-    <fieldset class="names">
-      <legend>{t('board.correct.names.heading')}</legend>
-      {#each SIDES as side (side)}
-        <label class="field">
-          <span>{t(side === 'left' ? 'setup.left' : 'setup.right')}</span>
-          <input type="text" autocomplete="off" bind:value={nameFields[side]} />
-          {#if nameAttempted && nameErrors[side]}
-            <small class="error" role="alert">{t(nameErrors[side])}</small>
-          {/if}
-        </label>
-      {/each}
-      {#if nameState === 'unchanged'}
-        <p class="hint">{t('board.correct.noChanges')}</p>
-      {:else if nameState === 'refused'}
-        <p class="error" role="alert">{t('board.correct.error.names')}</p>
-      {/if}
-      <button class="btn" type="button" onclick={saveNames}>{t('board.correct.names.save')}</button>
-    </fieldset>
-
-    {#if blocked !== null}
-      <p class="error" role="alert">{t(blocked.key, blocked.params)}</p>
-    {:else if errorKey}
-      <p class="error" role="alert">
-        {t(errorKey, { ...errorParams, max: formatClock(errorParams.maxMs ?? 0) })}
-      </p>
-    {/if}
-    {#if notice === 'no-changes'}
-      <p class="hint">{t('board.correct.noChanges')}</p>
-    {:else if notice === 'clock-current'}
-      <p class="hint">{t('board.correct.clockCurrent', { time: formatClock(fullDurationMs) })}</p>
-    {:else if notice === 'score-current'}
-      <p class="hint">{t('board.correct.scoreCurrent', { score: '0-0' })}</p>
-    {/if}
-
-    <div class="actions">
-      <button class="btn primary" type="button" onclick={review}>{t('board.correct.review')}</button>
-    </div>
-  {:else}
-    <div class="notice" role="status">
-      <p>{t('board.correct.confirm', { changes })}</p>
-      <p>{t('board.correct.confirm.stopped')}</p>
-      {#if finished}
-        <p><strong>{t('board.correct.confirm.reopens')}</strong></p>
-      {/if}
-    </div>
-    <div class="actions">
-      <button class="btn primary" type="button" onclick={confirm}>{t('board.correct.apply')}</button>
-    </div>
+  {#if basis.periods > 1}
+    <NumberField label={t('board.correct.period', { periods: basis.periods })} bind:value={fields.period} min={1} max={basis.periods} />
   {/if}
+
+  <fieldset class="names">
+    <legend>{t('board.correct.names.heading')}</legend>
+    {#each SIDES as side (side)}
+      <label class="field">
+        <span>{t(side === 'left' ? 'setup.left' : 'setup.right')}</span>
+        <input type="text" autocomplete="off" bind:value={nameFields[side]} />
+        {#if nameAttempted && nameErrors[side]}
+          <small class="error" role="alert">{t(nameErrors[side])}</small>
+        {/if}
+      </label>
+    {/each}
+  </fieldset>
+
+  {#if finished && hasStateChanges}
+    <p class="hint">{t('board.correct.reopens')}</p>
+  {/if}
+  {#if blocked !== null}
+    <p class="error" role="alert">{t(blocked.key, blocked.params)}</p>
+  {:else if errorKey}
+    <p class="error" role="alert">
+      {t(errorKey, { ...errorParams, max: formatClock(errorParams.maxMs ?? 0) })}
+    </p>
+  {:else if nameRefused}
+    <p class="error" role="alert">{t('board.correct.error.names')}</p>
+  {/if}
+  {#if notice === 'no-changes'}
+    <p class="hint">{t('board.correct.noChanges')}</p>
+  {/if}
+
+  <div class="actions">
+    <button class="btn primary" type="button" onclick={apply}>{t('board.correct.apply')}</button>
+  </div>
 </div>
 
 <style>
@@ -353,9 +286,7 @@
     padding: 0;
     border: 0;
   }
-  .names legend,
-  .names p,
-  .names button {
+  .names legend {
     grid-column: 1 / -1;
   }
   .quick {

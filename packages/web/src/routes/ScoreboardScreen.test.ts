@@ -78,7 +78,7 @@ describe('scoreboard', () => {
     await h.elapse(2_000);
     await click('Corregir marcador y reloj');
     await fireEvent.input(screen.getByLabelText('Tirador izquierda'), { target: { value: 'Cris' } });
-    await click('Guardar nombres');
+    await click('Aplicar cambios');
     await screen.findByRole('button', { name: 'Tocado para Cris' });
     expect(screen.getByRole('button', { name: 'Parar reloj' })).toBeTruthy();
     await waitFor(() => expect(h.server.events.map((e) => e.event.type)).toContain('names-set'));
@@ -353,7 +353,7 @@ describe('manual correction', () => {
     expect(screen.queryByRole('group', { name: 'Corregir el combate' })).toBeNull();
   });
 
-  it('resets the scores after confirming, and syncs the correction', async () => {
+  it('resets the scores, and syncs the correction', async () => {
     const h = harness();
     await open(h);
     await click('Iniciar reloj');
@@ -364,7 +364,7 @@ describe('manual correction', () => {
     await click('Marcador a 0-0');
     expect(score('right')).toBe('2');
 
-    await click('Sí, aplicar el cambio');
+    await click('Aplicar cambios');
     expect(score('left')).toBe('0');
     expect(score('right')).toBe('0');
     expect(screen.queryByRole('group', { name: 'Corregir el combate' })).toBeNull();
@@ -377,7 +377,7 @@ describe('manual correction', () => {
     await open(h);
     await click('Corregir marcador y reloj');
     await click('Quitar tarjetas');
-    await click('Sí, aplicar el cambio');
+    await click('Aplicar cambios');
     await waitFor(() => expect(h.server.events.at(-1)?.event).toMatchObject({ type: 'state-set', clearCards: true }));
   });
 
@@ -389,7 +389,7 @@ describe('manual correction', () => {
     expect(screen.getByText('2:00')).toBeTruthy();
     await click('Corregir marcador y reloj');
     await click('Reiniciar reloj');
-    await click('Sí, aplicar el cambio');
+    await click('Aplicar cambios');
     expect(screen.getByText('3:00')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Iniciar reloj' })).toBeTruthy();
   });
@@ -404,8 +404,7 @@ describe('manual correction', () => {
     await type('Minutos', '1');
     await type('Segundos', '30');
     await type(/^Periodo/, '2');
-    await click('Revisar cambios');
-    await click('Sí, aplicar el cambio');
+    await click('Aplicar cambios');
 
     expect(score('left')).toBe('7');
     expect(score('right')).toBe('4');
@@ -422,8 +421,8 @@ describe('manual correction', () => {
 
     await click('Corregir marcador y reloj');
     await click('Marcador a 0-0');
-    expect(screen.getByText('El combate ya terminó: esto lo reabre.')).toBeTruthy();
-    await click('Sí, aplicar el cambio');
+    expect(screen.getByText('El combate ya terminó: aplicar estos cambios lo reabre.')).toBeTruthy();
+    await click('Aplicar cambios');
 
     expect(screen.queryByText('Ganador: Ana')).toBeNull();
     expect(score('left')).toBe('0');
@@ -437,8 +436,7 @@ describe('manual correction', () => {
     await h.elapse(10_000);
     await click('Corregir marcador y reloj');
     await type('Minutos', '99');
-    await click('Revisar cambios');
-    await click('Sí, aplicar el cambio');
+    await click('Aplicar cambios');
 
     expect(screen.getByRole('alert').textContent?.trim()).toBe('El tiempo debe estar entre 0:00 y 3:00.');
     expect(screen.getByRole('group', { name: 'Corregir el combate' })).toBeTruthy();
@@ -453,7 +451,7 @@ describe('manual correction', () => {
     await click('Tocado para Ana');
     await click('Corregir marcador y reloj');
     await click('Marcador a 0-0');
-    await click('Sí, aplicar el cambio');
+    await click('Aplicar cambios');
     expect(score('left')).toBe('0');
 
     await click('Deshacer');
