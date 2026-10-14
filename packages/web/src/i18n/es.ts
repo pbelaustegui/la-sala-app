@@ -37,6 +37,8 @@ export const es = {
   'board.facing': 'Estoy de cara al público',
   'board.facing.short': 'Público',
   'board.facing.failed': 'No se pudo cambiar sin conexión con el servidor. Inténtalo de nuevo.',
+  'number.decrease': 'Restar uno: {field}',
+  'number.increase': 'Sumar uno: {field}',
   'board.correct': 'Corregir marcador y reloj',
   'board.correct.title': 'Corregir el combate',
   'board.correct.hint': 'Cambia lo que haga falta. El reloj queda parado y puedes deshacerlo después.',
