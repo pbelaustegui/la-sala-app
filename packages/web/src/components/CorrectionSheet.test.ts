@@ -40,41 +40,57 @@ const value = (label: string | RegExp) => (screen.getByLabelText(label) as HTMLI
 
 afterEach(cleanup);
 
+const apply = () => click('Aplicar cambios');
+
 describe('CorrectionSheet: fencer names', () => {
-  it('starts from the current names and saves them through their own path', async () => {
+  it('starts from the current names and renames without touching the clock', async () => {
     const { onrename, onsubmit, onclose } = mount();
     expect(value('Tirador izquierda')).toBe('Ana');
     expect(value('Tirador derecha')).toBe('Bea');
     await type('Tirador izquierda', '  Cris ');
-    await click('Guardar nombres');
+    await apply();
     expect(onrename).toHaveBeenCalledWith('Cris', 'Bea');
     expect(onsubmit).not.toHaveBeenCalled();
     expect(onclose).toHaveBeenCalled();
   });
 
-  it('validates like the setup form without calling the controller', async () => {
-    const { onrename } = mount();
+  it('applies a state change and a rename together', async () => {
+    const { onrename, onsubmit, onclose } = mount();
+    await type('Tocados de Ana', '5');
+    await type('Tirador derecha', 'Dora');
+    await apply();
+    expect(onsubmit).toHaveBeenCalledExactlyOnceWith({ score: { left: 5, right: 2 } });
+    expect(onrename).toHaveBeenCalledExactlyOnceWith('Ana', 'Dora');
+    expect(onclose).toHaveBeenCalledTimes(1);
+  });
+
+  it('validates names like the setup form without calling the controller', async () => {
+    const { onrename, onsubmit } = mount();
+    await type('Tocados de Ana', '5');
     await type('Tirador izquierda', '   ');
     await type('Tirador derecha', 'x'.repeat(101));
-    await click('Guardar nombres');
+    await apply();
     expect(onrename).not.toHaveBeenCalled();
+    expect(onsubmit).not.toHaveBeenCalled();
     expect(screen.getByText('Escribe el nombre.')).toBeTruthy();
     expect(screen.getByText('El nombre admite como máximo 100 caracteres.')).toBeTruthy();
   });
 
-  it('says nothing changed when the names are the same', async () => {
-    const { onrename } = mount();
-    await click('Guardar nombres');
-    expect(onrename).not.toHaveBeenCalled();
-    expect(screen.getByText('No has cambiado nada.')).toBeTruthy();
-  });
-
-  it('keeps the sheet open and shows an error when the domain refuses', async () => {
+  it('keeps the sheet open and shows an error when the rename is refused', async () => {
     const { onclose } = mount({ onrename: () => false, error: 'names-invalid' });
     await type('Tirador izquierda', 'Cris');
-    await click('Guardar nombres');
+    await apply();
     expect(onclose).not.toHaveBeenCalled();
-    expect(screen.getAllByRole('alert').length).toBeGreaterThan(0);
+    expect(screen.getByRole('alert').textContent?.trim()).toBe('No se pudieron guardar los nombres.');
+  });
+
+  it('does not rename when the state change is refused', async () => {
+    const { onrename, onclose } = mount({ onsubmit: () => false, error: 'state-set-invalid-score' });
+    await type('Tocados de Ana', '5');
+    await type('Tirador izquierda', 'Cris');
+    await apply();
+    expect(onrename).not.toHaveBeenCalled();
+    expect(onclose).not.toHaveBeenCalled();
   });
 });
 
@@ -94,15 +110,12 @@ describe('CorrectionSheet', () => {
     expect(screen.queryByLabelText(/^Periodo/)).toBeNull();
   });
 
-  it('sends nothing before the confirmation and only the fields that changed', async () => {
-    const { onsubmit } = mount();
+  it('applies straight away and only the fields that changed', async () => {
+    const { onsubmit, onclose } = mount();
     await type('Tocados de Ana', '5');
-    await click('Revisar cambios');
-    expect(onsubmit).not.toHaveBeenCalled();
-    expect(screen.getByText('Se va a cambiar el marcador a Ana 5 - 2 Bea.')).toBeTruthy();
-
-    await click('Sí, aplicar el cambio');
+    await apply();
     expect(onsubmit).toHaveBeenCalledExactlyOnceWith({ score: { left: 5, right: 2 } });
+    expect(onclose).toHaveBeenCalledTimes(1);
   });
 
   it('converts minutes and seconds to milliseconds and sends the period', async () => {
@@ -110,77 +123,82 @@ describe('CorrectionSheet', () => {
     await type('Minutos', '2');
     await type('Segundos', '5');
     await type(/^Periodo/, '3');
-    await click('Revisar cambios');
-    expect(screen.getByText('Se va a cambiar el reloj a 2:05, el periodo a 3.')).toBeTruthy();
-    await click('Sí, aplicar el cambio');
+    await apply();
     expect(onsubmit).toHaveBeenCalledWith({ remainingMs: 125_000, period: 3 });
   });
 
   it('never sends an empty patch', async () => {
-    const { onsubmit } = mount();
-    await click('Revisar cambios');
+    const { onsubmit, onrename, onclose } = mount();
+    await apply();
     expect(screen.getByText('No has cambiado nada.')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Sí, aplicar el cambio' })).toBeNull();
     expect(onsubmit).not.toHaveBeenCalled();
+    expect(onrename).not.toHaveBeenCalled();
+    expect(onclose).not.toHaveBeenCalled();
   });
 
-  it('reset clock asks to confirm the full period duration', async () => {
+  it('reset clock only fills the full period duration until applied', async () => {
     const { onsubmit } = mount();
     await click('Reiniciar reloj');
-    expect(screen.getByText('Se va a cambiar el reloj a 3:00.')).toBeTruthy();
-    await click('Sí, aplicar el cambio');
+    expect(value('Minutos')).toBe('3');
+    expect(value('Segundos')).toBe('0');
+    expect(onsubmit).not.toHaveBeenCalled();
+    await apply();
     expect(onsubmit).toHaveBeenCalledWith({ remainingMs: 180_000 });
   });
 
   it('reset clock in the extra period uses the extra period duration', async () => {
     const { onsubmit } = mount({ basis: { ...basis, remainingMs: 20_000, inExtraPeriod: true } });
     await click('Reiniciar reloj');
-    await click('Sí, aplicar el cambio');
+    await apply();
     expect(onsubmit).toHaveBeenCalledWith({ remainingMs: 60_000 });
   });
 
-  it('reset scores asks to confirm 0-0', async () => {
+  it('reset scores only fills 0-0 until applied', async () => {
     const { onsubmit } = mount();
     await click('Marcador a 0-0');
-    expect(screen.getByText('Se va a cambiar el marcador a Ana 0 - 0 Bea.')).toBeTruthy();
-    await click('Sí, aplicar el cambio');
+    expect(value('Tocados de Ana')).toBe('0');
+    expect(value('Tocados de Bea')).toBe('0');
+    expect(onsubmit).not.toHaveBeenCalled();
+    await apply();
     expect(onsubmit).toHaveBeenCalledWith({ score: { left: 0, right: 0 } });
   });
 
-  it('clear cards asks to confirm and sends only clearCards', async () => {
+  it('clear cards is a toggle that sends only clearCards when applied', async () => {
+    const { onsubmit } = mount();
+    const button = screen.getByRole('button', { name: 'Quitar tarjetas' });
+    await fireEvent.click(button);
+    expect(button.getAttribute('aria-pressed')).toBe('true');
+    expect(onsubmit).not.toHaveBeenCalled();
+    await apply();
+    expect(onsubmit).toHaveBeenCalledWith({ clearCards: true });
+  });
+
+  it('clear cards can be switched off again before applying', async () => {
     const { onsubmit } = mount();
     await click('Quitar tarjetas');
-    expect(screen.getByText('Se va a cambiar quitar las tarjetas de los dos tiradores.')).toBeTruthy();
-    await click('Sí, aplicar el cambio');
-    expect(onsubmit).toHaveBeenCalledWith({ clearCards: true });
+    await click('Quitar tarjetas');
+    await apply();
+    expect(onsubmit).not.toHaveBeenCalled();
+    expect(screen.getByText('No has cambiado nada.')).toBeTruthy();
   });
 
   it('says that applying reopens a finished bout, and only then', async () => {
     mount({ finished: true });
+    expect(screen.queryByText(/lo reabre/)).toBeNull();
     await click('Marcador a 0-0');
-    expect(screen.getByText('El combate ya terminó: esto lo reabre.')).toBeTruthy();
+    expect(screen.getByText('El combate ya terminó: aplicar estos cambios lo reabre.')).toBeTruthy();
     cleanup();
 
     mount();
     await click('Marcador a 0-0');
-    expect(screen.queryByText('El combate ya terminó: esto lo reabre.')).toBeNull();
+    expect(screen.queryByText(/lo reabre/)).toBeNull();
   });
 
-  it('can go back from the confirmation without dispatching', async () => {
-    const { onsubmit } = mount();
-    await click('Marcador a 0-0');
-    await click('Volver');
-    expect(screen.getByLabelText('Tocados de Ana')).toBeTruthy();
-    expect(onsubmit).not.toHaveBeenCalled();
-  });
-
-  it('closes after an accepted correction and on cancel', async () => {
-    const { onclose } = mount();
+  it('closes on the close button without dispatching', async () => {
+    const { onclose, onsubmit } = mount();
     await click('Cerrar corrección');
     expect(onclose).toHaveBeenCalledTimes(1);
-    await click('Marcador a 0-0');
-    await click('Sí, aplicar el cambio');
-    expect(onclose).toHaveBeenCalledTimes(2);
+    expect(onsubmit).not.toHaveBeenCalled();
   });
 
   it('shows a specific alert for a refused correction and keeps the sheet open', async () => {
@@ -189,74 +207,35 @@ describe('CorrectionSheet', () => {
     expect(screen.queryByRole('alert')).toBeNull();
 
     await type('Minutos', '9');
-    await click('Revisar cambios');
-    await click('Sí, aplicar el cambio');
+    await apply();
     expect(screen.getByRole('alert').textContent?.trim()).toBe('El tiempo debe estar entre 0:00 y 3:00.');
     expect(onclose).not.toHaveBeenCalled();
     expect(value('Minutos')).toBe('9');
   });
 
-  it('blocks the review while the minutes are blank, without reaching the confirmation', async () => {
-    const { onsubmit } = mount();
-    await type('Minutos', '');
-    await click('Revisar cambios');
-    expect(screen.getByRole('alert').textContent?.trim()).toBe('El tiempo debe estar entre 0:00 y 3:00.');
-    expect(screen.queryByRole('button', { name: 'Sí, aplicar el cambio' })).toBeNull();
+  it.each([
+    ['Minutos', '', 'El tiempo debe estar entre 0:00 y 3:00.'],
+    ['Segundos', '', 'El tiempo debe estar entre 0:00 y 3:00.'],
+    [/^Periodo/, '', 'El periodo debe estar entre 1 y 3.'],
+    ['Tocados de Ana', 'x', 'Los tocados deben ser números enteros, de 0 en adelante.'],
+  ])('blocks applying while %s is blank or not a number', async (label, input, text) => {
+    const { onsubmit, onclose } = mount();
+    await type(label, input);
+    await apply();
+    expect(screen.getByRole('alert').textContent?.trim()).toBe(text);
     expect(onsubmit).not.toHaveBeenCalled();
-  });
-
-  it('blocks the review while the seconds are blank', async () => {
-    const { onsubmit } = mount();
-    await type('Segundos', '');
-    await click('Revisar cambios');
-    expect(screen.getByRole('alert').textContent?.trim()).toBe('El tiempo debe estar entre 0:00 y 3:00.');
-    expect(screen.queryByRole('button', { name: 'Sí, aplicar el cambio' })).toBeNull();
-    expect(onsubmit).not.toHaveBeenCalled();
-  });
-
-  it('blocks the review while the period is blank', async () => {
-    const { onsubmit } = mount();
-    await type(/^Periodo/, '');
-    await click('Revisar cambios');
-    expect(screen.getByRole('alert').textContent?.trim()).toBe('El periodo debe estar entre 1 y 3.');
-    expect(screen.queryByRole('button', { name: 'Sí, aplicar el cambio' })).toBeNull();
-    expect(onsubmit).not.toHaveBeenCalled();
-  });
-
-  it('blocks the review while a score is not a number', async () => {
-    const { onsubmit } = mount();
-    await type('Tocados de Ana', 'x');
-    await click('Revisar cambios');
-    expect(screen.getByRole('alert').textContent?.trim()).toBe('Los tocados deben ser números enteros, de 0 en adelante.');
-    expect(screen.queryByRole('button', { name: 'Sí, aplicar el cambio' })).toBeNull();
-    expect(onsubmit).not.toHaveBeenCalled();
+    expect(onclose).not.toHaveBeenCalled();
   });
 
   it('drops the blocked message once the field is valid again', async () => {
-    mount();
+    const { onsubmit } = mount();
     await type('Minutos', '');
-    await click('Revisar cambios');
+    await apply();
     expect(screen.getByRole('alert')).toBeTruthy();
     await type('Minutos', '2');
-    await click('Revisar cambios');
+    await apply();
     expect(screen.queryByRole('alert')).toBeNull();
-    expect(screen.getByText('Se va a cambiar el reloj a 2:35.')).toBeTruthy();
-  });
-
-  it('reset clock says the clock is already there when nothing would change', async () => {
-    const { onsubmit } = mount({ basis: { ...basis, remainingMs: 180_000 } });
-    await click('Reiniciar reloj');
-    expect(screen.getByText('El reloj ya está en 3:00.')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Sí, aplicar el cambio' })).toBeNull();
-    expect(onsubmit).not.toHaveBeenCalled();
-  });
-
-  it('reset scores says the score is already there when nothing would change', async () => {
-    const { onsubmit } = mount({ score: { left: 0, right: 0 } });
-    await click('Marcador a 0-0');
-    expect(screen.getByText('El marcador ya está 0-0.')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Sí, aplicar el cambio' })).toBeNull();
-    expect(onsubmit).not.toHaveBeenCalled();
+    expect(onsubmit).toHaveBeenCalledWith({ remainingMs: 155_000 });
   });
 
   it.each([
@@ -266,8 +245,7 @@ describe('CorrectionSheet', () => {
   ])('explains %s', async (error, errorParams, text) => {
     mount({ onsubmit: () => false, error, errorParams });
     await type('Tocados de Ana', '4');
-    await click('Revisar cambios');
-    await click('Sí, aplicar el cambio');
+    await apply();
     expect(screen.getByRole('alert').textContent?.trim()).toBe(text);
   });
 });
