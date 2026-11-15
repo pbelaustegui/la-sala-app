@@ -3,7 +3,7 @@ import { countCards } from '../core/card-counts';
 import { EventFactory, type EventDraft } from '../core/event-factory';
 import type { LocalBout } from '../core/local-bout';
 import { Observable } from '../core/observable';
-import { canToggleCard, canUndo, scoreboardView, type ScoreboardView } from '../core/scoreboard-view';
+import { canToggleCard, canUndo, formatClock, scoreboardView, type ScoreboardView } from '../core/scoreboard-view';
 import type { Timers } from '../core/sync-queue';
 
 export interface ScoreboardModel extends ScoreboardView {
@@ -101,12 +101,19 @@ export class ScoreboardController extends Observable<ScoreboardModel> {
     });
   }
 
-  /** Sets the stopped clock to `minutes`, capped by the period length. */
+  /**
+   * Sets the stopped clock to `minutes`, capped by the period length. A tap that would leave a
+   * stopped clock showing what it already shows records nothing: such an event changes nothing
+   * visible, so a later undo would seem not to work. Before the bout starts it still records,
+   * since it also leaves the scheduled phase.
+   */
   setClockPreset(minutes: number): void {
-    const { clockAction, correction } = this.get();
+    const { clockAction, correction, clockRunning, clockText, phase } = this.get();
     if (clockAction === null) return;
     const limit = correction.inExtraPeriod ? correction.extraPeriodDurationMs : correction.periodDurationMs;
-    this.perform({ type: 'state-set', remainingMs: Math.min(minutes * 60_000, limit) });
+    const remainingMs = Math.min(minutes * 60_000, limit);
+    if (phase !== 'scheduled' && !clockRunning && clockText === formatClock(remainingMs)) return;
+    this.perform({ type: 'state-set', remainingMs });
   }
 
   /**
