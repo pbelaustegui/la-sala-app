@@ -363,6 +363,37 @@ describe('ScoreboardController', () => {
       });
     });
 
+    it('records nothing for a preset the stopped clock already shows, so undo never spends a tap on it', () => {
+      const h = fencing();
+      h.controller.setClockPreset(2);
+      h.advance(1_000);
+      const events = h.bout.events().length;
+      const kicks = h.kicks();
+      h.controller.setClockPreset(2);
+      expect(h.bout.events()).toHaveLength(events);
+      expect(h.kicks()).toBe(kicks);
+      expect(h.controller.get().clockText).toBe('2:00');
+      h.controller.undo();
+      expect(h.controller.get().clockRunning).toBe(true);
+    });
+
+    it('records nothing when the stopped clock shows the preset with a fraction of a second left', () => {
+      const h = harness();
+      h.controller.toggleClock();
+      h.advance(60_500);
+      h.controller.toggleClock();
+      expect(h.controller.get().clockText).toBe('2:00');
+      const events = h.bout.events().length;
+      h.controller.setClockPreset(2);
+      expect(h.bout.events()).toHaveLength(events);
+    });
+
+    it('still records a preset before the bout starts, when it matches the full period', () => {
+      const h = harness();
+      h.controller.setClockPreset(3);
+      expect(h.bout.events().at(-1)?.event).toMatchObject({ type: 'state-set', remainingMs: 180_000 });
+    });
+
     it('sets the clock to a preset, capped by the period length', () => {
       const h = fencing();
       h.controller.setClockPreset(2);
