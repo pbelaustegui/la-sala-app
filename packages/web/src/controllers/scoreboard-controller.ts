@@ -3,7 +3,7 @@ import { countCards } from '../core/card-counts';
 import { EventFactory, type EventDraft } from '../core/event-factory';
 import type { LocalBout } from '../core/local-bout';
 import { Observable } from '../core/observable';
-import { canUndo, scoreboardView, type ScoreboardView } from '../core/scoreboard-view';
+import { canToggleCard, canUndo, scoreboardView, type ScoreboardView } from '../core/scoreboard-view';
 import type { Timers } from '../core/sync-queue';
 
 export interface ScoreboardModel extends ScoreboardView {
@@ -109,11 +109,14 @@ export class ScoreboardController extends Observable<ScoreboardModel> {
     this.perform({ type: 'state-set', remainingMs: Math.min(minutes * 60_000, limit) });
   }
 
-  /** Gives the card when the side has none of that type, otherwise removes one. Only while fencing. */
+  /**
+   * Gives the card when the side has none of that type, otherwise removes one. Only while fencing,
+   * except taking back the black card that finished the bout (see `canToggleCard`).
+   */
   toggleCard(side: Side, card: Card): void {
-    const { canScore, cards } = this.get();
-    if (!canScore) return;
-    const present = countCards(cards)[side][card] > 0;
+    const view = this.get();
+    if (!canToggleCard(view, side, card)) return;
+    const present = countCards(view.cards)[side][card] > 0;
     this.perform({ type: present ? 'card-removed' : 'card-given', side, card });
   }
 
