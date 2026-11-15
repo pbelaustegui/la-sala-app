@@ -203,6 +203,59 @@ describe('scoreboard', () => {
     expect(screen.getByRole('button', { name: 'Tarjeta roja a Ana' }).getAttribute('aria-pressed')).toBe('true');
   });
 
+  it('asks before giving a black card and gives nothing when cancelled', async () => {
+    const h = harness();
+    await open(h);
+    await click('Iniciar reloj');
+    await click('Tarjeta negra a Ana');
+    const dialog = screen.getByRole('alertdialog', { name: 'Tarjeta negra a Ana' });
+    expect(dialog.textContent).toContain('Excluye a Ana y termina el combate.');
+    expect(document.querySelector('.card-screen')).toBeNull();
+    await click('Cancelar');
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Tarjeta negra a Ana' }).getAttribute('aria-pressed')).toBe('false');
+    expect(screen.queryByText('Nuevo combate')).toBeNull();
+  });
+
+  it('gives the black card once confirmed, and a second tap on it takes it back and reopens the bout', async () => {
+    const h = harness();
+    await open(h);
+    await click('Iniciar reloj');
+    await click('Tarjeta negra a Ana');
+    await click('Sí, tarjeta negra');
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(document.querySelector('.card-screen')?.getAttribute('data-card')).toBe('black');
+    await click('Cerrar tarjeta');
+    expect(screen.getByText('Nuevo combate')).toBeTruthy();
+    const black = () => screen.getByRole('button', { name: 'Tarjeta negra a Ana' }) as HTMLButtonElement;
+    expect(black().disabled).toBe(false);
+    expect((screen.getByRole('button', { name: 'Tarjeta amarilla a Ana' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Tarjeta negra a Bea' }) as HTMLButtonElement).disabled).toBe(true);
+    // Taking it back needs no confirmation and is not shown full screen.
+    await click('Tarjeta negra a Ana');
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(document.querySelector('.card-screen')).toBeNull();
+    expect(screen.queryByText('Nuevo combate')).toBeNull();
+    expect(black().getAttribute('aria-pressed')).toBe('false');
+    expect((screen.getByRole('button', { name: 'Tocado para Ana' }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('takes back the black card of a finished bout even after re-entering the piste', async () => {
+    const h = harness();
+    await open(h);
+    await click('Iniciar reloj');
+    await click('Tarjeta negra a Ana');
+    await click('Sí, tarjeta negra');
+    await waitFor(() => expect(screen.getByText('Todo sincronizado')).toBeTruthy());
+    cleanup();
+
+    await open(h);
+    expect((screen.getByRole('button', { name: 'Deshacer' }) as HTMLButtonElement).disabled).toBe(true);
+    await click('Tarjeta negra a Ana');
+    expect(screen.queryByText('Nuevo combate')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Tarjeta negra a Ana' }).getAttribute('aria-pressed')).toBe('false');
+  });
+
   it('cards are locked until the bout is being fenced', async () => {
     await open(harness());
     expect((screen.getByRole('button', { name: 'Tarjeta roja a Ana' }) as HTMLButtonElement).disabled).toBe(true);

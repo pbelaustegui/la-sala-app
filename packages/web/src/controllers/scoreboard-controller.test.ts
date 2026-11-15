@@ -383,5 +383,27 @@ describe('ScoreboardController', () => {
       expect(h.controller.get().cards.map((c) => `${c.side}:${c.card}`)).toEqual(['right:yellow']);
       expect(h.bout.events().at(-1)?.event).toMatchObject({ type: 'card-removed', side: 'left', card: 'yellow' });
     });
+
+    it('removes the black card of a bout it finished, reopening the bout', () => {
+      const h = fencing();
+      h.controller.toggleCard('left', 'black');
+      expect(h.controller.get().result).toMatchObject({ reason: 'exclusion' });
+      h.advance(1_000);
+      h.controller.toggleCard('left', 'black');
+      expect(h.controller.get().result).toBeNull();
+      expect(h.controller.get().canScore).toBe(true);
+      expect(h.controller.get().cards).toEqual([]);
+      expect(h.bout.events().at(-1)?.event).toMatchObject({ type: 'card-removed', side: 'left', card: 'black' });
+    });
+
+    it('keeps every other card locked on a bout finished by a black card', () => {
+      const h = fencing();
+      h.controller.toggleCard('left', 'black');
+      const events = h.bout.events().length;
+      h.controller.toggleCard('left', 'yellow');
+      h.controller.toggleCard('right', 'black');
+      expect(h.bout.events()).toHaveLength(events);
+      expect(h.controller.get().result).toMatchObject({ reason: 'exclusion' });
+    });
   });
 });

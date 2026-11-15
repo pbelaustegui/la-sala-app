@@ -1,4 +1,4 @@
-import { remainingAt, type BoutEvent, type BoutState, type CardRecord, type FinishReason, type PhaseKind, type Side, type Weapon } from '@la-sala/domain';
+import { remainingAt, type BoutEvent, type BoutState, type Card, type CardRecord, type FinishReason, type PhaseKind, type Side, type Weapon } from '@la-sala/domain';
 import type { CopyKey } from '../i18n/t';
 
 /** Copy key plus placeholders, so the view stays free of formatting and testable without a DOM. */
@@ -137,6 +137,21 @@ export function scoreboardView(state: BoutState, now: number): ScoreboardView {
       inExtraPeriod: phase.kind === 'extra-period',
     },
   };
+}
+
+/**
+ * Whether the judge may tap this card toggle: any card while fencing, and on a bout a black card
+ * finished, only the excluded side's black card, so taking it back reopens the bout without
+ * relying on the undo history (which a resumed bout no longer has).
+ */
+export function canToggleCard(
+  view: Pick<ScoreboardView, 'canScore' | 'result' | 'cards'>,
+  side: Side,
+  card: Card,
+): boolean {
+  if (view.canScore) return true;
+  if (card !== 'black' || view.result?.reason !== 'exclusion') return false;
+  return view.cards.some((given) => given.side === side && given.card === 'black');
 }
 
 /** Whether `undo` would revert something: applied events minus undos, as `replay` counts them. */

@@ -3,6 +3,7 @@
   import type { ScoreboardModel } from '../controllers/scoreboard-controller';
   import CardDot from './CardDot.svelte';
   import { countCards, highestCard } from '../core/card-counts';
+  import { canToggleCard } from '../core/scoreboard-view';
   import { t } from '../i18n/t';
   import CorrectionSheet from './CorrectionSheet.svelte';
   import Icon from './Icon.svelte';
@@ -65,10 +66,28 @@
   /** The card just given, shown full screen so the judge can hold the phone up as the card. */
   let shownCard = $state<Card | null>(null);
 
+  /** A black card excludes the fencer and finishes the bout, so giving one asks first. */
+  let confirmingBlack = $state<Side | null>(null);
+
   function toggleCard(side: Side, card: Card): void {
+    const adding = cardCounts[side][card] === 0;
+    if (adding && card === 'black') {
+      confirmingBlack = side;
+      return;
+    }
+    giveOrRemove(side, card);
+  }
+
+  function giveOrRemove(side: Side, card: Card): void {
     const adding = cardCounts[side][card] === 0;
     ontogglecard(side, card);
     if (adding) shownCard = card;
+  }
+
+  function confirmBlack(): void {
+    const side = confirmingBlack;
+    confirmingBlack = null;
+    if (side !== null) giveOrRemove(side, 'black');
   }
 
   const SIDES: readonly Side[] = ['left', 'right'];
@@ -147,7 +166,7 @@
             <button
               class="card-toggle {card}"
               type="button"
-              disabled={!model.canScore}
+              disabled={!canToggleCard(model, side, card)}
               aria-pressed={cardCounts[side][card] > 0}
               aria-label={t(`board.card.${card}`, { name: names[side] })}
               onclick={() => toggleCard(side, card)}
@@ -249,6 +268,18 @@
       {onrename}
       onclose={() => (correctOpen = false)}
     />
+  {/if}
+
+  {#if confirmingBlack !== null}
+    <div class="black-confirm-backdrop">
+      <div class="black-confirm" role="alertdialog" aria-label={t('board.card.black', { name: names[confirmingBlack] })}>
+        <p>{t('board.card.black.confirm', { name: names[confirmingBlack] })}</p>
+        <div class="actions">
+          <button class="btn danger" type="button" onclick={confirmBlack}>{t('board.card.black.yes')}</button>
+          <button class="btn" type="button" onclick={() => (confirmingBlack = null)}>{t('board.card.black.cancel')}</button>
+        </div>
+      </div>
+    </div>
   {/if}
 
   {#if shownCard}
@@ -450,6 +481,39 @@
     display: flex;
     justify-content: center;
     gap: 0.3rem;
+  }
+  /* Covers the whole board so a stray tap cannot reach the scoring controls behind it. */
+  .black-confirm-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgb(0 0 0 / 0.6);
+  }
+  .black-confirm {
+    width: 100%;
+    max-width: 24rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--surface);
+    border: 2px solid var(--danger);
+    border-radius: 0.5rem;
+  }
+  .black-confirm p {
+    margin: 0;
+    font-weight: 700;
+  }
+  .black-confirm .actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .black-confirm .btn {
+    flex: 1;
+    min-height: var(--tap);
   }
   .card-screen {
     position: fixed;
