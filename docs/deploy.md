@@ -7,6 +7,7 @@ Read this first:
 - **Single instance only.** The SSE hub is in-memory; never run two copies against one database.
 - **`/admin` is public on the internet** while the VPS runs. Use a long random `ADMIN_PIN` (16+ random characters). It is never rate-limited.
 - **Destroy the VPS when the event ends.** Hourly billing only helps if you actually delete the server.
+- **Download the database first.** Destroying the VPS deletes every bout and its event log, the only record of what happened on each piste. Back it up as in ["When the event ends"](#when-the-event-ends) (fast path) or section 9 (manual path).
 
 ## Fast path (cloud-init)
 
@@ -38,7 +39,37 @@ On DigitalOcean you can skip sections 1 to 6: one paste of [`deploy/cloud-init.y
    curl -i https://${DROPLET_IP//./-}.sslip.io/health
    ```
 
-5. Continue at "8. Create the pistes". Sections 9 (backup) and 10 (destroy) apply to both paths. For the phone checks in section 7, use the same HTTPS address.
+5. Continue at "8. Create the pistes". For the phone checks in section 7, use the same HTTPS address. When the event is over, come back to ["When the event ends"](#when-the-event-ends) below instead of sections 9 and 10.
+
+### When the event ends
+
+Run these from your own machine, in a terminal with `DROPLET_IP` set (step 2). Do not destroy the Droplet until step 3 passes.
+
+1. Stop the app (the server closes the database cleanly on stop) and copy the database out of its volume into `/opt/la-sala`:
+
+   ```sh
+   ssh root@$DROPLET_IP 'cd /opt/la-sala && docker compose stop app && docker run --rm -v la-sala_app-data:/data -v /opt/la-sala:/backup alpine sh -c "cp /data/la-sala.sqlite* /backup/" && ls -l /opt/la-sala/la-sala.sqlite*'
+   ```
+
+   The listing must show `la-sala.sqlite` with a non-zero size. If `cp` says no such file, check the volume name with `ssh root@$DROPLET_IP docker volume ls` (cloud-init clones into `/opt/la-sala`, so it is `la-sala_app-data`).
+
+2. Download it into a dated folder:
+
+   ```sh
+   mkdir -p "la-sala-backup-$(date +%F)" && scp "root@$DROPLET_IP:/opt/la-sala/la-sala.sqlite*" "la-sala-backup-$(date +%F)/"
+   ```
+
+3. Check that the copy is a healthy database (Node 24 ships `node:sqlite`; the `ExperimentalWarning` is harmless):
+
+   ```sh
+   node -e "const {DatabaseSync}=require('node:sqlite');const db=new DatabaseSync(process.argv[1],{readOnly:true});console.log(db.prepare('select (select count(*) from bouts) bouts, (select count(*) from events) events').get())" "la-sala-backup-$(date +%F)/la-sala.sqlite"
+   ```
+
+   It must print the number of bouts and events, both above zero after a real event. An error means the backup is not usable: do not destroy the Droplet; to keep serving meanwhile, `ssh root@$DROPLET_IP 'cd /opt/la-sala && docker compose start app'`.
+
+4. Destroy the Droplet from the DigitalOcean panel and check that no Droplet, volume or reserved IP is left.
+
+Keep the folder: each bout's event log, with its timestamps, is what lets you reconstruct afterwards what a judge did (for example an undo that seemed not to work).
 
 Why the PIN is generated on the server: user data is visible in the provider panel and any process on the server can read it from the metadata service, so a secret placed there is not secret. The script creates `.env` (mode 600) only if it does not exist, so a re-run never changes the PIN.
 
