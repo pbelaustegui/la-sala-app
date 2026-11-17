@@ -21,6 +21,7 @@ double taps, recreated bouts with swapped sides, accidental red card finishing a
 - [x] T2 S2 ignore same-side touch within 1 s — inline — commit: 65fd560
 - [x] T3 S3 swap sides before the bout starts — inline — commit: cf8f90f
 - [x] T4 S4 confirm and take back a bout-ending red card — inline — commit: 20680ef
+- [ ] T5 S4 take back a red card that finished the bout in sudden death (extra period) — gentle-ai-worker — commit: pending
 
 ## Log
 
@@ -35,3 +36,10 @@ double taps, recreated bouts with swapped sides, accidental red card finishing a
   empezar»; red card «Confirmar + poder deshacer».
 - L3 decision: server schema keeps touchLimit optional (changing a consumed API contract is out of scope);
   the safeguard lives in the judge form.
+- L4 verify (gentle-ai-verify, T4): FAIL. A red card in the extra period finishes the bout with reason
+  'sudden-death'; the dialog asks for confirmation but the red can never be taken back:
+  packages/web/src/core/scoreboard-view.ts redFinishedBy accepts only 'touch-limit', and domain
+  packages/domain/src/scoring.ts removeCard counts only touch-limit as caused by a red and reopens to
+  'fencing'. Fix: removing the red card that decided sudden death (winner = opponent of the penalized
+  side) reopens to 'extra-period' with the clock stopped and priority kept; the view offers the toggle.
+  Note (open, user decision): renaming after a red finish moves lastAt and locks the take-back.
