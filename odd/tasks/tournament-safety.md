@@ -21,7 +21,11 @@ double taps, recreated bouts with swapped sides, accidental red card finishing a
 - [x] T2 S2 ignore same-side touch within 1 s — inline — commit: 65fd560
 - [x] T3 S3 swap sides before the bout starts — inline — commit: cf8f90f
 - [x] T4 S4 confirm and take back a bout-ending red card — inline — commit: 20680ef
-- [ ] T5 S4 take back a red card that finished the bout in sudden death (extra period) — gentle-ai-worker — commit: pending
+- [x] T5 S4 take back a red card that finished the bout in sudden death (extra period) — gentle-ai-worker — commit: c5b6d6d
+
+## Delivery
+
+Slice boundary: PR 1 = T1-T3 (2f56fce..cf8f90f); PR 2 = T4-T5 (20680ef..c5b6d6d), stacked on PR 1.
 
 ## Log
 
@@ -43,3 +47,4 @@ double taps, recreated bouts with swapped sides, accidental red card finishing a
   'fencing'. Fix: removing the red card that decided sudden death (winner = opponent of the penalized
   side) reopens to 'extra-period' with the clock stopped and priority kept; the view offers the toggle.
   Note (open, user decision): renaming after a red finish moves lastAt and locks the take-back.
+- L5 T5 done (c5b6d6d): domain removeCard reopens the extra period for the deciding red (also requires the red's at === lastAt, so an earlier red before a regular deciding touch stays locked). Checks: domain 162, web 471, server 202 tests passed; tsc and svelte-check clean.
