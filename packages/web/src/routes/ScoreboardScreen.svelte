@@ -85,6 +85,7 @@
     onpriority={(side) => controller.drawPriority(side)}
     oncorrect={(patch) => controller.setState(patch)}
     onrename={(left, right) => controller.setNames(left, right)}
+    onswap={() => controller.swapSides()}
     {onnewbout}
     facing={$facing.facing}
     facingBusy={$facing.busy}

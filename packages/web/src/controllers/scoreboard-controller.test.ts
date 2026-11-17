@@ -81,6 +81,29 @@ describe('ScoreboardController', () => {
     });
   });
 
+  describe('swapSides', () => {
+    it('swaps the fencers while the bout has not started, as an undoable names-set', () => {
+      const h = harness();
+      expect(h.controller.get().canSwapSides).toBe(true);
+      h.controller.swapSides();
+      expect(h.controller.get().names).toEqual({ left: 'Bea', right: 'Ana' });
+      expect(h.bout.events().at(-1)?.event).toEqual({ type: 'names-set', left: 'Bea', right: 'Ana', at: T0 });
+      expect(h.controller.get().phase).toBe('scheduled');
+      h.controller.undo();
+      expect(h.controller.get().names).toEqual({ left: 'Ana', right: 'Bea' });
+    });
+
+    it('is not offered once the clock started and stores nothing', () => {
+      const h = harness();
+      h.controller.toggleClock();
+      const before = h.bout.events().length;
+      expect(h.controller.get().canSwapSides).toBe(false);
+      h.controller.swapSides();
+      expect(h.controller.get().names).toEqual({ left: 'Ana', right: 'Bea' });
+      expect(h.bout.events()).toHaveLength(before);
+    });
+  });
+
   describe('setNames', () => {
     it('exposes the setup names, renames without stopping the clock and stores a names-set event', () => {
       const h = harness();

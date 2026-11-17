@@ -24,6 +24,7 @@
     onpriority,
     oncorrect,
     onrename,
+    onswap,
     onnewbout,
     facing = false,
     facingBusy = false,
@@ -50,6 +51,7 @@
     oncorrect: (patch: StateSetPatch) => boolean;
     /** Renames the fencers (no clock change). Returns whether it was accepted. */
     onrename: (left: string, right: string) => boolean;
+    onswap: () => void;
     onnewbout: () => void;
     /** Piste flag "facing the audience": it mirrors the SPECTATOR views, never this screen. */
     facing?: boolean;
@@ -224,6 +226,9 @@
     {/if}
     {#if model.canSkipBreak}
       <button class="btn skip" type="button" onclick={onskipbreak}>{t('board.skipBreak')}</button>
+    {/if}
+    {#if model.canSwapSides}
+      <button class="btn skip" type="button" onclick={onswap}>{t('board.swapSides')}</button>
     {/if}
   </div>
 

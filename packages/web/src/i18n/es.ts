@@ -25,6 +25,7 @@ export const es = {
   'board.clock.start': 'Iniciar reloj',
   'board.clock.stop': 'Parar reloj',
   'board.undo': 'Deshacer',
+  'board.swapSides': 'Invertir lados',
   'board.subtract': 'Quitar un tocado a {name}',
   'board.reset': 'Reiniciar combate',
   'board.clock.preset.3': 'Reloj a 3 minutos',

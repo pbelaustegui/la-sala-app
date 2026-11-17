@@ -18,8 +18,8 @@ double taps, recreated bouts with swapped sides, accidental red card finishing a
 ## Tasks
 
 - [x] T1 S1 required + remembered touch limit — inline — commit: 2f56fce
-- [x] T2 S2 ignore same-side touch within 1 s — inline — commit: (this commit)
-- [ ] T3 S3 swap sides before the bout starts — inline — commit: pending
+- [x] T2 S2 ignore same-side touch within 1 s — inline — commit: 65fd560
+- [x] T3 S3 swap sides before the bout starts — inline — commit: (this commit)
 - [ ] T4 S4 confirm and take back a bout-ending red card — inline — commit: pending
 
 ## Log

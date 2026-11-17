@@ -151,6 +151,13 @@ export class ScoreboardController extends Observable<ScoreboardModel> {
     return this.perform({ type: 'names-set', left, right });
   }
 
+  /** Before the bout starts, swaps the fencers' sides (an undoable rename). */
+  swapSides(): void {
+    const { canSwapSides, names } = this.get();
+    if (!canSwapSides) return;
+    this.setNames(names.right, names.left);
+  }
+
   undo(): void {
     if (!canUndo(this.deps.bout.events().map((stored) => stored.event))) return;
     this.perform({ type: 'undo' });
