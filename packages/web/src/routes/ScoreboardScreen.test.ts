@@ -256,6 +256,55 @@ describe('scoreboard', () => {
     expect(screen.getByRole('button', { name: 'Tarjeta negra a Ana' }).getAttribute('aria-pressed')).toBe('false');
   });
 
+  const toTwo = { weapon: 'foil', options: { touchLimit: 2 }, left: 'Ana', right: 'Bea' } as const;
+
+  it('asks before a red card that gives the last touch, and gives nothing when cancelled', async () => {
+    const h = harness(toTwo);
+    await open(h);
+    await click('Iniciar reloj');
+    await click('Tocado para Bea');
+    await click('Tarjeta roja a Ana');
+    const dialog = screen.getByRole('alertdialog', { name: 'Tarjeta roja a Ana' });
+    expect(dialog.textContent).toContain('Da el último tocado a Bea y termina el combate.');
+    expect(document.querySelector('.card-screen')).toBeNull();
+    await click('Cancelar');
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Tarjeta roja a Ana' }).getAttribute('aria-pressed')).toBe('false');
+    expect(score('right')).toBe('1');
+    expect(screen.queryByText('Nuevo combate')).toBeNull();
+  });
+
+  it('gives a bout-ending red card once confirmed, and a second tap takes it back and reopens the bout', async () => {
+    const h = harness(toTwo);
+    await open(h);
+    await click('Iniciar reloj');
+    await click('Tocado para Bea');
+    await click('Tarjeta roja a Ana');
+    await click('Sí, tarjeta roja');
+    expect(document.querySelector('.card-screen')?.getAttribute('data-card')).toBe('red');
+    await click('Cerrar tarjeta');
+    expect(screen.getByText('Nuevo combate')).toBeTruthy();
+    const red = () => screen.getByRole('button', { name: 'Tarjeta roja a Ana' }) as HTMLButtonElement;
+    expect(red().disabled).toBe(false);
+    expect((screen.getByRole('button', { name: 'Tarjeta roja a Bea' }) as HTMLButtonElement).disabled).toBe(true);
+    await click('Tarjeta roja a Ana');
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(document.querySelector('.card-screen')).toBeNull();
+    expect(screen.queryByText('Nuevo combate')).toBeNull();
+    expect(red().getAttribute('aria-pressed')).toBe('false');
+    expect(score('right')).toBe('1');
+  });
+
+  it('gives a red card that does not finish the bout right away', async () => {
+    const h = harness(toTwo);
+    await open(h);
+    await click('Iniciar reloj');
+    await click('Tarjeta roja a Ana');
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(document.querySelector('.card-screen')?.getAttribute('data-card')).toBe('red');
+    expect(score('right')).toBe('1');
+  });
+
   it('cards are locked until the bout is being fenced', async () => {
     await open(harness());
     expect((screen.getByRole('button', { name: 'Tarjeta roja a Ana' }) as HTMLButtonElement).disabled).toBe(true);

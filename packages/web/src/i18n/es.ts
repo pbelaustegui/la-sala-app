@@ -37,6 +37,8 @@ export const es = {
   'board.card.black.confirm': 'Excluye a {name} y termina el combate.',
   'board.card.black.yes': 'Sí, tarjeta negra',
   'board.card.black.cancel': 'Cancelar',
+  'board.card.red.confirm': 'Da el último tocado a {name} y termina el combate.',
+  'board.card.red.yes': 'Sí, tarjeta roja',
   'board.card.dismiss': 'Cerrar tarjeta',
   'board.facing': 'Estoy de cara al público',
   'board.facing.short': 'Público',

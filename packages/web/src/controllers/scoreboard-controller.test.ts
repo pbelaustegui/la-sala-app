@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LocalBout, type BoutSetup } from '../core/local-bout';
 import { MemoryStorage } from '../core/storage';
 import { FakeTimers } from '../testing/fake-timers';
+import { canToggleCard } from '../core/scoreboard-view';
 import { ScoreboardController } from './scoreboard-controller';
 
 const T0 = 1_000_000;
@@ -78,6 +79,54 @@ describe('ScoreboardController', () => {
       h.controller.touch('left');
       expect(h.controller.get().score).toEqual({ left: 1, right: 0 });
       expect(h.bout.events().at(-1)?.event).toMatchObject({ type: 'touch-scored', side: 'left' });
+    });
+  });
+
+  describe('bout-ending red card', () => {
+    function fencing() {
+      const h = harness({ weapon: 'foil', options: { touchLimit: 2 }, left: 'Ana', right: 'Bea' });
+      h.controller.toggleClock();
+      h.advance(1_000);
+      return h;
+    }
+
+    it('flags the red card that would give the last touch, only while fencing', () => {
+      expect(harness().controller.get().redWouldFinish).toEqual({ left: false, right: false });
+      const h = fencing();
+      expect(h.controller.get().redWouldFinish).toEqual({ left: false, right: false });
+      h.controller.touch('right');
+      expect(h.controller.get().redWouldFinish).toEqual({ left: true, right: false });
+    });
+
+    it('lets the penalized fencer take back the red card that finished the bout, reopening it', () => {
+      const h = fencing();
+      h.controller.touch('right');
+      h.advance(1_000);
+      h.controller.toggleCard('left', 'red');
+      expect(h.controller.get().result).toEqual({ winner: 'right', reason: 'touch-limit' });
+      expect(canToggleCard(h.controller.get(), 'left', 'red')).toBe(true);
+      expect(canToggleCard(h.controller.get(), 'right', 'red')).toBe(false);
+      expect(canToggleCard(h.controller.get(), 'left', 'yellow')).toBe(false);
+
+      h.advance(1_000);
+      h.controller.toggleCard('left', 'red');
+      const view = h.controller.get();
+      expect(view.result).toBeNull();
+      expect(view.phase).toBe('fencing');
+      expect(view.score).toEqual({ left: 0, right: 1 });
+      expect(view.cards).toEqual([]);
+      expect(h.bout.events().at(-1)?.event).toMatchObject({ type: 'card-removed', side: 'left', card: 'red' });
+    });
+
+    it('keeps an earlier red card locked when a regular touch finished the bout', () => {
+      const h = fencing();
+      h.controller.giveCard('left', 'red');
+      h.advance(1_000);
+      h.controller.toggleClock();
+      h.advance(1_000);
+      h.controller.touch('right');
+      expect(h.controller.get().result).toEqual({ winner: 'right', reason: 'touch-limit' });
+      expect(canToggleCard(h.controller.get(), 'left', 'red')).toBe(false);
     });
   });
 
