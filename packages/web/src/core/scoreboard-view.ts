@@ -167,8 +167,8 @@ function redFinishedBy(state: BoutState): Side | null {
 /**
  * Whether the judge may tap this card toggle: any card while fencing, and on a finished bout only
  * the card that finished it (the excluded side's black card, or the red card that gave the last
- * touch, including the deciding one in sudden death), so taking it back reopens the bout without relying on the undo history (which a resumed
- * bout no longer has).
+ * touch, including the deciding one in sudden death), so taking it back reopens the bout without
+ * relying on the undo history (which a resumed bout no longer has).
  */
 export function canToggleCard(
   view: Pick<ScoreboardView, 'canScore' | 'result' | 'cards' | 'redFinishedBy'>,
