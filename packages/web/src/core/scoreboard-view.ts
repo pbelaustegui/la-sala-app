@@ -152,12 +152,13 @@ export function scoreboardView(state: BoutState, now: number): ScoreboardView {
 }
 
 /**
- * The side whose red card was the bout's last event and handed the opponent the winning touch.
- * A red card given earlier, before a regular touch ended the bout, does not count.
+ * The side whose red card was the bout's last event and handed the opponent the winning touch,
+ * at the touch limit or as the deciding touch of sudden death. A red card given earlier, before
+ * a regular touch ended the bout, does not count.
  */
 function redFinishedBy(state: BoutState): Side | null {
   const { phase } = state;
-  if (phase.kind !== 'finished' || phase.reason !== 'touch-limit') return null;
+  if (phase.kind !== 'finished' || (phase.reason !== 'touch-limit' && phase.reason !== 'sudden-death')) return null;
   const loser: Side = phase.winner === 'left' ? 'right' : 'left';
   const red = state.cards.findLast((given) => given.side === loser && given.card === 'red');
   return red !== undefined && red.at === state.lastAt ? loser : null;
@@ -166,7 +167,7 @@ function redFinishedBy(state: BoutState): Side | null {
 /**
  * Whether the judge may tap this card toggle: any card while fencing, and on a finished bout only
  * the card that finished it (the excluded side's black card, or the red card that gave the last
- * touch), so taking it back reopens the bout without relying on the undo history (which a resumed
+ * touch, including the deciding one in sudden death), so taking it back reopens the bout without relying on the undo history (which a resumed
  * bout no longer has).
  */
 export function canToggleCard(
