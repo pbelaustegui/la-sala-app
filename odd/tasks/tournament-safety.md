@@ -1,0 +1,37 @@
+# tournament-safety
+
+Judge-side safeguards found by auditing the 2026-11-16 foil tournament database (bout 4 result lost,
+double taps, recreated bouts with swapped sides, accidental red card finishing a bout).
+
+## Specs
+
+- S1 Touch limit: «Campo obligatorio» + «Recordar el último de la pista» («Ambas»): the bout setup form
+  cannot be submitted without a touch limit, and it is prefilled with the weapon, periods and touch limit
+  of the previous bout started on that piste from this device (names are not prefilled).
+- S2 Double tap: «Ignorar mismo lado < 1 s»: «Un segundo toque del mismo tirador dentro de 1 segundo se
+  descarta. En florete no hay dos toques válidos tan seguidos.»
+- S3 Swap sides: «Solo antes de empezar»: «Disponible mientras el asalto no arrancó (0-0, sin reloj).
+  Solo intercambia los nombres; es el caso que vimos (asaltos 10, 22).»
+- S4 Red card: «Confirmar + poder deshacer»: «Igual que la negra: pide confirmación solo si esa roja da el
+  último toque, y permite retirarla con el asalto terminado.»
+
+## Tasks
+
+- [ ] T1 S1 required + remembered touch limit — inline — commit: pending
+- [ ] T2 S2 ignore same-side touch within 1 s — inline — commit: pending
+- [ ] T3 S3 swap sides before the bout starts — inline — commit: pending
+- [ ] T4 S4 confirm and take back a bout-ending red card — inline — commit: pending
+
+## Log
+
+- L1 (user): "me parece bien ir con los puntos 1 a 3. No estoy seguro del 4. Hablé con el organizador del
+  torneo y me dijo que en los casos de asaltos que no avanzó el tiempo usaron un reloj externo
+  intencionalmente, lo que si me dijo que hubo un caso en el que pusieron una tarjeta roja accidentalmente
+  que finalizó el combate, por lo que se me ocurre que podríamos hacer algo parecido a lo que hicimos para
+  la tarjeta negra en caso de que valla a finalizar el combate."
+  Points 1-3 = proposed fixes (required touch limit, double tap, swap sides); 4 (name autocomplete) out
+  of scope; piste 2 clock was intentional (external clock), not a defect.
+- L2 (user answers): touch limit «Ambas»; double tap «Ignorar mismo lado < 1 s»; swap «Solo antes de
+  empezar»; red card «Confirmar + poder deshacer».
+- L3 decision: server schema keeps touchLimit optional (changing a consumed API contract is out of scope);
+  the safeguard lives in the judge form.

@@ -10,17 +10,24 @@
     errors,
     failure,
     submitting,
+    initial = EMPTY_SETUP_FORM,
     onsubmit,
   }: {
     errors: SetupErrors;
     failure: EntryError | null;
     submitting: boolean;
+    /** Values the form opens with (the last format used on this piste). */
+    initial?: SetupForm;
     onsubmit: (form: SetupForm) => void;
   } = $props();
 
-  let weapon = $state<Weapon>(EMPTY_SETUP_FORM.weapon);
-  let periods = $state<1 | 2 | 3>(EMPTY_SETUP_FORM.periods);
-  let touchLimit = $state('');
+  // Seeded once: later edits belong to the judge, not to the prop.
+  // svelte-ignore state_referenced_locally
+  let weapon = $state<Weapon>(initial.weapon);
+  // svelte-ignore state_referenced_locally
+  let periods = $state<1 | 2 | 3>(initial.periods);
+  // svelte-ignore state_referenced_locally
+  let touchLimit = $state(initial.touchLimit);
   let left = $state('');
   let right = $state('');
 

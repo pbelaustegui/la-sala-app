@@ -33,7 +33,7 @@ function harness() {
   return { server, storage, pins, flow, step, state };
 }
 
-const FORM = { ...EMPTY_SETUP_FORM, left: 'Ana', right: 'Bea' };
+const FORM = { ...EMPTY_SETUP_FORM, left: 'Ana', right: 'Bea', touchLimit: '5' };
 
 describe('EntryFlow: PIN', () => {
   it('asks for the PIN when none is remembered', async () => {
@@ -242,6 +242,40 @@ describe('EntryFlow: starting and resuming', () => {
     const next = flow.get();
     expect(next.step === 'ready' && next.boutId).not.toBe(first.boutId);
     expect(storage.get(boutKey({ pisteId: 'p1', boutId: first.boutId }))).toBeNull();
+  });
+});
+
+describe('EntryFlow: remembered setup per piste', () => {
+  it('offers a blank touch limit when nothing was started on this piste', async () => {
+    const h = harness();
+    expect(h.flow.setupDefaults()).toEqual(EMPTY_SETUP_FORM);
+  });
+
+  it('prefills weapon, periods and touch limit of the last bout started on the piste, never names', async () => {
+    const h = harness();
+    await h.flow.start();
+    await h.flow.submitPin(PIN);
+    await h.flow.startBout({ ...FORM, weapon: 'epee', periods: 1, touchLimit: '5' });
+
+    expect(h.flow.setupDefaults()).toEqual({ weapon: 'epee', periods: 1, touchLimit: '5', left: '', right: '' });
+    const other = new EntryFlow({
+      pisteId: 'p2',
+      api: new ApiClient({ fetch: h.server.fetch, now: () => 1_000_000 }),
+      pins: h.pins,
+      storage: h.storage,
+      pointer: new CurrentBoutPointer(h.storage),
+      newId: () => 'x',
+    });
+    expect(other.setupDefaults()).toEqual(EMPTY_SETUP_FORM);
+  });
+
+  it('does not remember a setup the validation rejected', async () => {
+    const h = harness();
+    await h.flow.start();
+    await h.flow.submitPin(PIN);
+    await h.flow.startBout({ ...FORM, weapon: 'sabre', touchLimit: '' });
+
+    expect(h.flow.setupDefaults()).toEqual(EMPTY_SETUP_FORM);
   });
 });
 
