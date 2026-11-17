@@ -261,11 +261,24 @@ describe('scoreboard', () => {
     expect((screen.getByRole('button', { name: 'Tarjeta roja a Ana' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it('a double tap on a touch button counts once', async () => {
+    const h = harness();
+    await open(h);
+    await click('Iniciar reloj');
+    await click('Tocado para Ana');
+    await click('Tocado para Ana');
+    expect(score('left')).toBe('1');
+    await h.elapse(1_000);
+    await click('Tocado para Ana');
+    expect(score('left')).toBe('2');
+  });
+
   it('the minus button takes one point off a side, never below zero', async () => {
     const h = harness();
     await open(h);
     await click('Iniciar reloj');
     await click('Tocado para Ana');
+    await h.elapse(1_000);
     await click('Tocado para Ana');
     await click('Quitar un tocado a Ana');
     expect(score('left')).toBe('1');
@@ -412,6 +425,7 @@ describe('manual correction', () => {
     await click('Iniciar reloj');
     await click('Tocado para Ana');
     await click('Tocado para Bea');
+    await h.elapse(1_000);
     await click('Tocado para Bea');
     await click('Corregir marcador y reloj');
     await click('Marcador a 0-0');

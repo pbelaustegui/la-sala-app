@@ -36,6 +36,51 @@ describe('ScoreboardController', () => {
     expect(view.error).toBeNull();
   });
 
+  describe('double tap guard', () => {
+    function fencing() {
+      const h = harness();
+      h.controller.toggleClock();
+      h.advance(1_000);
+      h.controller.touch('left');
+      return h;
+    }
+
+    it('ignores a second touch of the same fencer within 1 second', () => {
+      const h = fencing();
+      const kicks = h.kicks();
+      h.advance(999);
+      h.controller.touch('left');
+      expect(h.controller.get().score).toEqual({ left: 1, right: 0 });
+      expect(h.bout.events().filter((e) => e.event.type === 'touch-scored')).toHaveLength(1);
+      expect(h.kicks()).toBe(kicks);
+      expect(h.controller.get().error).toBeNull();
+    });
+
+    it('accepts the same fencer again once 1 second has passed', () => {
+      const h = fencing();
+      h.advance(1_000);
+      h.controller.touch('left');
+      expect(h.controller.get().score).toEqual({ left: 2, right: 0 });
+    });
+
+    it('accepts the other fencer right away', () => {
+      const h = fencing();
+      h.advance(100);
+      h.controller.touch('right');
+      expect(h.controller.get().score).toEqual({ left: 1, right: 1 });
+    });
+
+    it('accepts the same fencer right after an undo', () => {
+      const h = fencing();
+      h.advance(100);
+      h.controller.undo();
+      h.advance(100);
+      h.controller.touch('left');
+      expect(h.controller.get().score).toEqual({ left: 1, right: 0 });
+      expect(h.bout.events().at(-1)?.event).toMatchObject({ type: 'touch-scored', side: 'left' });
+    });
+  });
+
   describe('setNames', () => {
     it('exposes the setup names, renames without stopping the clock and stores a names-set event', () => {
       const h = harness();
@@ -325,6 +370,7 @@ describe('ScoreboardController', () => {
     it('subtracts a point from one side, never below zero', () => {
       const h = fencing();
       h.controller.touch('left');
+      h.advance(1_000);
       h.controller.touch('left');
       h.advance(1_000);
       h.controller.subtractPoint('left');
