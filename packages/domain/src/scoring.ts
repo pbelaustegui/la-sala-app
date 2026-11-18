@@ -100,8 +100,11 @@ function withoutLatest(cards: readonly CardRecord[], side: Side, card: Card): re
  * Takes back the latest matching card and reverts what it caused: a red card's touch to the
  * opponent (never below 0) and a black card's exclusion. A bout finished by that touch or
  * exclusion is reopened to the last regular period with its clock stopped (the finished
- * phase does not remember its period, as with `state-set`); any other finished bout, or a
- * non-fencing phase, rejects the removal.
+ * phase does not remember its period, as with `state-set`). The red card that gave the
+ * deciding touch in sudden death (the bout's last event, so not a red card given before a
+ * regular touch decided it) reopens the extra period instead, with the clock stopped at the
+ * time it had left and priority kept. Any other finished bout, or a non-fencing
+ * phase, rejects the removal.
  */
 export function removeCard(state: BoutState, side: Side, card: Card, event: BoutEvent): RemoveCardResult {
   const finished = state.phase.kind === 'finished' ? state.phase : null;
@@ -120,6 +123,13 @@ export function removeCard(state: BoutState, side: Side, card: Card, event: Bout
   const causedFinish =
     (card === 'black' && finished.reason === 'exclusion' && finished.winner === opponent) ||
     (card === 'red' && finished.reason === 'touch-limit');
+  const removed = state.cards.filter((c) => c.side === side && c.card === card).at(-1);
+  const decidedSuddenDeath =
+    card === 'red' &&
+    finished.reason === 'sudden-death' &&
+    finished.winner === opponent &&
+    removed?.at === state.lastAt;
+  if (decidedSuddenDeath) return { ok: true, state: { ...base, phase: { kind: 'extra-period' } } };
   if (!causedFinish) return { ok: false, error: { type: 'bout-finished' } };
   const reopened: BoutState = { ...base, phase: { kind: 'fencing', period: state.rules.periods } };
   return { ok: true, state: finishedByTouchLimit(reopened) ?? reopened };

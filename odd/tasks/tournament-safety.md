@@ -19,8 +19,13 @@ double taps, recreated bouts with swapped sides, accidental red card finishing a
 
 - [x] T1 S1 required + remembered touch limit — inline — commit: 2f56fce
 - [x] T2 S2 ignore same-side touch within 1 s — inline — commit: 65fd560
-- [x] T3 S3 swap sides before the bout starts — inline — commit: (this commit)
-- [ ] T4 S4 confirm and take back a bout-ending red card — inline — commit: pending
+- [x] T3 S3 swap sides before the bout starts — inline — commit: cf8f90f
+- [x] T4 S4 confirm and take back a bout-ending red card — inline — commit: 20680ef
+- [x] T5 S4 take back a red card that finished the bout in sudden death (extra period) — gentle-ai-worker — commit: c5b6d6d
+
+## Delivery
+
+Slice boundary: PR 1 = T1-T3 (2f56fce..cf8f90f); PR 2 = T4-T5 (20680ef..c5b6d6d), stacked on PR 1.
 
 ## Log
 
@@ -35,3 +40,15 @@ double taps, recreated bouts with swapped sides, accidental red card finishing a
   empezar»; red card «Confirmar + poder deshacer».
 - L3 decision: server schema keeps touchLimit optional (changing a consumed API contract is out of scope);
   the safeguard lives in the judge form.
+- L4 verify (gentle-ai-verify, T4): FAIL. A red card in the extra period finishes the bout with reason
+  'sudden-death'; the dialog asks for confirmation but the red can never be taken back:
+  packages/web/src/core/scoreboard-view.ts redFinishedBy accepts only 'touch-limit', and domain
+  packages/domain/src/scoring.ts removeCard counts only touch-limit as caused by a red and reopens to
+  'fencing'. Fix: removing the red card that decided sudden death (winner = opponent of the penalized
+  side) reopens to 'extra-period' with the clock stopped and priority kept; the view offers the toggle.
+  Note (open, user decision): renaming after a red finish moves lastAt and locks the take-back.
+- L5 T5 done (c5b6d6d): domain removeCard reopens the extra period for the deciding red (also requires the red's at === lastAt, so an earlier red before a regular deciding touch stays locked). Checks: domain 162, web 471, server 202 tests passed; tsc and svelte-check clean.
+- L6 verify (gentle-ai-verify, T5): PASS with notes. Sudden-death red take-back reopens extra-period (clock stopped, priority kept); regular-touch/priority/winner-side cases stay rejected; touch-limit and black take-back identical to base; stored logs replay identically. Notes: rename lock (open L4 decision); long comment line wrapped.
+- L7 (user): "1. vamos con A. 2. abrí los PRs. 3. Borréa las carpetas temporales. 4. lo descartamos"
+  Rename after a red finish locking the take-back is accepted as a known limitation (undo or manual
+  correction recover it). Name autocomplete discarded. Delivery: stacked PRs to main (PR 1 T1-T3, PR 2 T4-T5).

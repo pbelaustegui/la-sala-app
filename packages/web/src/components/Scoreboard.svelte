@@ -68,13 +68,16 @@
   /** The card just given, shown full screen so the judge can hold the phone up as the card. */
   let shownCard = $state<Card | null>(null);
 
-  /** A black card excludes the fencer and finishes the bout, so giving one asks first. */
-  let confirmingBlack = $state<Side | null>(null);
+  /**
+   * A black card excludes the fencer and finishes the bout, and so does a red card that gives the
+   * opponent the last touch: giving either asks first.
+   */
+  let confirming = $state<{ readonly side: Side; readonly card: 'black' | 'red' } | null>(null);
 
   function toggleCard(side: Side, card: Card): void {
     const adding = cardCounts[side][card] === 0;
-    if (adding && card === 'black') {
-      confirmingBlack = side;
+    if (adding && (card === 'black' || (card === 'red' && model.redWouldFinish[side]))) {
+      confirming = { side, card };
       return;
     }
     giveOrRemove(side, card);
@@ -86,11 +89,13 @@
     if (adding) shownCard = card;
   }
 
-  function confirmBlack(): void {
-    const side = confirmingBlack;
-    confirmingBlack = null;
-    if (side !== null) giveOrRemove(side, 'black');
+  function confirmCard(): void {
+    const pending = confirming;
+    confirming = null;
+    if (pending !== null) giveOrRemove(pending.side, pending.card);
   }
+
+  const opponent = (side: Side): Side => (side === 'left' ? 'right' : 'left');
 
   const SIDES: readonly Side[] = ['left', 'right'];
   const CARDS: readonly Card[] = ['yellow', 'red', 'black'];
@@ -275,13 +280,18 @@
     />
   {/if}
 
-  {#if confirmingBlack !== null}
+  {#if confirming !== null}
+    {@const { side, card } = confirming}
     <div class="black-confirm-backdrop">
-      <div class="black-confirm" role="alertdialog" aria-label={t('board.card.black', { name: names[confirmingBlack] })}>
-        <p>{t('board.card.black.confirm', { name: names[confirmingBlack] })}</p>
+      <div class="black-confirm" role="alertdialog" aria-label={t(`board.card.${card}`, { name: names[side] })}>
+        <p>
+          {card === 'black'
+            ? t('board.card.black.confirm', { name: names[side] })
+            : t('board.card.red.confirm', { name: names[opponent(side)] })}
+        </p>
         <div class="actions">
-          <button class="btn danger" type="button" onclick={confirmBlack}>{t('board.card.black.yes')}</button>
-          <button class="btn" type="button" onclick={() => (confirmingBlack = null)}>{t('board.card.black.cancel')}</button>
+          <button class="btn danger" type="button" onclick={confirmCard}>{t(`board.card.${card}.yes`)}</button>
+          <button class="btn" type="button" onclick={() => (confirming = null)}>{t('board.card.black.cancel')}</button>
         </div>
       </div>
     </div>

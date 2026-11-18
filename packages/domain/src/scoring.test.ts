@@ -244,6 +244,44 @@ describe('card removal', () => {
     });
   });
 
+  describe('in sudden death', () => {
+    /** Extra period with priority to the left and the clock running since t=0 (180 s left). */
+    const suddenDeath = (): BoutState => ({ ...running(), phase: { kind: 'extra-period' }, priority: 'left' });
+
+    it('reopens the extra period the deciding red card finished, keeping priority and time', () => {
+      const given = give(suddenDeath(), 'left', 'red', 10_000);
+      expect(given.phase).toEqual({ kind: 'finished', winner: 'right', reason: 'sudden-death' });
+      const res = remove(given, 'left', 'red', 20_000);
+      expect(res).toEqual({
+        ok: true,
+        state: {
+          ...given,
+          cards: [],
+          score: { left: 0, right: 0 },
+          phase: { kind: 'extra-period' },
+          priority: 'left',
+          clock: { remainingMs: 170_000, runningSince: null },
+          lastAt: 20_000,
+        },
+      });
+    });
+
+    it('is rejected when a regular touch decided sudden death', () => {
+      let state = give(suddenDeath(), 'left', 'red', 1_000);
+      state = { ...withScore(state, 0, 0), phase: { kind: 'extra-period' } };
+      state = ok(state, { type: 'touch-scored', side: 'right', at: 2_000 });
+      expect(state.phase).toEqual({ kind: 'finished', winner: 'right', reason: 'sudden-death' });
+      expect(remove(state, 'left', 'red', 3_000)).toEqual({ ok: false, error: { type: 'bout-finished' } });
+    });
+
+    it("is rejected for a red card of the winner's side", () => {
+      let state = give(suddenDeath(), 'right', 'red', 1_000);
+      state = { ...withScore(state, 0, 0), phase: { kind: 'extra-period' } };
+      state = ok(state, { type: 'touch-scored', side: 'right', at: 2_000 });
+      expect(remove(state, 'right', 'red', 3_000)).toEqual({ ok: false, error: { type: 'bout-finished' } });
+    });
+  });
+
   it('removing a black card undoes the exclusion and keeps the clock stopped', () => {
     const given = give(running(), 'right', 'black', 5_000);
     expect(given.phase).toMatchObject({ kind: 'finished', reason: 'exclusion' });

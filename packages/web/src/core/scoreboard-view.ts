@@ -1,4 +1,4 @@
-import { remainingAt, type BoutEvent, type BoutState, type Card, type CardRecord, type FinishReason, type PhaseKind, type Side, type Weapon } from '@la-sala/domain';
+import { giveCard, remainingAt, type BoutEvent, type BoutState, type Card, type CardRecord, type FinishReason, type PhaseKind, type Side, type Weapon } from '@la-sala/domain';
 import type { CopyKey } from '../i18n/t';
 
 /** Copy key plus placeholders, so the view stays free of formatting and testable without a DOM. */
@@ -40,6 +40,10 @@ export interface ScoreboardView {
   readonly canSkipBreak: boolean;
   /** The bout has not started (0-0, clock never run): the fencers can still change sides. */
   readonly canSwapSides: boolean;
+  /** Per penalized side: a red card now would give the opponent the last touch and finish the bout. */
+  readonly redWouldFinish: Readonly<Record<Side, boolean>>;
+  /** Side whose red card gave the last touch of this finished bout, so it can still be taken back. */
+  readonly redFinishedBy: Side | null;
   /** The judge must pick the side that won the coin toss. */
   readonly awaitingPriority: boolean;
   readonly priority: Side | null;
@@ -125,6 +129,11 @@ export function scoreboardView(state: BoutState, now: number): ScoreboardView {
     doubleTouch,
     canSkipBreak: phase.kind === 'break',
     canSwapSides: phase.kind === 'scheduled',
+    redWouldFinish: {
+      left: canScore && giveCard(state, 'left', 'red', now).phase.kind === 'finished',
+      right: canScore && giveCard(state, 'right', 'red', now).phase.kind === 'finished',
+    },
+    redFinishedBy: redFinishedBy(state),
     awaitingPriority: phase.kind === 'priority-draw',
     priority: state.priority,
     result: phase.kind === 'finished' ? { winner: phase.winner, reason: phase.reason } : null,
@@ -143,16 +152,31 @@ export function scoreboardView(state: BoutState, now: number): ScoreboardView {
 }
 
 /**
- * Whether the judge may tap this card toggle: any card while fencing, and on a bout a black card
- * finished, only the excluded side's black card, so taking it back reopens the bout without
+ * The side whose red card was the bout's last event and handed the opponent the winning touch,
+ * at the touch limit or as the deciding touch of sudden death. A red card given earlier, before
+ * a regular touch ended the bout, does not count.
+ */
+function redFinishedBy(state: BoutState): Side | null {
+  const { phase } = state;
+  if (phase.kind !== 'finished' || (phase.reason !== 'touch-limit' && phase.reason !== 'sudden-death')) return null;
+  const loser: Side = phase.winner === 'left' ? 'right' : 'left';
+  const red = state.cards.findLast((given) => given.side === loser && given.card === 'red');
+  return red !== undefined && red.at === state.lastAt ? loser : null;
+}
+
+/**
+ * Whether the judge may tap this card toggle: any card while fencing, and on a finished bout only
+ * the card that finished it (the excluded side's black card, or the red card that gave the last
+ * touch, including the deciding one in sudden death), so taking it back reopens the bout without
  * relying on the undo history (which a resumed bout no longer has).
  */
 export function canToggleCard(
-  view: Pick<ScoreboardView, 'canScore' | 'result' | 'cards'>,
+  view: Pick<ScoreboardView, 'canScore' | 'result' | 'cards' | 'redFinishedBy'>,
   side: Side,
   card: Card,
 ): boolean {
   if (view.canScore) return true;
+  if (card === 'red') return view.redFinishedBy === side;
   if (card !== 'black' || view.result?.reason !== 'exclusion') return false;
   return view.cards.some((given) => given.side === side && given.card === 'black');
 }
