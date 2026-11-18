@@ -32,6 +32,7 @@
     errors={$flow.errors}
     failure={$flow.failure}
     submitting={$flow.submitting}
+    initial={flow.setupDefaults()}
     onsubmit={(form) => void flow.startBout(form)}
   />
 {:else if $flow.step === 'offline'}

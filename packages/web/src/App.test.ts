@@ -147,6 +147,7 @@ describe('judge entry', () => {
     await enterPin(PIN);
     await fireEvent.click(await screen.findByRole('button', { name: 'Empezar combate' }));
     expect((await screen.findAllByText('Escribe el nombre.')).length).toBe(2);
+    expect(screen.getByText('Indica el límite de tocados.')).toBeTruthy();
     expect(server.requests.filter((r) => r.path.endsWith('/bout'))).toHaveLength(0);
   });
 
@@ -157,12 +158,13 @@ describe('judge entry', () => {
     await enterPin(PIN);
     await fireEvent.click(await screen.findByLabelText('Espada'));
     await fireEvent.click(screen.getByLabelText('2 periodos'));
+    await fireEvent.input(screen.getByLabelText('Límite de tocados'), { target: { value: '10' } });
     await fireEvent.input(screen.getByLabelText('Tirador izquierda'), { target: { value: 'Ana' } });
     await fireEvent.input(screen.getByLabelText('Tirador derecha'), { target: { value: 'Bea' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Empezar combate' }));
 
     expect(await screen.findByRole('button', { name: 'Tocado para Ana' })).toBeTruthy();
-    expect(server.setup).toMatchObject({ weapon: 'epee', left: 'Ana', right: 'Bea', options: { periods: 2 } });
+    expect(server.setup).toMatchObject({ weapon: 'epee', left: 'Ana', right: 'Bea', options: { periods: 2, touchLimit: 10 } });
     expect(env.sessionStorage.get('la-sala:v1:pin:p1')).toBe(PIN);
   });
 

@@ -29,6 +29,9 @@ export interface ScoreboardDeps {
 
 export const TICK_MS = 100;
 
+/** A second touch for the same fencer this soon is an accidental double tap, never a real hit. */
+export const DOUBLE_TAP_MS = 1_000;
+
 const NO_ERROR = { error: null, errorParams: {} } as const;
 
 /**
@@ -55,8 +58,16 @@ export class ScoreboardController extends Observable<ScoreboardModel> {
     this.set(compute(this.deps, this.error));
   }
 
+  /** Ignores a repeat for the same fencer within `DOUBLE_TAP_MS` of their touch (double tap). */
   touch(side: Side): void {
+    if (this.isDoubleTap(side)) return;
     this.perform({ type: 'touch-scored', side });
+  }
+
+  private isDoubleTap(side: Side): boolean {
+    const last = this.deps.bout.events().at(-1)?.event;
+    if (last?.type !== 'touch-scored' || last.side !== side) return false;
+    return Math.max(this.deps.now(), last.at) - last.at < DOUBLE_TAP_MS;
   }
 
   doubleTouch(): void {
@@ -138,6 +149,13 @@ export class ScoreboardController extends Observable<ScoreboardModel> {
   /** Renames the fencers without touching the clock or score. Returns whether the domain accepted it. */
   setNames(left: string, right: string): boolean {
     return this.perform({ type: 'names-set', left, right });
+  }
+
+  /** Before the bout starts, swaps the fencers' sides (an undoable rename). */
+  swapSides(): void {
+    const { canSwapSides, names } = this.get();
+    if (!canSwapSides) return;
+    this.setNames(names.right, names.left);
   }
 
   undo(): void {

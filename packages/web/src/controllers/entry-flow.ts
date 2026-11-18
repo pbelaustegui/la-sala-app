@@ -1,3 +1,4 @@
+import { LastSetupStore } from '../core/last-setup';
 import type { ApiClient, ApiError, Snapshot } from '../core/api-client';
 import type { CurrentBoutPointer } from '../core/current-bout';
 import { LocalBout, type BoutSetup } from '../core/local-bout';
@@ -163,6 +164,11 @@ export class EntryFlow extends Observable<EntryState> {
     this.set(SETUP_IDLE);
   }
 
+  /** What the setup form opens with: the format of the last bout started on this piste. */
+  setupDefaults(): SetupForm {
+    return new LastSetupStore(this.deps.storage).defaults(this.deps.pisteId);
+  }
+
   async startBout(form: SetupForm): Promise<void> {
     const validation = validateSetupForm(form);
     if (!validation.ok) {
@@ -175,6 +181,7 @@ export class EntryFlow extends Observable<EntryState> {
       this.onStartFailure(result.error);
       return;
     }
+    new LastSetupStore(this.deps.storage).remember(this.deps.pisteId, validation.setup);
     const previous = this.loadLocal();
     if (previous !== null) this.deps.storage.remove(boutKey({ pisteId: this.deps.pisteId, boutId: previous.boutId }));
     const boutId = this.deps.newId();

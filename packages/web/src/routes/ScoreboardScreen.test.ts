@@ -261,11 +261,37 @@ describe('scoreboard', () => {
     expect((screen.getByRole('button', { name: 'Tarjeta roja a Ana' }) as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it('swaps the fencers before the bout starts, and hides the button once it started', async () => {
+    const h = harness();
+    await open(h);
+    const order = () => screen.getAllByRole('button', { name: /^Tocado para / }).map((b) => b.getAttribute('aria-label'));
+    expect(order()).toEqual(['Tocado para Ana', 'Tocado para Bea']);
+    await click('Invertir lados');
+    expect(order()).toEqual(['Tocado para Bea', 'Tocado para Ana']);
+    await click('Iniciar reloj');
+    expect(screen.queryByRole('button', { name: 'Invertir lados' })).toBeNull();
+    await click('Tocado para Ana');
+    expect(score('left')).toBe('1');
+  });
+
+  it('a double tap on a touch button counts once', async () => {
+    const h = harness();
+    await open(h);
+    await click('Iniciar reloj');
+    await click('Tocado para Ana');
+    await click('Tocado para Ana');
+    expect(score('left')).toBe('1');
+    await h.elapse(1_000);
+    await click('Tocado para Ana');
+    expect(score('left')).toBe('2');
+  });
+
   it('the minus button takes one point off a side, never below zero', async () => {
     const h = harness();
     await open(h);
     await click('Iniciar reloj');
     await click('Tocado para Ana');
+    await h.elapse(1_000);
     await click('Tocado para Ana');
     await click('Quitar un tocado a Ana');
     expect(score('left')).toBe('1');
@@ -412,6 +438,7 @@ describe('manual correction', () => {
     await click('Iniciar reloj');
     await click('Tocado para Ana');
     await click('Tocado para Bea');
+    await h.elapse(1_000);
     await click('Tocado para Bea');
     await click('Corregir marcador y reloj');
     await click('Marcador a 0-0');

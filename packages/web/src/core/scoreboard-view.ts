@@ -38,6 +38,8 @@ export interface ScoreboardView {
   readonly canScore: boolean;
   readonly doubleTouch: DoubleTouchState;
   readonly canSkipBreak: boolean;
+  /** The bout has not started (0-0, clock never run): the fencers can still change sides. */
+  readonly canSwapSides: boolean;
   /** The judge must pick the side that won the coin toss. */
   readonly awaitingPriority: boolean;
   readonly priority: Side | null;
@@ -122,6 +124,7 @@ export function scoreboardView(state: BoutState, now: number): ScoreboardView {
     canScore,
     doubleTouch,
     canSkipBreak: phase.kind === 'break',
+    canSwapSides: phase.kind === 'scheduled',
     awaitingPriority: phase.kind === 'priority-draw',
     priority: state.priority,
     result: phase.kind === 'finished' ? { winner: phase.winner, reason: phase.reason } : null,

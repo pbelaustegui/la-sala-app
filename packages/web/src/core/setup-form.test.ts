@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { EMPTY_SETUP_FORM, MAX_NAME_LENGTH, validateSetupForm, type SetupForm } from './setup-form';
 
-const valid: SetupForm = { ...EMPTY_SETUP_FORM, left: 'Ana', right: 'Bea' };
+const valid: SetupForm = { ...EMPTY_SETUP_FORM, left: 'Ana', right: 'Bea', touchLimit: '5' };
 
 describe('validateSetupForm', () => {
-  it('defaults to a 3 period foil bout with the standard touch limit', () => {
+  it('defaults to a 3 period foil bout', () => {
     const result = validateSetupForm(valid);
-    expect(result).toEqual({ ok: true, setup: { weapon: 'foil', options: { periods: 3 }, left: 'Ana', right: 'Bea' } });
+    expect(result).toEqual({ ok: true, setup: { weapon: 'foil', options: { periods: 3, touchLimit: 5 }, left: 'Ana', right: 'Bea' } });
   });
 
-  it('trims names and accepts an optional touch limit', () => {
+  it('trims names and the touch limit', () => {
     const result = validateSetupForm({ ...valid, left: '  Ana ', touchLimit: ' 5 ', weapon: 'sabre', periods: 1 });
     expect(result).toEqual({
       ok: true,
@@ -38,8 +38,14 @@ describe('validateSetupForm', () => {
     });
   });
 
-  it('treats a blank touch limit as "use the default"', () => {
-    const result = validateSetupForm({ ...valid, touchLimit: '   ' });
-    expect(result.ok && result.setup.options).toEqual({ periods: 3 });
+  it.each(['', '   '])('requires a touch limit (%j)', (touchLimit) => {
+    expect(validateSetupForm({ ...valid, touchLimit })).toEqual({
+      ok: false,
+      errors: { touchLimit: 'setup.error.touchLimitRequired' },
+    });
+  });
+
+  it('starts with a blank touch limit so the judge must choose one', () => {
+    expect(EMPTY_SETUP_FORM.touchLimit).toBe('');
   });
 });

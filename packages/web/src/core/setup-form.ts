@@ -6,7 +6,7 @@ import type { BoutSetup } from './local-bout';
 export interface SetupForm {
   readonly weapon: Weapon;
   readonly periods: 1 | 2 | 3;
-  /** Blank means "use the default for the weapon". */
+  /** Required: blank is rejected so a bout never falls back to a silent default. */
   readonly touchLimit: string;
   readonly left: string;
   readonly right: string;
@@ -40,7 +40,9 @@ export function validateSetupForm(form: SetupForm): SetupValidation {
 
   const options: { -readonly [K in keyof RulesOptions]: RulesOptions[K] } = { periods: form.periods };
   const rawLimit = form.touchLimit.trim();
-  if (rawLimit !== '') {
+  if (rawLimit === '') {
+    errors.touchLimit = 'setup.error.touchLimitRequired';
+  } else {
     // Digits only: rejects signs, decimals and exponents that Number() would accept.
     const limit = /^\d+$/.test(rawLimit) ? Number(rawLimit) : 0;
     if (Number.isSafeInteger(limit) && limit > 0) options.touchLimit = limit;
