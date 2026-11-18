@@ -49,3 +49,6 @@ Slice boundary: PR 1 = T1-T3 (2f56fce..cf8f90f); PR 2 = T4-T5 (20680ef..c5b6d6d)
   Note (open, user decision): renaming after a red finish moves lastAt and locks the take-back.
 - L5 T5 done (c5b6d6d): domain removeCard reopens the extra period for the deciding red (also requires the red's at === lastAt, so an earlier red before a regular deciding touch stays locked). Checks: domain 162, web 471, server 202 tests passed; tsc and svelte-check clean.
 - L6 verify (gentle-ai-verify, T5): PASS with notes. Sudden-death red take-back reopens extra-period (clock stopped, priority kept); regular-touch/priority/winner-side cases stay rejected; touch-limit and black take-back identical to base; stored logs replay identically. Notes: rename lock (open L4 decision); long comment line wrapped.
+- L7 (user): "1. vamos con A. 2. abrí los PRs. 3. Borréa las carpetas temporales. 4. lo descartamos"
+  Rename after a red finish locking the take-back is accepted as a known limitation (undo or manual
+  correction recover it). Name autocomplete discarded. Delivery: stacked PRs to main (PR 1 T1-T3, PR 2 T4-T5).
